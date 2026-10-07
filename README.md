@@ -36,22 +36,12 @@ Kedua tier membentuk satu funnel: mulai gratis di AI Case Study, lalu lanjut ke 
 - **AI Case Study:** jelajahi case, klik Mulai, kerjakan brief, submit, AI menilai, lalu halaman hasil. Lulus langsung mendapat sertifikat; belum lulus boleh coba lagi tanpa batas.
 - **B2B Case Study:** detail case, checkout (bayar), mulai mengerjakan (tenggat dihitung sejak ini), submit, menunggu review (SLA 5 hari kerja), lalu hasil. Reviewer bisa mengembalikan untuk revisi (belum dinilai, tidak mengurangi skor). Lulus mendapat sertifikat berlogo mitra; reviewer bisa merekomendasikan ke daftar prioritas interview, dan profil baru dibagikan setelah peserta setuju.
 
-## Keputusan penting
-
-- Membeli B2B case **tidak menjamin** panggilan interview. Disclaimer ini wajib tampil di detail case, checkout, FAQ, dan halaman hasil.
-- Tidak ada gamifikasi atau leaderboard; tujuannya membantu belajar.
-- Tidak ada pre-screening otomatis. Penggantinya validasi ketat di form submission dan opsi "kembalikan untuk revisi" oleh reviewer.
-- Brief ditampilkan langsung di halaman, bukan PDF. Kandidat anonim di mata reviewer.
-- Cakupan bidang studi luas sejak awal, bukan hanya teknologi.
-
-Keputusan yang masih terbuka (ambang lulus, batas revisi, tenggat tambahan, dan lainnya) tercatat di CONTEXT.md bagian 7.
-
 ## Isi folder
 
 ```
 website/
 ├── client/   # Front-end Next.js + TypeScript (prototype end-to-end dengan data tiruan)
-└── server/   # Backend Go (belum dimulai)
+└── server/   # Backend (belum dimulai)
 ```
 
 Front-end dibangun lebih dulu dengan data tiruan di balik service layer yang sama dengan versi produksi. Saat backend Go siap, front-end cukup diarahkan ke API asli. Kontrak API (endpoint, payload, bentuk respons) didokumentasikan di [`client/README.md`](client/README.md) dan tipe di `client/src/types/`.
