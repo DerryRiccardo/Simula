@@ -14,9 +14,16 @@ const TONE_CLASS: Record<TStatusTone, string> = {
   success: 'bg-ai-soft text-ai',
 };
 
-export function StatusBadge({ status }: { status: TEnrollmentStatus }) {
+interface StatusBadgeProps {
+  status: TEnrollmentStatus;
+  /** Label dan warna dari sudut pandang lain, misalnya reviewer ("Dikembalikan"). */
+  label?: string;
+  tone?: TStatusTone;
+}
+
+export function StatusBadge({ status, label, tone }: StatusBadgeProps) {
   const meta = ENROLLMENT_STATUS[status];
-  return <span className={cn(TAG_BASE, TONE_CLASS[meta.tone])}>{meta.label}</span>;
+  return <span className={cn(TAG_BASE, TONE_CLASS[tone ?? meta.tone])}>{label ?? meta.label}</span>;
 }
 
 const TIER_LABEL: Record<TTier, string> = { ai: 'AI Case Study', b2b: 'B2B Case Study' };

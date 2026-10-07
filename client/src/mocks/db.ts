@@ -1,5 +1,6 @@
 import type {
   IOrder,
+  IReviewDraft,
   IReviewResult,
   IRevisionRequest,
   IStatusEvent,
@@ -48,6 +49,8 @@ export interface IMockEnrollmentRecord {
   /** Hasil penilaian. Seed lulus/belum lulus diisi saat pertama dibaca (lihat resultApi). */
   review?: IReviewResult | null;
   shareConsent?: TShareConsent | null;
+  /** Draft penilaian reviewer untuk submission ini; dihapus saat keputusan dikirim. */
+  reviewDraft?: IReviewDraft | null;
   /** B2B: kesempatan submit ulang setelah belum lulus sudah dipakai (maks. 1 kali). */
   hasRetried?: boolean;
 }
@@ -64,7 +67,7 @@ interface IMockState {
 }
 
 // Naikkan versi bila bentuk data berubah, agar data lama di localStorage diabaikan.
-const STORAGE_KEY = 'ws-mock-db-v6';
+const STORAGE_KEY = 'ws-mock-db-v7';
 
 const SEED_USERS: IMockUserRecord[] = [
   {
@@ -224,6 +227,119 @@ const createSeedEnrollments = (): IMockEnrollmentRecord[] => {
   ];
 };
 
+// PLACEHOLDER: submission peserta lain untuk antrean portal reviewer. Pemiliknya bukan akun
+// demo, jadi tidak muncul di dashboard mahasiswa; reviewer hanya melihatnya sebagai kandidat anonim.
+const createSeedCandidateEnrollments = (): IMockEnrollmentRecord[] => {
+  const base = { score: null, certificateId: null, issuedAt: null, deadlineAt: null };
+  const declaration = { isLinkPublic: true, isOwnWork: true };
+  return [
+    {
+      ...base,
+      id: 'e-c1',
+      userId: 'u-candidate-1',
+      caseId: 'c-b2b-overselling',
+      status: 'in_review',
+      updatedAt: daysFromNow(-4),
+      submission: {
+        ...declaration,
+        values: {
+          'design-doc': { fileName: 'rancangan-stok-flash-sale.pdf', sizeBytes: 1_870_000 },
+          'prototype-repo': 'https://github.com/kandidat-1093/stock-reservation',
+          'tradeoff-memo': { fileName: 'memo-tradeoff.pdf', sizeBytes: 412_000 },
+        },
+        note: 'Prototipe memakai Redis untuk reservasi stok. Cara menjalankan ada di README.',
+        submittedAt: daysFromNow(-4),
+        attempt: 1,
+      },
+      events: [
+        { type: 'paid', at: daysFromNow(-12) },
+        { type: 'started', at: daysFromNow(-10) },
+        { type: 'submitted', at: daysFromNow(-4), attempt: 1 },
+      ],
+    },
+    {
+      ...base,
+      id: 'e-c2',
+      userId: 'u-candidate-2',
+      caseId: 'c-b2b-arus-kas',
+      status: 'in_review',
+      updatedAt: daysFromNow(-1),
+      submission: {
+        ...declaration,
+        values: {
+          model: { fileName: 'proyeksi-kas-6-cabang.xlsx', sizeBytes: 684_000 },
+          scenario: { fileName: 'analisis-skenario.pdf', sizeBytes: 905_000 },
+          memo: { fileName: 'memo-rekomendasi-v2.pdf', sizeBytes: 238_000 },
+        },
+        note: 'Sumber asumsi biaya sewa sudah saya tambahkan di tab Asumsi sesuai catatan revisi.',
+        submittedAt: daysFromNow(-1),
+        attempt: 2,
+      },
+      revision: {
+        reason: 'Deliverable belum sesuai brief',
+        note: 'Asumsi kenaikan biaya sewa dan gaji belum disertai sumber. Tambahkan sumbernya di tab asumsi, lalu kirim ulang.',
+        reviewerRole: 'Senior Financial Analyst',
+        requestedAt: daysFromNow(-4),
+      },
+      events: [
+        { type: 'paid', at: daysFromNow(-14) },
+        { type: 'started', at: daysFromNow(-13) },
+        { type: 'submitted', at: daysFromNow(-6), attempt: 1 },
+        { type: 'revision_requested', at: daysFromNow(-4) },
+        { type: 'submitted', at: daysFromNow(-1), attempt: 2 },
+      ],
+    },
+    {
+      ...base,
+      id: 'e-c3',
+      userId: 'u-candidate-3',
+      caseId: 'c-b2b-keterlambatan-kirim',
+      status: 'in_review',
+      updatedAt: daysFromNow(-8),
+      submission: {
+        ...declaration,
+        values: {
+          notebook: 'https://github.com/kandidat-2210/delay-analysis',
+          dashboard: { fileName: 'dashboard-pengiriman.pdf', sizeBytes: 1_520_000 },
+          deck: { fileName: 'deck-rute-baru.pdf', sizeBytes: 2_960_000 },
+        },
+        note: '',
+        submittedAt: daysFromNow(-8),
+        attempt: 1,
+      },
+      events: [
+        { type: 'paid', at: daysFromNow(-16) },
+        { type: 'started', at: daysFromNow(-15) },
+        { type: 'submitted', at: daysFromNow(-8), attempt: 1 },
+      ],
+    },
+    {
+      ...base,
+      id: 'e-c4',
+      userId: 'u-candidate-4',
+      caseId: 'c-b2b-overselling',
+      status: 'failed',
+      updatedAt: daysFromNow(-5),
+      score: 62,
+      submission: {
+        ...declaration,
+        values: {
+          'design-doc': { fileName: 'design-doc.pdf', sizeBytes: 980_000 },
+          'prototype-repo': 'https://github.com/kandidat-3318/flash-sale',
+          'tradeoff-memo': { fileName: 'tradeoff.pdf', sizeBytes: 301_000 },
+        },
+        note: '',
+        submittedAt: daysFromNow(-9),
+        attempt: 1,
+      },
+      events: [
+        { type: 'submitted', at: daysFromNow(-9), attempt: 1 },
+        { type: 'reviewed', at: daysFromNow(-5) },
+      ],
+    },
+  ];
+};
+
 // Order VA yang masih menunggu pembayaran, pasangan enrollment e-4 (CONTEXT.md 4.6).
 const createSeedOrders = (): IMockOrderRecord[] => [
   {
@@ -245,7 +361,7 @@ const createSeedOrders = (): IMockOrderRecord[] => [
 
 const createInitialState = (): IMockState => ({
   users: structuredClone(SEED_USERS),
-  enrollments: createSeedEnrollments(),
+  enrollments: [...createSeedEnrollments(), ...createSeedCandidateEnrollments()],
   orders: createSeedOrders(),
   sessionUserId: null,
 });
@@ -286,6 +402,11 @@ export const mockDb = {
     getState().users.find((user) => user.email.toLowerCase() === email.toLowerCase()),
 
   findUserById: (id: string) => getState().users.find((user) => user.id === id),
+
+  /** Portal reviewer: submission dari semua peserta (identitas disamarkan di reviewerApi). */
+  listAllEnrollments: () => getState().enrollments,
+
+  findEnrollmentById: (id: string) => getState().enrollments.find((item) => item.id === id),
 
   /** Verifikasi publik: cari di semua pengguna, tanpa perlu sesi. */
   findEnrollmentByCertificateId: (certificateId: string) =>

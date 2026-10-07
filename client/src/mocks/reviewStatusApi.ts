@@ -4,7 +4,12 @@ import { getCaseBrief } from '@/mocks/data/caseBriefs';
 import { findCaseById } from '@/mocks/data/cases';
 import { AI_REVIEWER_ROLE } from '@/mocks/data/reviewResults';
 import { mockDb } from '@/mocks/db';
-import { applyReviewOutcome, getAiGradingProgress, settleAiGradings } from '@/mocks/grading';
+import {
+  applyReviewOutcome,
+  applyRevisionRequest,
+  getAiGradingProgress,
+  settleAiGradings,
+} from '@/mocks/grading';
 import { learningApi } from '@/mocks/learningApi';
 import { getReviewerRole } from '@/mocks/resultApi';
 import { getOwnedRecord, toEnrollment } from '@/mocks/workspaceApi';
@@ -14,8 +19,6 @@ import type { ICaseStatus, IEnrollment, ISubmissionSlot, TReviewSimulation } fro
 
 /** SLA review reviewer mitra (CONTEXT.md 4.10). */
 const REVIEW_SLA_BUSINESS_DAYS = 5;
-/** Tambahan tenggat setelah submission dikembalikan untuk revisi (CONTEXT.md bagian 7). */
-const REVISION_EXTRA_DAYS = 3;
 
 // PLACEHOLDER: catatan reviewer contoh untuk demo, menyesuaikan slot tautan pertama bila ada.
 function buildDemoRevision(linkSlot: ISubmissionSlot | undefined) {
@@ -78,17 +81,9 @@ export const reviewStatusApi = {
 
     if (outcome === 'revision') {
       const linkSlot = brief.slots.find((slot) => slot.kind === 'link');
-      const updated = mockDb.updateEnrollment(enrollmentId, {
-        status: 'revision_requested',
-        deadlineAt: new Date(Date.now() + REVISION_EXTRA_DAYS * 86_400_000).toISOString(),
-        revision: {
-          ...buildDemoRevision(linkSlot),
-          reviewerRole,
-          requestedAt: new Date().toISOString(),
-        },
-      });
-      mockDb.addEnrollmentEvent(enrollmentId, { type: 'revision_requested' });
-      return toEnrollment(updated ?? record);
+      return toEnrollment(
+        applyRevisionRequest(record, { ...buildDemoRevision(linkSlot), reviewerRole })
+      );
     }
 
     return toEnrollment(applyReviewOutcome(record, outcome, reviewerRole));

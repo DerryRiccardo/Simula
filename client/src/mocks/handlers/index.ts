@@ -6,6 +6,7 @@ import { checkoutHandlers } from './checkout';
 import { learningHandlers } from './learning';
 import { profileHandlers } from './profile';
 import { resultHandlers } from './result';
+import { reviewerHandlers } from './reviewer';
 import { reviewStatusHandlers } from './reviewStatus';
 import { workspaceHandlers } from './workspace';
 
@@ -19,4 +20,5 @@ export const handlers: HttpHandler[] = [
   ...resultHandlers,
   ...certificateHandlers,
   ...profileHandlers,
+  ...reviewerHandlers,
 ];

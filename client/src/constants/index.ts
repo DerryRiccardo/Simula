@@ -6,3 +6,4 @@ export * from './paths';
 export * from './site';
 export * from './studentNav';
 export * from './payment';
+export * from './review';

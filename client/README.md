@@ -42,23 +42,25 @@ Semua variabel `NEXT_PUBLIC_*` ikut ke bundle browser, jadi jangan isi dengan se
 
 ## Halaman
 
-| Route                           | Halaman                                                             | Akses     |
-| ------------------------------- | ------------------------------------------------------------------- | --------- |
-| `/`                             | Landing page                                                        | Publik    |
-| `/login`, `/register`           | Masuk dan daftar (form + Google tiruan)                             | Tamu      |
-| `/onboarding`                   | Pilih bidang dan status (sekali, akun baru)                         | Mahasiswa |
-| `/dashboard`                    | Ringkasan progres, case yang perlu tindakan, rekomendasi            | Mahasiswa |
-| `/cases`, `/cases/[slug]`       | Jelajahi Case (tab AI / B2B) dan detail case                        | Mahasiswa |
-| `/cases/[slug]/checkout`        | Checkout B2B: metode bayar, virtual account, gateway tiruan         | Mahasiswa |
-| `/cases/[slug]/work`            | Pengerjaan: brief, materi, rubrik, form submission (draft otomatis) | Mahasiswa |
-| `/cases/[slug]/status`          | Sedang dinilai AI (progres per kriteria) atau menunggu review       | Mahasiswa |
-| `/cases/[slug]/result`          | Hasil: skor per kriteria, feedback, sertifikat, izin berbagi profil | Mahasiswa |
-| `/my-cases`, `/my-certificates` | Case Saya dan Sertifikat Saya                                       | Mahasiswa |
-| `/profile`                      | Data diri, bidang, notifikasi, persetujuan berbagi data             | Mahasiswa |
-| `/certificates/[id]`            | Verifikasi sertifikat publik (unduh PDF, tambahkan ke LinkedIn)     | Publik    |
-| `/reviewer`, `/admin/cases`     | Placeholder portal reviewer dan panel admin                         | Per peran |
+| Route                           | Halaman                                                                  | Akses     |
+| ------------------------------- | ------------------------------------------------------------------------ | --------- |
+| `/`                             | Landing page                                                             | Publik    |
+| `/login`, `/register`           | Masuk dan daftar (form + Google tiruan)                                  | Tamu      |
+| `/onboarding`                   | Pilih bidang dan status (sekali, akun baru)                              | Mahasiswa |
+| `/dashboard`                    | Ringkasan progres, case yang perlu tindakan, rekomendasi                 | Mahasiswa |
+| `/cases`, `/cases/[slug]`       | Jelajahi Case (tab AI / B2B) dan detail case                             | Mahasiswa |
+| `/cases/[slug]/checkout`        | Checkout B2B: metode bayar, virtual account, gateway tiruan              | Mahasiswa |
+| `/cases/[slug]/work`            | Pengerjaan: brief, materi, rubrik, form submission (draft otomatis)      | Mahasiswa |
+| `/cases/[slug]/status`          | Sedang dinilai AI (progres per kriteria) atau menunggu review            | Mahasiswa |
+| `/cases/[slug]/result`          | Hasil: skor per kriteria, feedback, sertifikat, izin berbagi profil      | Mahasiswa |
+| `/my-cases`, `/my-certificates` | Case Saya dan Sertifikat Saya                                            | Mahasiswa |
+| `/profile`                      | Data diri, bidang, notifikasi, persetujuan berbagi data                  | Mahasiswa |
+| `/certificates/[id]`            | Verifikasi sertifikat publik (unduh PDF, tambahkan ke LinkedIn)          | Publik    |
+| `/reviewer`                     | Antrean review (urut tenggat SLA) dan riwayat keputusan                  | Reviewer  |
+| `/reviewer/submissions/[id]`    | Review kandidat anonim: isi submission dan brief, form nilai atau revisi | Reviewer  |
+| `/admin/cases`                  | Placeholder panel admin                                                  | Admin     |
 
-Belum dibuat: portal reviewer dan panel admin. Halaman produk `/products/*` sengaja ditunda; tombol di section Products dan footer diarahkan ke tab katalog (`/cases?tier=ai` / `?tier=b2b`).
+Belum dibuat: panel admin. Halaman produk `/products/*` sengaja ditunda; tombol di section Products dan footer diarahkan ke tab katalog (`/cases?tier=ai` / `?tier=b2b`).
 
 ## Mode mock (front-end tanpa backend)
 
@@ -77,7 +79,7 @@ Catatan: saat mock aktif, halaman baru dirender setelah service worker MSW siap,
 
 ### Data dan akun demo
 
-Data tiruan disimpan di `localStorage` browser dengan kunci `ws-mock-db-v6`, jadi akun dan progres tetap ada setelah reload. Hapus kunci itu untuk kembali ke data awal. Naikkan versi kunci di `src/mocks/db.ts` bila bentuk data berubah.
+Data tiruan disimpan di `localStorage` browser dengan kunci `ws-mock-db-v7`, jadi akun dan progres tetap ada setelah reload. Hapus kunci itu untuk kembali ke data awal. Naikkan versi kunci di `src/mocks/db.ts` bila bentuk data berubah.
 
 Akun bawaan ada di `src/mocks/demoAccounts.ts`, dan halaman login menyediakan tombol masuk cepat:
 
@@ -87,14 +89,14 @@ Akun bawaan ada di `src/mocks/demoAccounts.ts`, dan halaman login menyediakan to
 | Reviewer  | `/reviewer`          |
 | Admin     | `/admin/cases`       |
 
-Akun Mahasiswa sudah punya contoh enrollment untuk hampir setiap status (perlu revisi, menunggu review, menunggu pembayaran, belum dimulai, sedang dikerjakan, lulus, belum lulus), plus dua sertifikat, agar semua tampilan bisa didemokan. Tombol "Lanjutkan dengan Google" disimulasikan.
+Akun Mahasiswa sudah punya contoh enrollment untuk hampir setiap status (perlu revisi, menunggu review, menunggu pembayaran, belum dimulai, sedang dikerjakan, lulus, belum lulus), plus dua sertifikat, agar semua tampilan bisa didemokan. Akun Reviewer ditugaskan ke semua B2B case (PLACEHOLDER untuk demo) dan antreannya berisi submission akun Mahasiswa serta beberapa kandidat contoh. Keputusan dari portal reviewer langsung mengubah status, hasil, dan sertifikat di akun Mahasiswa. Tombol "Lanjutkan dengan Google" disimulasikan.
 
 ### Panel simulasi untuk presentasi
 
 Bagian bertanda "Simulasi prototype" menggantikan sistem yang belum ada dan tidak muncul di produksi:
 
 - **Checkout:** "Pembayaran masuk" / "Lewati batas waktu" (pengganti webhook payment gateway), serta gateway tiruan untuk QRIS dan GoPay.
-- **Status review:** "Nilai lulus", "Nilai belum lulus", "Kembalikan untuk revisi" (pengganti portal reviewer).
+- **Status review:** "Nilai lulus", "Nilai belum lulus", "Kembalikan untuk revisi". Jalan pintas dengan skor contoh; keputusan lengkap dibuat lewat portal reviewer.
 - **Sedang dinilai AI:** "Selesaikan sebagai lulus" / "Selesaikan sebagai belum lulus". Tanpa panel ini, penilaian AI tiruan selesai sendiri sebagai lulus sekitar 3 detik per kriteria rubrik, lalu halaman pindah otomatis ke hasil.
 
 ## Kontrak API
@@ -166,6 +168,22 @@ Didefinisikan di `src/mocks/handlers/result.ts` dan `src/types/result.ts`:
 | `POST /me/enrollments/:id/retry`                         | Belum lulus → `in_progress` lagi. AI tanpa batas; B2B sekali (tenggat 3 hari)                                                       |
 
 Poin per kriteria = level ÷ 5 × bobot, total dibulatkan (lihat `src/lib/score.ts`). Lulus bila skor ≥ `passingScore`; sertifikat terbit otomatis tanpa tombol klaim. Rekomendasi interview adalah keputusan reviewer; simulasi demo memakai saran skor ≥ 80.
+
+### Portal reviewer
+
+Didefinisikan di `src/mocks/handlers/reviewer.ts` (logika di `src/mocks/reviewerApi.ts`) dan `src/types/reviewer.ts`. Semua endpoint khusus peran reviewer (403 untuk peran lain) dan hanya untuk case yang ditugaskan. Nama dan email kandidat tidak pernah dikirim; reviewer melihat `candidateLabel` seperti "Kandidat #5868".
+
+| Endpoint                                                     | Keterangan                                                                                                                                                              |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /reviewer/queue`                                        | `{ pending, history }`: antrean urut tenggat SLA terdekat (5 hari kerja sejak submit terakhir), riwayat urut keputusan terbaru                                          |
+| `GET /reviewer/submissions/:id`                              | Isi submission, brief, rubrik, catatan revisi terakhir, hasil (bila sudah dinilai), `canRequestRevision`, dan saran ambang rekomendasi                                  |
+| `PUT /reviewer/submissions/:id/draft`                        | Simpan otomatis draft penilaian `{ decision?, grade?, revision? }` (bagian yang dikirim menimpa bagian yang sama). Hanya untuk reviewer, dihapus saat keputusan dikirim |
+| `POST /reviewer/submissions/:id/grade`                       | `{ criteria: [{ name, level, reason }], feedback, isRecommended }`. Skor dihitung server; alasan minimal 20 karakter; rekomendasi hanya bila lulus                      |
+| `POST /reviewer/submissions/:id/revision` `{ reason, note }` | Kembalikan untuk revisi: belum dinilai, tenggat +3 hari. Maksimal 2 kali per submission (409 bila habis)                                                                |
+
+Filter case, pencarian (nomor kandidat atau judul case), dan urutan di antrean disaring di klien dan disimpan di URL (`?tab`, `?case`, `?search`, `?sort`), karena antrean satu reviewer kecil dan sudah dibatasi case yang ditugaskan. Isian form penilaian tersimpan otomatis 1,2 detik setelah berhenti mengetik.
+
+Deskripsi level 1-5 di form memakai kerangka umum (`src/constants/review.ts`); di produksi admin menulisnya per kriteria saat menyusun rubrik.
 
 ### Verifikasi sertifikat
 

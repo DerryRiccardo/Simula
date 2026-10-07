@@ -1,25 +1,22 @@
 import { Suspense } from 'react';
 
-import { WorkspacePlaceholder } from '@/components/app/WorkspacePlaceholder';
-import { PageLoader, RequireAuth } from '@/components/routing';
+import { PageLoader } from '@/components/routing';
 import { PATHS } from '@/constants/paths';
 import { createPageMetadata } from '@/lib/seo';
+import { QueueView } from './_components/QueueView';
 
 export const metadata = createPageMetadata({
-  title: 'Portal Reviewer',
+  title: 'Antrean Review',
+  description: 'Submission B2B yang ditugaskan untuk dinilai, beserta riwayat keputusan.',
   path: PATHS.reviewer,
   noIndex: true,
 });
 
 export default function ReviewerPage() {
   return (
+    // useSearchParams (tab antrean/riwayat) butuh Suspense agar halaman tetap bisa di-prerender.
     <Suspense fallback={<PageLoader />}>
-      <RequireAuth roles={['reviewer']}>
-        <WorkspacePlaceholder
-          title="selamat datang di portal reviewer."
-          description="Di sini nanti kamu melihat antrean submission dan menilainya dengan rubrik."
-        />
-      </RequireAuth>
+      <QueueView />
     </Suspense>
   );
 }

@@ -75,7 +75,7 @@ export const workspaceApi = {
     return draft;
   },
 
-  /** B2B → menunggu review; AI → sedang dinilai AI. Draft dan catatan revisi dibersihkan. */
+  /** B2B → menunggu review; AI → sedang dinilai AI. Draft dibersihkan. */
   submitWork: (enrollmentId: string, content: ISubmissionContent): IEnrollment => {
     const record = getOwnedRecord(enrollmentId);
     if (!EDITABLE_STATUSES.includes(record.status)) {
@@ -86,7 +86,7 @@ export const workspaceApi = {
     const updated = mockDb.updateEnrollment(enrollmentId, {
       status: caseInfo?.tier === 'ai' ? 'ai_grading' : 'in_review',
       draft: null,
-      revision: null,
+      // Catatan revisi terakhir disimpan agar reviewer bisa membandingkan submit ulang.
       submission: { ...content, submittedAt: new Date().toISOString(), attempt },
     });
     mockDb.addEnrollmentEvent(enrollmentId, { type: 'submitted', attempt });

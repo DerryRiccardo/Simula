@@ -1,13 +1,11 @@
 import { CircleCheck, Target } from 'lucide-react';
 
-import { getCriterionPoints, MAX_LEVEL } from '@/lib/score';
+import { formatPoints, getCriterionPoints, MAX_LEVEL } from '@/lib/score';
 import { cn } from '@/lib/utils';
 import type { ICriterionScore, IReviewResult } from '@/types';
 
 /** Level 4 ke atas dianggap sudah kuat; di bawahnya masih ada celah yang perlu dilatih. */
 const STRONG_LEVEL = 4;
-
-const formatPoints = (value: number) => value.toLocaleString('id-ID', { maximumFractionDigits: 1 });
 
 const getLostPoints = (criterion: ICriterionScore) =>
   Math.round((criterion.weight - getCriterionPoints(criterion)) * 10) / 10;

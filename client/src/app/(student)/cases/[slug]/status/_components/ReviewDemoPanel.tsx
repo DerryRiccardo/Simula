@@ -83,7 +83,7 @@ export function ReviewDemoPanel({ slug, enrollmentId, tier = 'b2b' }: ReviewDemo
       <p className="mt-1 text-sm text-ink-muted">
         {tier === 'ai'
           ? 'Mempercepat penilaian AI untuk presentasi. Tidak muncul di versi produksi.'
-          : 'Menggantikan keputusan dari portal reviewer. Tidak muncul di versi produksi.'}
+          : 'Jalan pintas dengan skor contoh; keputusan lengkap dibuat di portal reviewer. Tidak muncul di versi produksi.'}
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
         {simulations.map((simulation, index) => (

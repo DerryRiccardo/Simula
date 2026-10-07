@@ -1,4 +1,4 @@
-import { getCriterionPoints, MAX_LEVEL } from '@/lib/score';
+import { formatPoints, getCriterionPoints, MAX_LEVEL } from '@/lib/score';
 import { cn } from '@/lib/utils';
 import type { ICriterionScore, IReviewResult } from '@/types';
 
@@ -15,8 +15,6 @@ function LevelPips({ level }: { level: number }) {
     </span>
   );
 }
-
-const formatPoints = (value: number) => value.toLocaleString('id-ID', { maximumFractionDigits: 1 });
 
 function CriterionRow({ criterion, isFocus }: { criterion: ICriterionScore; isFocus: boolean }) {
   return (

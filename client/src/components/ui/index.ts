@@ -10,3 +10,4 @@ export * from './tabs';
 export * from './dashboard-sidebar';
 export * from './dialog';
 export * from './switch';
+export * from './textarea';

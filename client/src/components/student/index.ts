@@ -12,3 +12,4 @@ export * from './SearchToolbar';
 export * from './StatusPicker';
 export * from './StudentShell';
 export * from './SubmittedSummary';
+export * from './CaseBriefSections';
