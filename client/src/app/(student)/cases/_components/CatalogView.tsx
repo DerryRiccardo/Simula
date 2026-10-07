@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { SearchX } from 'lucide-react';
 
 import { Reveal } from '@/components/animated';
@@ -14,6 +15,7 @@ import {
 } from '@/components/student';
 import { Button } from '@/components/ui';
 import { FIELD_BY_KEY, FIELD_FILTER_OPTIONS } from '@/constants/fields';
+import { PATHS } from '@/constants/paths';
 import { useCurrentUser } from '@/hooks/useAuth';
 import { useCaseCatalog } from '@/hooks/useLearning';
 import { useUrlParams } from '@/hooks/useUrlParams';
@@ -51,7 +53,7 @@ const LEVEL_OPTIONS: { value: TCaseLevel | 'all'; label: string }[] = [
 ];
 
 export function CatalogView() {
-  const { user } = useCurrentUser();
+  const { user, isLoading: isUserLoading } = useCurrentUser();
   const { searchParams, setParams } = useUrlParams();
   const tier = parseOption(TIER_TABS, searchParams.get('tier'), 'all');
   const field = parseOption(FIELD_FILTER_OPTIONS, searchParams.get('field'), FILTER_ALL);
@@ -60,19 +62,26 @@ export function CatalogView() {
   const urlSearch = searchParams.get('search') ?? '';
   const { searchInput, setSearchInput, clearSearch } = useUrlSearch(urlSearch, setParams);
 
-  const { data, isLoading, isError, refetch } = useCaseCatalog({
-    tier: tier === 'all' ? undefined : tier,
-    field: field === FILTER_ALL ? undefined : field,
-    level: level === 'all' ? undefined : level,
-    sort,
-    search: urlSearch || undefined,
-    limit: 24,
-  });
+  // Jelajahi Case untuk mencari case baru; yang sudah diambil cukup dikelola di Case Saya.
+  const { data, isLoading, isError, refetch } = useCaseCatalog(
+    {
+      tier: tier === 'all' ? undefined : tier,
+      field: field === FILTER_ALL ? undefined : field,
+      level: level === 'all' ? undefined : level,
+      sort,
+      search: urlSearch || undefined,
+      excludeEnrolled: user !== null,
+      limit: 24,
+    },
+    !isUserLoading
+  );
 
   const cases = data?.data ?? [];
   const userFields = user?.fieldKeys ?? [];
   const userFieldLabels = userFields.flatMap((key) => FIELD_BY_KEY[key]?.label ?? []);
-  const hasFilters = tier !== 'all' || field !== FILTER_ALL || level !== 'all' || urlSearch !== '';
+  // Tanpa pencarian dan filter bidang/level, daftar kosong berarti semua case di tab ini sudah diambil.
+  const hasRefinements = field !== FILTER_ALL || level !== 'all' || urlSearch !== '';
+  const tierLabel = tier === 'all' ? 'case' : TIER_TABS.find((tab) => tab.value === tier)?.label;
 
   const filterSections: IFilterSection[] = [
     {
@@ -130,25 +139,41 @@ export function CatalogView() {
         {data && (
           <p className="text-sm text-ink-subtle" aria-live="polite">
             <span className="font-mono text-ink tabular-nums">{data.metadata.totalItems}</span> case
-            {sort === 'relevance' && userFieldLabels.length > 0 && (
+            {sort === 'relevance' && userFieldLabels.length > 0 && cases.length > 0 && (
               <>, bidang {userFieldLabels.join(' dan ')} ditampilkan lebih dulu</>
+            )}
+            {user && (
+              <>
+                . Case yang sudah kamu ambil ada di{' '}
+                <Link href={PATHS.myCases} className="font-medium text-brand hover:underline">
+                  Case Saya
+                </Link>
+              </>
             )}
           </p>
         )}
 
-        {isLoading ? (
+        {isLoading || isUserLoading ? (
           <CardGridSkeleton />
         ) : isError ? (
           <ErrorState onRetry={() => refetch()} />
         ) : cases.length === 0 ? (
           <EmptyState
             icon={SearchX}
-            title="Case tidak ditemukan"
-            description="Coba kata kunci lain, atau longgarkan filter bidang dan level."
+            title={hasRefinements ? 'Case tidak ditemukan' : `Semua ${tierLabel} sudah kamu ambil`}
+            description={
+              hasRefinements
+                ? 'Coba kata kunci lain, atau longgarkan filter. Case yang sudah kamu ambil tidak ditampilkan di sini.'
+                : 'Lanjutkan pengerjaan dan lihat hasilnya di Case Saya. Case baru akan muncul di sini begitu terbit.'
+            }
             action={
-              hasFilters && (
+              hasRefinements ? (
                 <Button variant="outline" size="pill" onClick={resetAll}>
                   Hapus semua filter
+                </Button>
+              ) : (
+                <Button asChild size="pill">
+                  <Link href={PATHS.myCases}>Ke Case Saya</Link>
                 </Button>
               )
             }

@@ -2,6 +2,7 @@ import { getCaseBrief } from '@/mocks/data/caseBriefs';
 import { findCaseById } from '@/mocks/data/cases';
 import { AI_REVIEWER_ROLE, getSeedReview } from '@/mocks/data/reviewResults';
 import { mockDb, type IMockEnrollmentRecord } from '@/mocks/db';
+import { settleAiGradings } from '@/mocks/grading';
 import { learningApi } from '@/mocks/learningApi';
 import { getOwnedRecord, toEnrollment } from '@/mocks/workspaceApi';
 import type { ICaseDetail, ICaseResult, IEnrollment, IReviewResult } from '@/types';
@@ -40,6 +41,7 @@ export const resultApi = {
     const caseInfo = learningApi.getCaseBySlug(slug);
     if (!caseInfo) return null;
     const user = mockDb.getSessionUser();
+    if (user) settleAiGradings(mockDb.listEnrollments(user.id));
     const record = user
       ? mockDb.listEnrollments(user.id).find((item) => item.caseId === caseInfo.id)
       : undefined;

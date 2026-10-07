@@ -51,14 +51,14 @@ Semua variabel `NEXT_PUBLIC_*` ikut ke bundle browser, jadi jangan isi dengan se
 | `/cases`, `/cases/[slug]`       | Jelajahi Case (tab AI / B2B) dan detail case                        | Mahasiswa |
 | `/cases/[slug]/checkout`        | Checkout B2B: metode bayar, virtual account, gateway tiruan         | Mahasiswa |
 | `/cases/[slug]/work`            | Pengerjaan: brief, materi, rubrik, form submission (draft otomatis) | Mahasiswa |
-| `/cases/[slug]/status`          | Menunggu review: timeline, SLA, panel simulasi keputusan reviewer   | Mahasiswa |
+| `/cases/[slug]/status`          | Sedang dinilai AI (progres per kriteria) atau menunggu review       | Mahasiswa |
 | `/cases/[slug]/result`          | Hasil: skor per kriteria, feedback, sertifikat, izin berbagi profil | Mahasiswa |
 | `/my-cases`, `/my-certificates` | Case Saya dan Sertifikat Saya                                       | Mahasiswa |
 | `/profile`                      | Data diri, bidang, notifikasi, persetujuan berbagi data             | Mahasiswa |
 | `/certificates/[id]`            | Verifikasi sertifikat publik (unduh PDF, tambahkan ke LinkedIn)     | Publik    |
 | `/reviewer`, `/admin/cases`     | Placeholder portal reviewer dan panel admin                         | Per peran |
 
-Belum dibuat: halaman "Sedang dinilai AI" yang otomatis pindah ke hasil, portal reviewer, dan panel admin. Halaman produk `/products/*` sengaja ditunda; tombol di section Products dan footer diarahkan ke tab katalog (`/cases?tier=ai` / `?tier=b2b`).
+Belum dibuat: portal reviewer dan panel admin. Halaman produk `/products/*` sengaja ditunda; tombol di section Products dan footer diarahkan ke tab katalog (`/cases?tier=ai` / `?tier=b2b`).
 
 ## Mode mock (front-end tanpa backend)
 
@@ -95,6 +95,7 @@ Bagian bertanda "Simulasi prototype" menggantikan sistem yang belum ada dan tida
 
 - **Checkout:** "Pembayaran masuk" / "Lewati batas waktu" (pengganti webhook payment gateway), serta gateway tiruan untuk QRIS dan GoPay.
 - **Status review:** "Nilai lulus", "Nilai belum lulus", "Kembalikan untuk revisi" (pengganti portal reviewer).
+- **Sedang dinilai AI:** "Selesaikan sebagai lulus" / "Selesaikan sebagai belum lulus". Tanpa panel ini, penilaian AI tiruan selesai sendiri sebagai lulus sekitar 3 detik per kriteria rubrik, lalu halaman pindah otomatis ke hasil.
 
 ## Kontrak API
 
@@ -108,14 +109,14 @@ Didefinisikan di `src/mocks/handlers/auth.ts` (logika di `src/mocks/authApi.ts`)
 
 Didefinisikan di `src/mocks/handlers/learning.ts` dan `src/types/case.ts`:
 
-| Endpoint                                             | Keterangan                                                                    |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `GET /cases?tier&field&level&sort&search&page&limit` | Katalog case (paginated); bidang pilihan pengguna diurutkan lebih dulu        |
-| `GET /cases/:slug`                                   | Info umum case untuk halaman detail (tanpa brief lengkap); 404 jika tidak ada |
-| `GET /me/dashboard`                                  | Statistik, case yang perlu tindakan, rekomendasi                              |
-| `GET /me/enrollments?tier&status&field&search&sort`  | Case Saya                                                                     |
-| `POST /me/enrollments` `{ caseId }`                  | Mulai AI case gratis (B2B dibuat lewat checkout)                              |
-| `GET /me/certificates?tier`                          | Sertifikat Saya                                                               |
+| Endpoint                                                             | Keterangan                                                                                                                                                          |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /cases?tier&field&level&sort&search&excludeEnrolled&page&limit` | Katalog case (paginated); bidang pilihan pengguna diurutkan lebih dulu. `excludeEnrolled=true` (dikirim saat login) menyembunyikan case yang sudah diambil pengguna |
+| `GET /cases/:slug`                                                   | Info umum case untuk halaman detail (tanpa brief lengkap); 404 jika tidak ada                                                                                       |
+| `GET /me/dashboard`                                                  | Statistik (termasuk `totalCount` dan `statusCounts` untuk angka di sidebar), case yang perlu tindakan, rekomendasi                                                  |
+| `GET /me/enrollments?tier&status&field&search&sort`                  | Case Saya                                                                                                                                                           |
+| `POST /me/enrollments` `{ caseId }`                                  | Mulai AI case gratis (B2B dibuat lewat checkout)                                                                                                                    |
+| `GET /me/certificates?tier`                                          | Sertifikat Saya                                                                                                                                                     |
 
 ### Checkout B2B
 
@@ -147,10 +148,10 @@ Backend wajib memvalidasi ulang slot wajib, format, ukuran berkas, dan URL. Di p
 
 Didefinisikan di `src/mocks/handlers/reviewStatus.ts` dan `src/types/reviewStatus.ts`:
 
-| Endpoint                                                 | Keterangan                                                                                                                |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `GET /cases/:slug/status`                                | Enrollment, submission terakhir, rubrik, ambang lulus, batas SLA review, dan riwayat peristiwa                            |
-| `POST /me/enrollments/:id/simulate-review` `{ outcome }` | **Khusus prototype.** Keputusan reviewer tiruan (`revision`, `passed`, `failed`); di produksi datang dari portal reviewer |
+| Endpoint                                                 | Keterangan                                                                                                                                                                                                                                      |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /cases/:slug/status`                                | Enrollment, submission terakhir, rubrik, ambang lulus, batas SLA review, riwayat peristiwa, dan `aiGrading` (progres penilaian AI: `startedAt`, `estimatedDoneAt`, `checkedCriteria`). Klien memeriksa ulang tiap 1,5 detik selama `ai_grading` |
+| `POST /me/enrollments/:id/simulate-review` `{ outcome }` | **Khusus prototype.** Keputusan reviewer tiruan (`revision`, `passed`, `failed`), atau mempercepat penilaian AI (`passed`, `failed`); di produksi datang dari portal reviewer dan layanan AI                                                    |
 
 `reviewDueAt` = waktu submit terakhir + 5 hari kerja (SLA review). `events` berisi `paid`, `started`, `submitted` (dengan `attempt`), `revision_requested`, `reviewed`, dan `retried`, urut dari yang paling lama, untuk timeline progres.
 

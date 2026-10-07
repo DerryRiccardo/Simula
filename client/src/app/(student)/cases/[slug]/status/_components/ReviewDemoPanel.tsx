@@ -6,14 +6,16 @@ import { FlaskConical } from 'lucide-react';
 import { ConfirmDialog } from '@/components';
 import { Button } from '@/components/ui';
 import { useSimulateReview } from '@/hooks/useCaseStatus';
-import type { TReviewSimulation } from '@/types';
+import type { TReviewSimulation, TTier } from '@/types';
 
-const SIMULATIONS: {
+interface ISimulation {
   outcome: TReviewSimulation;
   label: string;
   title: string;
   description: string;
-}[] = [
+}
+
+const B2B_SIMULATIONS: ISimulation[] = [
   {
     outcome: 'passed',
     label: 'Nilai lulus',
@@ -36,15 +38,36 @@ const SIMULATIONS: {
   },
 ];
 
+// AI case tidak mengenal revisi; tanpa simulasi pun penilaian selesai sendiri sebagai lulus.
+const AI_SIMULATIONS: ISimulation[] = [
+  {
+    outcome: 'passed',
+    label: 'Selesaikan sebagai lulus',
+    title: 'Selesaikan penilaian AI sekarang?',
+    description:
+      'Lewati waktu tunggu dengan skor contoh di atas ambang lulus. Sertifikat langsung terbit dan halaman hasil terbuka.',
+  },
+  {
+    outcome: 'failed',
+    label: 'Selesaikan sebagai belum lulus',
+    title: 'Selesaikan penilaian AI sebagai belum lulus?',
+    description:
+      'Skor contoh di bawah ambang lulus. Feedback dan ringkasan skill gap tetap lengkap di halaman hasil.',
+  },
+];
+
 interface ReviewDemoPanelProps {
   slug: string;
   enrollmentId: string;
+  tier?: TTier;
 }
 
-// Prototype saja (CONTEXT.md bagian 9): menggantikan keputusan dari portal reviewer.
-export function ReviewDemoPanel({ slug, enrollmentId }: ReviewDemoPanelProps) {
+// Prototype saja (CONTEXT.md bagian 9): menggantikan keputusan dari portal reviewer, atau
+// mempercepat penilaian AI untuk presentasi.
+export function ReviewDemoPanel({ slug, enrollmentId, tier = 'b2b' }: ReviewDemoPanelProps) {
   const simulate = useSimulateReview(slug);
-  const [pending, setPending] = useState<(typeof SIMULATIONS)[number] | null>(null);
+  const [pending, setPending] = useState<ISimulation | null>(null);
+  const simulations = tier === 'ai' ? AI_SIMULATIONS : B2B_SIMULATIONS;
 
   return (
     <section
@@ -58,10 +81,12 @@ export function ReviewDemoPanel({ slug, enrollmentId }: ReviewDemoPanelProps) {
         </h2>
       </div>
       <p className="mt-1 text-sm text-ink-muted">
-        Menggantikan keputusan dari portal reviewer. Tidak muncul di versi produksi.
+        {tier === 'ai'
+          ? 'Mempercepat penilaian AI untuk presentasi. Tidak muncul di versi produksi.'
+          : 'Menggantikan keputusan dari portal reviewer. Tidak muncul di versi produksi.'}
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
-        {SIMULATIONS.map((simulation, index) => (
+        {simulations.map((simulation, index) => (
           <Button
             key={simulation.outcome}
             variant={index === 0 ? 'default' : 'outline'}

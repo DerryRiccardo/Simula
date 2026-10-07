@@ -30,6 +30,8 @@ export interface ICaseListParams {
   level?: TCaseLevel;
   sort?: TCaseSort;
   search?: string;
+  /** Sembunyikan case yang sudah diambil pengguna (dimulai, dibeli, dikerjakan, atau dinilai). */
+  excludeEnrolled?: boolean;
   page?: number;
   limit?: number;
 }
@@ -119,6 +121,10 @@ export interface ICertificate {
 
 export interface IDashboardSummary {
   stats: {
+    /** Semua case yang pernah diambil, sama dengan tab "Semua" di Case Saya. */
+    totalCount: number;
+    /** Jumlah per status, sama dengan filter status di Case Saya. */
+    statusCounts: Partial<Record<TEnrollmentStatus, number>>;
     activeCount: number;
     inReviewCount: number;
     revisionCount: number;

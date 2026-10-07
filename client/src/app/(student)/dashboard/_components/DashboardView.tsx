@@ -43,7 +43,7 @@ export function DashboardView() {
   const { data: summary, isLoading, isError, refetch } = useDashboardSummary();
   const fieldKeys = user?.fieldKeys ?? [];
   const fieldLabels = fieldKeys.flatMap((key) => FIELD_BY_KEY[key]?.label ?? []);
-  const hasAnyStat = summary ? Object.values(summary.stats).some((value) => value > 0) : false;
+  const hasAnyStat = (summary?.stats.totalCount ?? 0) > 0;
 
   return (
     <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 pb-8">

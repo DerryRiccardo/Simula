@@ -24,6 +24,7 @@ export const learningHandlers = [
         level: getParam<TCaseLevel>(params, 'level'),
         sort: getParam<TCaseSort>(params, 'sort'),
         search: getParam(params, 'search'),
+        excludeEnrolled: params.get('excludeEnrolled') === 'true',
         page: Number(params.get('page') ?? 1),
         limit: Number(params.get('limit') ?? 12),
       })

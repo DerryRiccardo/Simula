@@ -17,6 +17,7 @@ import { InterviewPanel } from './InterviewPanel';
 import { NextStepPanel } from './NextStepPanel';
 import { RetryPanel } from './RetryPanel';
 import { ScoreSummary } from './ScoreSummary';
+import { SkillGapSummary } from './SkillGapSummary';
 
 // Kolom hasil fleksibel + panel aksi di kanan, sama dengan halaman status.
 const RESULT_GRID = 'grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_21rem] lg:gap-12';
@@ -60,6 +61,11 @@ function ResultContent({ result, enrollment, review }: ResultContentProps) {
           <Reveal offset={12}>
             <ScoreSummary result={result} review={review} />
           </Reveal>
+          {caseInfo.tier === 'ai' && (
+            <Reveal offset={12} delay={0.06}>
+              <SkillGapSummary review={review} />
+            </Reveal>
+          )}
           <Reveal offset={12} delay={0.06}>
             <CriteriaBreakdown review={review} />
           </Reveal>

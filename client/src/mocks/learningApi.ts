@@ -1,6 +1,7 @@
 import { CASE_DETAILS } from '@/mocks/data/caseDetails';
 import { CASES, findCaseById } from '@/mocks/data/cases';
 import { mockDb, type IMockEnrollmentRecord } from '@/mocks/db';
+import { settleAiGradings } from '@/mocks/grading';
 import type {
   ICaseDetail,
   ICaseListParams,
@@ -41,7 +42,10 @@ const byUpdatedDesc = (a: { updatedAt: string }, b: { updatedAt: string }) =>
 
 const getSessionEnrollments = () => {
   const user = mockDb.getSessionUser();
-  return user ? { user, records: mockDb.listEnrollments(user.id) } : null;
+  if (!user) return null;
+  // Penilaian AI yang waktunya habis diselesaikan dulu agar daftar langsung menampilkan hasilnya.
+  settleAiGradings(mockDb.listEnrollments(user.id));
+  return { user, records: mockDb.listEnrollments(user.id) };
 };
 
 function getRecommendations(userFields: string[], enrolledIds: Set<string>, preferTier: TTier) {
@@ -88,9 +92,14 @@ export const learningApi = {
     const { tier, field, level, sort = 'relevance', page = 1, limit = 12 } = params;
     const search = params.search?.trim().toLowerCase();
     const userFields = mockDb.getSessionUser()?.fieldKeys ?? [];
+    // Jelajahi Case untuk mencari case baru; yang sudah diambil ada di Case Saya.
+    const enrolledIds = params.excludeEnrolled
+      ? new Set(getSessionEnrollments()?.records.map((record) => record.caseId))
+      : null;
 
     const filtered = CASES.filter(
       (item) =>
+        !enrolledIds?.has(item.id) &&
         (!tier || item.tier === tier) &&
         (!field || item.fieldKey === field) &&
         (!level || item.level === level) &&
@@ -191,6 +200,11 @@ export const learningApi = {
 
     return {
       stats: {
+        totalCount: enrollments.length,
+        statusCounts: enrollments.reduce<Partial<Record<TEnrollmentStatus, number>>>(
+          (counts, item) => ({ ...counts, [item.status]: (counts[item.status] ?? 0) + 1 }),
+          {}
+        ),
         activeCount: count(ACTIVE_STATUSES),
         inReviewCount: count(['in_review', 'ai_grading']),
         revisionCount: count(['revision_requested']),

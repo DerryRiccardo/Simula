@@ -12,7 +12,13 @@ import { useSaveDraft, useSubmitWork } from '@/hooks/useCaseWork';
 import { useDebounce } from '@/hooks/useDebounce';
 import { formatTime } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
-import type { ISubmissionDraft, ISubmissionRecord, ISubmissionSlot, TSlotValue } from '@/types';
+import type {
+  ISubmissionDraft,
+  ISubmissionRecord,
+  ISubmissionSlot,
+  TSlotValue,
+  TTier,
+} from '@/types';
 import {
   NOTE_MAX_LENGTH,
   buildSubmissionSchema,
@@ -25,8 +31,15 @@ import { SlotField } from './SlotField';
 
 const AUTOSAVE_DELAY_MS = 1500;
 
+// AI langsung menilai setelah submit; B2B menunggu keputusan reviewer mitra.
+const CONFIRM_DESCRIPTION: Record<TTier, string> = {
+  ai: 'AI langsung menilai setelah submission dikirim, biasanya kurang dari satu menit. Isian tidak bisa diubah pada percobaan ini.',
+  b2b: 'Setelah dikirim, isian tidak bisa diubah sampai reviewer memberi keputusan.',
+};
+
 interface SubmissionFormProps {
   enrollmentId: string;
+  tier: TTier;
   slots: ISubmissionSlot[];
   draft: ISubmissionDraft | null;
   /** Submission sebelumnya, dipakai sebagai isian awal saat revisi. */
@@ -37,6 +50,7 @@ const serialize = (values: ISubmissionFormValues) => JSON.stringify(toSubmission
 
 export function SubmissionForm({
   enrollmentId,
+  tier,
   slots,
   draft,
   previousSubmission,
@@ -279,7 +293,7 @@ export function SubmissionForm({
         isOpen={isConfirmOpen}
         onOpenChange={setIsConfirmOpen}
         title="Kirim submission?"
-        description="Setelah dikirim, isian tidak bisa diubah sampai reviewer memberi keputusan."
+        description={CONFIRM_DESCRIPTION[tier]}
         confirmLabel="Ya, kirim"
         onConfirm={handleConfirmSubmit}
         isPending={submitWork.isPending}

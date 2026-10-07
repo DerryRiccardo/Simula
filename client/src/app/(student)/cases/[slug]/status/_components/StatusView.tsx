@@ -1,14 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, FileClock, Lock, RotateCcw, SearchX, Sparkles, Trophy } from 'lucide-react';
+import { ArrowLeft, FileClock, Lock, RotateCcw, SearchX, Trophy } from 'lucide-react';
 
 import { EmptyState, ErrorState, Skeleton } from '@/components';
 import { Button } from '@/components/ui';
 import { ENROLLMENT_STATUS } from '@/constants/enrollmentStatus';
 import { PATHS } from '@/constants/paths';
-import { useCaseStatus } from '@/hooks/useCaseStatus';
+import { useAiGradingCompletion, useCaseStatus } from '@/hooks/useCaseStatus';
 import type { ICaseStatus, IEnrollment } from '@/types';
+import { AiGrading } from './AiGrading';
 import { ReviewWaiting, STATUS_GRID } from './ReviewWaiting';
 
 function StatusSkeleton() {
@@ -32,14 +33,10 @@ function StatusSkeleton() {
   );
 }
 
-// Halaman ini khusus "Menunggu review". Status lain diarahkan ke halaman yang tepat.
+// Halaman ini khusus "Sedang dinilai AI" dan "Menunggu review". Status lain diarahkan ke
+// halaman yang tepat.
 function OtherStatus({ enrollment }: { enrollment: IEnrollment }) {
   const meta = ENROLLMENT_STATUS[enrollment.status];
-  const backToMyCases = (
-    <Button asChild size="pill">
-      <Link href={PATHS.myCases}>Ke Case Saya</Link>
-    </Button>
-  );
   const primaryAction = (
     <Button asChild size="pill">
       <Link href={meta.getHref(enrollment.caseSummary)}>{meta.actionLabel}</Link>
@@ -47,15 +44,6 @@ function OtherStatus({ enrollment }: { enrollment: IEnrollment }) {
   );
 
   switch (enrollment.status) {
-    case 'ai_grading':
-      return (
-        <EmptyState
-          icon={Sparkles}
-          title="Sedang dinilai AI"
-          description="Penilaian biasanya selesai dalam beberapa menit. Hasilnya muncul di Case Saya."
-          action={backToMyCases}
-        />
-      );
     case 'revision_requested':
       return (
         <EmptyState
@@ -103,12 +91,16 @@ function StatusBody({ slug, status }: { slug: string; status: ICaseStatus }) {
       />
     );
   }
+  if (enrollment.status === 'ai_grading' && status.aiGrading) {
+    return <AiGrading status={status} enrollment={enrollment} progress={status.aiGrading} />;
+  }
   if (enrollment.status !== 'in_review') return <OtherStatus enrollment={enrollment} />;
   return <ReviewWaiting status={status} enrollment={enrollment} />;
 }
 
 export function StatusView({ slug }: { slug: string }) {
   const { data: status, isLoading, isError, refetch } = useCaseStatus(slug);
+  useAiGradingCompletion(slug, status?.enrollment?.status);
 
   return (
     <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 pb-10">

@@ -112,10 +112,14 @@ export function StudentSidebar({ onOpenSearch, searchShortcut, onNavigate }: Stu
   const searchParams = useSearchParams();
   const { data: summary } = useDashboardSummary();
 
-  // Badge hanya untuk hal yang menunggu tindakan pengguna.
-  const badges: Record<string, number | undefined> = {
-    'my-cases': toBadge(summary?.actionItems.length),
-    'my-cases-revision': toBadge(summary?.stats.revisionCount),
+  // Angka sama dengan jumlah di halaman Case Saya (tab Semua dan filter status). Hanya yang
+  // menunggu tindakan pengguna (perlu revisi) diberi warna biru; sisanya sekadar jumlah.
+  const counts = summary?.stats.statusCounts;
+  const badges: Record<string, { count?: number; tone: ISidebarItem['badgeTone'] }> = {
+    'my-cases': { count: summary?.stats.totalCount, tone: 'muted' },
+    'my-cases-revision': { count: counts?.revision_requested, tone: 'attention' },
+    'my-cases-review': { count: counts?.in_review, tone: 'muted' },
+    'my-cases-passed': { count: counts?.passed, tone: 'muted' },
   };
 
   const toSidebarItem = (item: INavItem, isChild: boolean): ISidebarItem => ({
@@ -123,7 +127,8 @@ export function StudentSidebar({ onOpenSearch, searchShortcut, onNavigate }: Stu
     label: item.label,
     icon: item.icon,
     href: item.href,
-    badge: badges[item.id],
+    badge: toBadge(badges[item.id]?.count),
+    badgeTone: badges[item.id]?.tone,
     isActive: matchesNavHref(item.href, pathname, searchParams, !isChild),
     children: item.children?.map((child) => toSidebarItem(child, true)),
   });

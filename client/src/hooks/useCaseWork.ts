@@ -1,8 +1,10 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
+import { PATHS } from '@/constants/paths';
 import { handleApiError } from '@/lib/apiError';
 import { workspaceService } from '@/services/workspace';
 import { learningKeys } from './useLearning';
@@ -37,17 +39,21 @@ export function useSaveDraft() {
   });
 }
 
+/** B2B → tetap di halaman pengerjaan (terkunci); AI → halaman status untuk mengikuti penilaian. */
 export function useSubmitWork() {
   const queryClient = useQueryClient();
+  const router = useRouter();
   return useMutation({
     mutationFn: workspaceService.submit,
     onSuccess: async (enrollment) => {
       await queryClient.invalidateQueries({ queryKey: learningKeys.all });
+      if (enrollment.status === 'ai_grading') {
+        toast.success('Submission terkirim', { description: 'AI mulai menilai hasil kerjamu.' });
+        router.push(PATHS.caseStatus(enrollment.caseSummary.slug));
+        return;
+      }
       toast.success('Submission terkirim', {
-        description:
-          enrollment.status === 'in_review'
-            ? 'Reviewer mitra akan menilai hasil kerjamu.'
-            : 'AI sedang menilai hasil kerjamu.',
+        description: 'Reviewer mitra akan menilai hasil kerjamu.',
       });
     },
     onError: (error) => handleApiError(error, 'Submission gagal dikirim. Coba lagi.'),

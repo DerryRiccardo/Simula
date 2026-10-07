@@ -17,6 +17,8 @@ export interface ISidebarItem {
   href?: string;
   onSelect?: () => void;
   badge?: number | string;
+  /** attention = menunggu tindakan (biru); muted = sekadar jumlah. */
+  badgeTone?: 'attention' | 'muted';
   /** Teks petunjuk keyboard, misalnya "Ctrl K". */
   shortcut?: string;
   isActive?: boolean;
@@ -71,7 +73,11 @@ function ItemContent({ item, isActive }: { item: ISidebarItem; isActive: boolean
         <span
           className={cn(
             'grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[0.6875rem] font-semibold tabular-nums',
-            isActive ? 'bg-white text-brand' : 'bg-brand-soft text-brand'
+            isActive
+              ? 'bg-white text-brand'
+              : item.badgeTone === 'muted'
+                ? 'bg-surface-soft font-medium text-ink-subtle'
+                : 'bg-brand-soft text-brand'
           )}
         >
           {item.badge}

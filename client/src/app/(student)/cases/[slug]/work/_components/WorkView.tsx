@@ -58,6 +58,7 @@ function Workspace({ workspace }: { workspace: ICaseWorkspace }) {
             <SubmissionForm
               key={enrollment.id}
               enrollmentId={enrollment.id}
+              tier={caseInfo.tier}
               slots={brief.slots}
               draft={workspace.draft}
               previousSubmission={workspace.submission}

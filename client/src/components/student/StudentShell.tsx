@@ -47,7 +47,7 @@ const getSearchShortcut = () =>
 const CASE_SUBPAGE_LABEL: Record<string, string> = {
   checkout: 'Checkout',
   work: 'Pengerjaan',
-  status: 'Status review',
+  status: 'Status penilaian',
   result: 'Hasil',
 };
 

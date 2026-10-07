@@ -29,10 +29,12 @@ export function useDashboardSummary() {
   return useQuery({ queryKey: learningKeys.dashboard(), queryFn: studentService.getDashboard });
 }
 
-export function useCaseCatalog(params: ICaseListParams) {
+/** isEnabled: tunda sampai status login diketahui, agar case yang sudah diambil tidak sempat tampil. */
+export function useCaseCatalog(params: ICaseListParams, isEnabled = true) {
   return useQuery({
     queryKey: learningKeys.cases(params),
     queryFn: () => caseService.getAll(params),
+    enabled: isEnabled,
     // Hasil lama tetap tampil saat filter berganti, agar grid tidak berkedip.
     placeholderData: keepPreviousData,
   });

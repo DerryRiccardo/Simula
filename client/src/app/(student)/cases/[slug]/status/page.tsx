@@ -5,7 +5,7 @@ import { StatusView } from './_components/StatusView';
 export async function generateMetadata({ params }: PageProps<'/cases/[slug]/status'>) {
   const { slug } = await params;
   return createPageMetadata({
-    title: 'Status Review',
+    title: 'Status Penilaian',
     description: 'Progres penilaian submission dan perkiraan waktu hasil review.',
     path: PATHS.caseStatus(decodeURIComponent(slug)),
     noIndex: true,

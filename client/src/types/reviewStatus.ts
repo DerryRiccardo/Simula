@@ -14,6 +14,15 @@ export interface IStatusEvent {
   attempt?: number;
 }
 
+/** Progres penilaian AI case (status ai_grading). Klien memeriksa ulang berkala sampai selesai. */
+export interface IAiGradingProgress {
+  startedAt: string;
+  /** Perkiraan selesai; hanya untuk ditampilkan, penilaian bisa lebih cepat atau lambat. */
+  estimatedDoneAt: string;
+  /** Jumlah kriteria rubrik yang sudah selesai diperiksa, urut sesuai rubrik. */
+  checkedCriteria: number;
+}
+
 export interface ICaseStatus {
   caseInfo: ICaseDetail;
   /** null = pengguna belum mengambil case ini. */
@@ -26,7 +35,9 @@ export interface ICaseStatus {
   reviewDueAt: string | null;
   /** Urut dari yang paling lama. */
   events: IStatusEvent[];
+  /** Hanya terisi selama status ai_grading. */
+  aiGrading: IAiGradingProgress | null;
 }
 
-/** Prototype: keputusan reviewer tiruan dari panel demo. */
+/** Prototype: keputusan reviewer tiruan dari panel demo. AI case hanya passed/failed. */
 export type TReviewSimulation = 'revision' | 'passed' | 'failed';

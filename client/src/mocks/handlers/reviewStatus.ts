@@ -16,7 +16,8 @@ export const reviewStatusHandlers = [
     return requireSession() ?? (status ? ok(status) : fail(404, 'Case tidak ditemukan.'));
   }),
 
-  // Prototype saja. Body: { outcome: 'revision' }.
+  // Prototype saja. Body: { outcome: 'revision' | 'passed' | 'failed' }.
+  // AI case (ai_grading) hanya passed/failed: mempercepat penilaian yang biasanya selesai sendiri.
   http.post(apiPath('/me/enrollments/:id/simulate-review'), async ({ params, request }) => {
     await networkDelay();
     const { outcome } = (await request.json()) as { outcome: TReviewSimulation };

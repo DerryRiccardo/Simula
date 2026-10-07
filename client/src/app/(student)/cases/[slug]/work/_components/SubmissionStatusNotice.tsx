@@ -15,7 +15,7 @@ const STATUS_NOTE: Partial<
   ai_grading: {
     icon: Sparkles,
     title: 'Sedang dinilai AI',
-    body: 'Penilaian biasanya selesai dalam beberapa menit.',
+    body: 'Penilaian biasanya selesai dalam kurang dari satu menit.',
   },
 };
 
