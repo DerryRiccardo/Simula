@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/rs/zerolog/log"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -18,11 +20,15 @@ const dbConnectTimeout = 10 * time.Second
 // NewDB membuka koneksi GORM ke Supabase PostgreSQL lewat pooler mode transaction, lalu
 // memastikan database bisa dijangkau sebelum service mulai menerima request.
 func NewDB(ctx context.Context, cfg *config.Config) (*gorm.DB, error) {
-	dialector := postgres.New(postgres.Config{
-		DSN: cfg.DatabaseURL,
-		// Pooler mode transaction tidak mendukung prepared statement lintas transaksi.
-		PreferSimpleProtocol: true,
-	})
+	pgxConfig, err := pgx.ParseConfig(cfg.DatabaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid DATABASE_URL: %w", err)
+	}
+	// Pooler mode transaction tidak mendukung prepared statement lintas transaksi, jadi pakai
+	// simple protocol. Simple protocol di pgx mewajibkan koneksi UTF-8, apa pun encoding server.
+	pgxConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
+	pgxConfig.RuntimeParams["client_encoding"] = "UTF8"
+	dialector := postgres.New(postgres.Config{Conn: stdlib.OpenDB(*pgxConfig)})
 
 	db, err := gorm.Open(dialector, &gorm.Config{
 		Logger:         newGormLogger(cfg),

@@ -54,6 +54,26 @@ type Config struct {
 	WorkerConcurrency int    `envconfig:"WORKER_CONCURRENCY" default:"5"`
 
 	HealthCheckTimeout time.Duration `envconfig:"HEALTH_CHECK_TIMEOUT" default:"2s"`
+
+	// JWTSecret menandatangani access token (HS256). Minimal 32 karakter acak.
+	JWTSecret       string        `envconfig:"JWT_SECRET" required:"true"`
+	AccessTokenTTL  time.Duration `envconfig:"ACCESS_TOKEN_TTL" default:"30m"`
+	RefreshTokenTTL time.Duration `envconfig:"REFRESH_TOKEN_TTL" default:"720h"`
+	// CookieSecure hanya boleh false untuk lokal tanpa HTTPS.
+	CookieSecure bool   `envconfig:"COOKIE_SECURE" default:"true"`
+	CookieDomain string `envconfig:"COOKIE_DOMAIN"`
+
+	// Login Google nonaktif bila client ID atau secret kosong.
+	GoogleClientID     string `envconfig:"GOOGLE_CLIENT_ID"`
+	GoogleClientSecret string `envconfig:"GOOGLE_CLIENT_SECRET"`
+	GoogleRedirectURL  string `envconfig:"GOOGLE_REDIRECT_URL" default:"http://localhost:8080/api/auth/google/callback"`
+}
+
+const minJWTSecretLength = 32
+
+// IsGoogleLoginEnabled bernilai true bila kredensial OAuth Google diisi.
+func (c *Config) IsGoogleLoginEnabled() bool {
+	return c.GoogleClientID != "" && c.GoogleClientSecret != ""
 }
 
 // Load membaca environment variable ke Config lalu memvalidasi nilainya.
@@ -98,6 +118,15 @@ func (c *Config) validate() error {
 	}
 	if c.QueueName == "" {
 		return fmt.Errorf("QUEUE_NAME must not be empty")
+	}
+	if len(c.JWTSecret) < minJWTSecretLength {
+		return fmt.Errorf("JWT_SECRET must be at least %d characters", minJWTSecretLength)
+	}
+	if c.AccessTokenTTL <= 0 || c.RefreshTokenTTL <= c.AccessTokenTTL {
+		return fmt.Errorf("REFRESH_TOKEN_TTL must be longer than a positive ACCESS_TOKEN_TTL")
+	}
+	if c.IsProduction() && !c.CookieSecure {
+		return fmt.Errorf("COOKIE_SECURE must be true in production")
 	}
 	return nil
 }

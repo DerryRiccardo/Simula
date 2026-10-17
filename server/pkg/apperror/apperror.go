@@ -94,14 +94,27 @@ func BadRequest(message string) *Error {
 	return &Error{Kind: KindBadRequest, Message: message}
 }
 
-// Unauthenticated dipakai saat sesi tidak ada atau sudah kedaluwarsa.
-func Unauthenticated() *Error {
-	return &Error{Kind: KindUnauthenticated, Message: MsgUnauthenticated}
+// Unauthenticated dipakai saat sesi tidak ada, kedaluwarsa, atau kredensial salah. Pesan kosong
+// memakai pesan bawaan sesi berakhir.
+func Unauthenticated(message string) *Error {
+	if message == "" {
+		message = MsgUnauthenticated
+	}
+	return &Error{Kind: KindUnauthenticated, Message: message}
 }
 
-// Forbidden dipakai saat peran user tidak boleh mengakses endpoint.
-func Forbidden() *Error {
-	return &Error{Kind: KindForbidden, Message: MsgForbidden}
+// Forbidden dipakai saat user tidak boleh melakukan aksi. Pesan kosong memakai pesan bawaan.
+func Forbidden(message string) *Error {
+	if message == "" {
+		message = MsgForbidden
+	}
+	return &Error{Kind: KindForbidden, Message: message}
+}
+
+// WithFields menambahkan error per field, misalnya pada Conflict "email sudah terdaftar".
+func (e *Error) WithFields(fields ...FieldError) *Error {
+	e.Fields = append(e.Fields, fields...)
+	return e
 }
 
 // NotFound dipakai saat data tidak ada atau bukan milik user.

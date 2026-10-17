@@ -16,6 +16,8 @@ servers:
 tags:
   - name: System
     description: Health check
+  - name: Auth
+    description: Daftar, masuk, sesi, login Google, onboarding
 
 paths:
   /health:
@@ -65,8 +67,301 @@ paths:
                       data:
                         $ref: "#/components/schemas/Readiness"
 
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Daftar akun mahasiswa, langsung masuk
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Akun dibuat; cookie sesi dipasang
+          headers:
+            Set-Cookie:
+              $ref: "#/components/headers/SessionCookies"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserEnvelope"
+        "409":
+          description: Email sudah terdaftar (errors berisi field email)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Masuk dengan email dan password
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Berhasil; cookie sesi dipasang
+          headers:
+            Set-Cookie:
+              $ref: "#/components/headers/SessionCookies"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserEnvelope"
+        "401":
+          description: Email atau kata sandi salah (pesan sama untuk email yang tidak terdaftar)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "403":
+          description: Akun dinonaktifkan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Rotasi refresh token dan terbitkan access token baru
+      description: Dipanggil client otomatis saat request lain mendapat 401. Tanpa body; membaca cookie refresh_token.
+      operationId: refreshSession
+      security:
+        - refreshCookie: []
+      responses:
+        "200":
+          description: Sesi diperbarui; cookie baru dipasang
+          headers:
+            Set-Cookie:
+              $ref: "#/components/headers/SessionCookies"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserEnvelope"
+        "401":
+          description: Refresh token tidak ada, kedaluwarsa, atau dicabut; cookie dihapus
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Keluar dari perangkat ini
+      description: Publik agar cookie tetap terhapus walau sesi sudah kedaluwarsa. Tanpa body.
+      operationId: logout
+      responses:
+        "200":
+          description: Sesi dicabut dan cookie dihapus (data null)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Envelope"
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: User yang sedang masuk
+      operationId: getMe
+      security:
+        - accessCookie: []
+      responses:
+        "200":
+          description: Data user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /auth/google:
+    get:
+      tags: [Auth]
+      summary: Mulai login Google (navigasi browser, bukan XHR)
+      operationId: startGoogleLogin
+      parameters:
+        - name: next
+          in: query
+          required: false
+          description: Path internal tujuan setelah login, mis. /cases/flash-sale. Path tidak aman diabaikan.
+          schema:
+            type: string
+      responses:
+        "302":
+          description: Redirect ke Google, atau ke /login?error=google bila login Google nonaktif
+
+  /auth/google/callback:
+    get:
+      tags: [Auth]
+      summary: Callback dari Google
+      operationId: googleCallback
+      parameters:
+        - { name: code, in: query, schema: { type: string } }
+        - { name: state, in: query, schema: { type: string } }
+        - { name: error, in: query, schema: { type: string } }
+      responses:
+        "302":
+          description: |
+            Berhasil → cookie sesi dipasang lalu redirect ke front-end (onboarding untuk akun
+            baru, `next`, atau beranda peran). Gagal → /login?error=google atau
+            /login?error=account_disabled.
+
+  /users/me/onboarding:
+    patch:
+      tags: [Auth]
+      summary: Lengkapi onboarding mahasiswa
+      operationId: completeOnboarding
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OnboardingRequest"
+      responses:
+        "200":
+          description: Profil tersimpan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "403":
+          description: Bukan mahasiswa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
 components:
+  securitySchemes:
+    accessCookie:
+      type: apiKey
+      in: cookie
+      name: access_token
+    refreshCookie:
+      type: apiKey
+      in: cookie
+      name: refresh_token
+
+  headers:
+    SessionCookies:
+      description: |
+        access_token (HttpOnly, SameSite=Lax, Path=/api, 30 menit) dan
+        refresh_token (HttpOnly, SameSite=Lax, Path=/api/auth, 30 hari).
+      schema:
+        type: string
+
   schemas:
+    User:
+      type: object
+      description: IUser di client
+      required: [id, name, email, role, isOnboarded, fieldKeys, studentStatus, major]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [student, reviewer, admin]
+        isOnboarded:
+          type: boolean
+        fieldKeys:
+          type: array
+          items:
+            type: string
+        studentStatus:
+          type: string
+          enum: [final_year, fresh_graduate]
+          nullable: true
+        major:
+          type: string
+          nullable: true
+
+    UserEnvelope:
+      allOf:
+        - $ref: "#/components/schemas/Envelope"
+        - type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/User"
+
+    RegisterRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 80
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          maxLength: 72
+          description: Minimal 8 karakter, mengandung huruf dan angka
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    OnboardingRequest:
+      type: object
+      required: [fieldKeys, studentStatus]
+      properties:
+        fieldKeys:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items:
+            type: string
+          description: Key dari taksonomi bidang (backend, data, marketing, ...)
+        studentStatus:
+          type: string
+          enum: [final_year, fresh_graduate]
+        major:
+          type: string
+          maxLength: 100
+          nullable: true
+
     Envelope:
       type: object
       required: [success, message, data]
@@ -153,6 +448,12 @@ components:
             $ref: "#/components/schemas/ErrorEnvelope"
     Unauthenticated:
       description: Sesi tidak ada atau kedaluwarsa (401); client memanggil /auth/refresh
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    TooManyRequests:
+      description: Terlalu banyak percobaan (429)
       content:
         application/json:
           schema:

@@ -6,16 +6,36 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/DerryRiccardo/Simula/server/core/entity"
+	authHandler "github.com/DerryRiccardo/Simula/server/handler/auth"
 	publicHandler "github.com/DerryRiccardo/Simula/server/handler/public"
+	studentHandler "github.com/DerryRiccardo/Simula/server/handler/student"
+	"github.com/DerryRiccardo/Simula/server/pkg/sessioncookie"
 )
+
+func registerForTest() (*gin.Engine, []Route) {
+	gin.SetMode(gin.TestMode)
+	engine := gin.New()
+	noop := func(c *gin.Context) { c.Next() }
+	routes := Register(engine,
+		Handlers{
+			Health:     publicHandler.Health(nil),
+			Auth:       authHandler.Auth(nil, sessioncookie.Config{}, "http://localhost:3000"),
+			Onboarding: studentHandler.Onboarding(nil),
+		},
+		Middlewares{
+			Auth:         noop,
+			OptionalAuth: noop,
+			RequireRole:  func(...entity.Role) gin.HandlerFunc { return noop },
+		},
+	)
+	return engine, routes
+}
 
 // Setiap route di engine wajib tercatat di grup akses. Route yang didaftarkan langsung ke engine
 // (melewati grup) membuat test ini gagal.
 func TestRegister_EveryRouteHasAccessGroup(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	engine := gin.New()
-
-	routes := Register(engine, Handlers{Health: publicHandler.Health(nil)})
+	engine, routes := registerForTest()
 
 	recorded := make(map[string]Access, len(routes))
 	for _, route := range routes {
@@ -29,11 +49,24 @@ func TestRegister_EveryRouteHasAccessGroup(t *testing.T) {
 	assert.Len(t, routes, len(engine.Routes()))
 }
 
-func TestRegister_HealthIsPublic(t *testing.T) {
-	gin.SetMode(gin.TestMode)
+func TestRegister_AccessGroups(t *testing.T) {
+	_, routes := registerForTest()
 
-	routes := Register(gin.New(), Handlers{Health: publicHandler.Health(nil)})
-
-	assert.Contains(t, routes, Route{Method: "GET", Path: "/api/health", Access: AccessPublic})
-	assert.Contains(t, routes, Route{Method: "GET", Path: "/api/health/ready", Access: AccessPublic})
+	tests := []Route{
+		{Method: "GET", Path: "/api/health", Access: AccessPublic},
+		{Method: "GET", Path: "/api/health/ready", Access: AccessPublic},
+		{Method: "POST", Path: "/api/auth/register", Access: AccessPublic},
+		{Method: "POST", Path: "/api/auth/login", Access: AccessPublic},
+		{Method: "POST", Path: "/api/auth/refresh", Access: AccessPublic},
+		{Method: "POST", Path: "/api/auth/logout", Access: AccessPublic},
+		{Method: "GET", Path: "/api/auth/google", Access: AccessPublic},
+		{Method: "GET", Path: "/api/auth/google/callback", Access: AccessPublic},
+		{Method: "GET", Path: "/api/auth/me", Access: AccessAuthenticated},
+		{Method: "PATCH", Path: "/api/users/me/onboarding", Access: AccessStudent},
+	}
+	for _, want := range tests {
+		t.Run(want.Method+" "+want.Path, func(t *testing.T) {
+			assert.Contains(t, routes, want)
+		})
+	}
 }

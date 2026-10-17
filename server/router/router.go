@@ -5,7 +5,10 @@ package router
 import (
 	"github.com/gin-gonic/gin"
 
+	"github.com/DerryRiccardo/Simula/server/core/entity"
+	authHandler "github.com/DerryRiccardo/Simula/server/handler/auth"
 	publicHandler "github.com/DerryRiccardo/Simula/server/handler/public"
+	studentHandler "github.com/DerryRiccardo/Simula/server/handler/student"
 )
 
 // BasePath adalah prefix semua endpoint API (tanpa versi).
@@ -26,7 +29,16 @@ const (
 
 // Handlers berisi semua handler yang didaftarkan. Dikonstruksi di app/server.go.
 type Handlers struct {
-	Health *publicHandler.HealthHandler
+	Health     *publicHandler.HealthHandler
+	Auth       *authHandler.AuthHandler
+	Onboarding *studentHandler.OnboardingHandler
+}
+
+// Middlewares adalah middleware akses yang dipasang per grup.
+type Middlewares struct {
+	Auth         gin.HandlerFunc
+	OptionalAuth gin.HandlerFunc
+	RequireRole  func(roles ...entity.Role) gin.HandlerFunc
 }
 
 // Route adalah catatan satu route beserta grup aksesnya.
@@ -37,12 +49,25 @@ type Route struct {
 }
 
 // Register mendaftarkan semua route ke engine dan mengembalikan daftar route beserta aksesnya.
-func Register(engine *gin.Engine, h Handlers) []Route {
+func Register(engine *gin.Engine, h Handlers, mw Middlewares) []Route {
 	r := &registry{api: engine.Group(BasePath)}
 
 	public := r.group(AccessPublic)
 	public.GET("/health", h.Health.Live)
 	public.GET("/health/ready", h.Health.Ready)
+	public.POST("/auth/register", h.Auth.Register)
+	public.POST("/auth/login", h.Auth.Login)
+	public.POST("/auth/refresh", h.Auth.Refresh)
+	// Logout publik: tetap bisa menghapus cookie walau access token sudah kedaluwarsa.
+	public.POST("/auth/logout", h.Auth.Logout)
+	public.GET("/auth/google", h.Auth.GoogleStart)
+	public.GET("/auth/google/callback", h.Auth.GoogleCallback)
+
+	authenticated := r.group(AccessAuthenticated, mw.Auth)
+	authenticated.GET("/auth/me", h.Auth.Me)
+
+	student := r.group(AccessStudent, mw.Auth, mw.RequireRole(entity.RoleStudent))
+	student.PATCH("/users/me/onboarding", h.Onboarding.Complete)
 
 	return r.routes
 }
@@ -52,8 +77,7 @@ type registry struct {
 	routes []Route
 }
 
-// group membuat grup akses. Middleware auth dan peran untuk grup selain publik ditambahkan
-// bersama modul Auth.
+// group membuat grup akses dengan middleware-nya.
 func (r *registry) group(access Access, middlewares ...gin.HandlerFunc) *group {
 	return &group{rg: r.api.Group("", middlewares...), access: access, registry: r}
 }

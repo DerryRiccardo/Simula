@@ -1,0 +1,14 @@
+// Package errors berisi sentinel error yang dikembalikan repository. Use case memeriksanya dengan
+// errors.Is lalu menerjemahkannya ke apperror.
+package errors
+
+import "errors"
+
+var (
+	ErrUserNotFound          = errors.New("user not found")
+	ErrEmailTaken            = errors.New("email already registered")
+	ErrRefreshTokenNotFound  = errors.New("refresh token not found")
+	ErrRefreshTokenRotated   = errors.New("refresh token already rotated")
+	ErrInvalidAccessToken    = errors.New("invalid access token")
+	ErrGoogleIdentityInvalid = errors.New("invalid google identity")
+)

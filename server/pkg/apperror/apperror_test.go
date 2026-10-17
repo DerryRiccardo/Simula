@@ -18,8 +18,8 @@ func TestError_HTTPStatus(t *testing.T) {
 	}{
 		{name: "validation", err: Validation(), want: http.StatusUnprocessableEntity},
 		{name: "bad request", err: BadRequest("x"), want: http.StatusBadRequest},
-		{name: "unauthenticated", err: Unauthenticated(), want: http.StatusUnauthorized},
-		{name: "forbidden", err: Forbidden(), want: http.StatusForbidden},
+		{name: "unauthenticated", err: Unauthenticated(""), want: http.StatusUnauthorized},
+		{name: "forbidden", err: Forbidden(""), want: http.StatusForbidden},
 		{name: "not found", err: NotFound(""), want: http.StatusNotFound},
 		{name: "conflict", err: Conflict("x"), want: http.StatusConflict},
 		{name: "too many requests", err: TooManyRequests(), want: http.StatusTooManyRequests},
