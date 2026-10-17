@@ -1,4 +1,5 @@
 import type {
+  IAdminCase,
   IOrder,
   IReviewDraft,
   IReviewResult,
@@ -63,11 +64,13 @@ interface IMockState {
   users: IMockUserRecord[];
   enrollments: IMockEnrollmentRecord[];
   orders: IMockOrderRecord[];
+  /** Case buatan atau suntingan admin; case contoh yang belum disunting tidak disimpan. */
+  adminCases: IAdminCase[];
   sessionUserId: string | null;
 }
 
 // Naikkan versi bila bentuk data berubah, agar data lama di localStorage diabaikan.
-const STORAGE_KEY = 'ws-mock-db-v7';
+const STORAGE_KEY = 'ws-mock-db-v8';
 
 const SEED_USERS: IMockUserRecord[] = [
   {
@@ -363,6 +366,7 @@ const createInitialState = (): IMockState => ({
   users: structuredClone(SEED_USERS),
   enrollments: [...createSeedEnrollments(), ...createSeedCandidateEnrollments()],
   orders: createSeedOrders(),
+  adminCases: [],
   sessionUserId: null,
 });
 
@@ -402,6 +406,18 @@ export const mockDb = {
     getState().users.find((user) => user.email.toLowerCase() === email.toLowerCase()),
 
   findUserById: (id: string) => getState().users.find((user) => user.id === id),
+
+  listAdminCases: () => getState().adminCases,
+
+  /** Simpan case admin: menimpa versi lama dengan id yang sama. */
+  saveAdminCase: (adminCase: IAdminCase) => {
+    const { adminCases } = getState();
+    const index = adminCases.findIndex((item) => item.id === adminCase.id);
+    if (index === -1) adminCases.push(adminCase);
+    else adminCases[index] = adminCase;
+    save();
+    return adminCase;
+  },
 
   /** Portal reviewer: submission dari semua peserta (identitas disamarkan di reviewerApi). */
   listAllEnrollments: () => getState().enrollments,
@@ -508,6 +524,19 @@ export const mockDb = {
 
   setSession: (userId: string | null) => {
     getState().sessionUserId = userId;
+    save();
+  },
+
+  /**
+   * Mode campuran: auth memakai backend, layanan lain masih tiruan. Simpan salinan pengguna dari
+   * backend (tanpa password) dan jadikan sesi tiruan, agar data tiruan lain mengenali pengguna.
+   */
+  syncRealUser: (user: IUser) => {
+    const state = getState();
+    const existing = state.users.find((item) => item.id === user.id);
+    if (existing) Object.assign(existing, user);
+    else state.users.push({ ...user, password: '' });
+    state.sessionUserId = user.id;
     save();
   },
 

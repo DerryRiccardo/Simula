@@ -16,8 +16,8 @@ import { SITE } from '@/constants/site';
 import { useCurrentUser, useLogout } from '@/hooks/useAuth';
 import { getInitials } from '@/lib/formatters';
 
-// Menu akun reviewer: satu-satunya bagian interaktif di header portal.
-export function ReviewerMenu() {
+// Menu akun portal reviewer dan admin: satu-satunya bagian interaktif di header portal.
+export function PortalMenu({ roleLabel }: { roleLabel: string }) {
   const { user } = useCurrentUser();
   const logout = useLogout();
   if (!user) return null;
@@ -36,7 +36,7 @@ export function ReviewerMenu() {
             <span className="block truncate text-[0.8125rem] font-semibold text-ink">
               {user.name}
             </span>
-            <span className="block text-xs text-ink-subtle">Reviewer mitra</span>
+            <span className="block text-xs text-ink-subtle">{roleLabel}</span>
           </span>
           <ChevronDown className="size-4 text-ink-subtle" strokeWidth={1.75} />
         </button>

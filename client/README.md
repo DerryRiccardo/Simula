@@ -1,6 +1,6 @@
 # Simula — Client
 
-Front-end Next.js untuk Simula, platform simulasi kerja dengan dua tier: AI Case Study (gratis) dan B2B Case Study (berbayar, direview praktisi mitra). Ringkasan produk ada di [`../README.md`](../README.md); konteks lengkap, alur pengguna, dan peta halaman ada di [`../../prototype/CONTEXT.md`](../../prototype/CONTEXT.md). Aturan penulisan kode ada di [`CLAUDE.md`](CLAUDE.md).
+Front-end Next.js untuk Simula, platform simulasi kerja dengan dua tier: AI Case Study (gratis) dan B2B Case Study (berbayar, direview praktisi mitra). Ringkasan produk ada di [`../README.md`](../README.md); konteks lengkap, alur pengguna, dan peta halaman ada di [`../../prototype/CONTEXT.md`](../../prototype/CONTEXT.md).
 
 Saat ini client berjalan sebagai **prototype end-to-end dengan data tiruan** (tanpa backend). Semua data lewat service layer yang sama dengan versi produksi, jadi saat backend Go siap cukup ganti environment variable.
 
@@ -32,35 +32,37 @@ Buka http://localhost:3000, lalu masuk lewat tombol demo **Mahasiswa** di halama
 
 ## Environment variable
 
-| Variabel                  | Keterangan                                                  |
-| ------------------------- | ----------------------------------------------------------- |
-| `NEXT_PUBLIC_SITE_URL`    | URL publik website, dipakai untuk metadata, sitemap, robots |
-| `NEXT_PUBLIC_API_URL`     | Base URL API backend Go (default `/api/v1`)                 |
-| `NEXT_PUBLIC_API_MOCKING` | `enabled` = pakai data tiruan tanpa backend                 |
+| Variabel                        | Keterangan                                                                      |
+| ------------------------------- | ------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SITE_URL`          | URL publik website, dipakai untuk metadata, sitemap, robots                     |
+| `NEXT_PUBLIC_API_URL`           | Base URL API backend Go (default `/api`; lokal `http://localhost:8080/api`)     |
+| `NEXT_PUBLIC_API_MOCKING`       | `enabled` = pakai data tiruan                                                   |
+| `NEXT_PUBLIC_API_REAL_SERVICES` | Mode campuran: layanan yang sudah memakai backend walau mock aktif, mis. `auth` |
 
 Semua variabel `NEXT_PUBLIC_*` ikut ke bundle browser, jadi jangan isi dengan secret.
 
 ## Halaman
 
-| Route                           | Halaman                                                                  | Akses     |
-| ------------------------------- | ------------------------------------------------------------------------ | --------- |
-| `/`                             | Landing page                                                             | Publik    |
-| `/login`, `/register`           | Masuk dan daftar (form + Google tiruan)                                  | Tamu      |
-| `/onboarding`                   | Pilih bidang dan status (sekali, akun baru)                              | Mahasiswa |
-| `/dashboard`                    | Ringkasan progres, case yang perlu tindakan, rekomendasi                 | Mahasiswa |
-| `/cases`, `/cases/[slug]`       | Jelajahi Case (tab AI / B2B) dan detail case                             | Mahasiswa |
-| `/cases/[slug]/checkout`        | Checkout B2B: metode bayar, virtual account, gateway tiruan              | Mahasiswa |
-| `/cases/[slug]/work`            | Pengerjaan: brief, materi, rubrik, form submission (draft otomatis)      | Mahasiswa |
-| `/cases/[slug]/status`          | Sedang dinilai AI (progres per kriteria) atau menunggu review            | Mahasiswa |
-| `/cases/[slug]/result`          | Hasil: skor per kriteria, feedback, sertifikat, izin berbagi profil      | Mahasiswa |
-| `/my-cases`, `/my-certificates` | Case Saya dan Sertifikat Saya                                            | Mahasiswa |
-| `/profile`                      | Data diri, bidang, notifikasi, persetujuan berbagi data                  | Mahasiswa |
-| `/certificates/[id]`            | Verifikasi sertifikat publik (unduh PDF, tambahkan ke LinkedIn)          | Publik    |
-| `/reviewer`                     | Antrean review (urut tenggat SLA) dan riwayat keputusan                  | Reviewer  |
-| `/reviewer/submissions/[id]`    | Review kandidat anonim: isi submission dan brief, form nilai atau revisi | Reviewer  |
-| `/admin/cases`                  | Placeholder panel admin                                                  | Admin     |
+| Route                                        | Halaman                                                                                            | Akses     |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------- | --------- |
+| `/`                                          | Landing page                                                                                       | Publik    |
+| `/login`, `/register`                        | Masuk dan daftar (form + Google tiruan)                                                            | Tamu      |
+| `/onboarding`                                | Pilih bidang dan status (sekali, akun baru)                                                        | Mahasiswa |
+| `/dashboard`                                 | Ringkasan progres, case yang perlu tindakan, rekomendasi                                           | Mahasiswa |
+| `/cases`, `/cases/[slug]`                    | Jelajahi Case (tab AI / B2B) dan detail case                                                       | Mahasiswa |
+| `/cases/[slug]/checkout`                     | Checkout B2B: metode bayar, virtual account, gateway tiruan                                        | Mahasiswa |
+| `/cases/[slug]/work`                         | Pengerjaan: brief, materi, rubrik, form submission (draft otomatis)                                | Mahasiswa |
+| `/cases/[slug]/status`                       | Sedang dinilai AI (progres per kriteria) atau menunggu review                                      | Mahasiswa |
+| `/cases/[slug]/result`                       | Hasil: skor per kriteria, feedback, sertifikat, izin berbagi profil                                | Mahasiswa |
+| `/my-cases`, `/my-certificates`              | Case Saya dan Sertifikat Saya                                                                      | Mahasiswa |
+| `/profile`                                   | Data diri, bidang, notifikasi, persetujuan berbagi data                                            | Mahasiswa |
+| `/certificates/[id]`                         | Verifikasi sertifikat publik (unduh PDF, tambahkan ke LinkedIn)                                    | Publik    |
+| `/reviewer`                                  | Antrean review (urut tenggat SLA) dan riwayat keputusan                                            | Reviewer  |
+| `/reviewer/submissions/[id]`                 | Review kandidat anonim: isi submission dan brief, form nilai atau revisi                           | Reviewer  |
+| `/admin/cases`                               | Daftar case dengan sidebar admin; sub-menu AI, B2B, dan Draft memakai `?tier` / `?status`          | Admin     |
+| `/admin/cases/new`, `/admin/cases/[id]/edit` | Pembuat case: info umum, brief, materi, slot deliverable, rubrik (total bobot 100%), komersial B2B | Admin     |
 
-Belum dibuat: panel admin. Halaman produk `/products/*` sengaja ditunda; tombol di section Products dan footer diarahkan ke tab katalog (`/cases?tier=ai` / `?tier=b2b`).
+Belum dibuat: halaman penugasan reviewer (`/admin/reviewers`, opsional untuk demo). Halaman produk `/products/*` sengaja ditunda; tombol di section Products dan footer diarahkan ke tab katalog (`/cases?tier=ai` / `?tier=b2b`).
 
 ## Mode mock (front-end tanpa backend)
 
@@ -68,18 +70,33 @@ Komponen tidak pernah memanggil data langsung. Alurnya selalu `komponen → hook
 
 Handler MSW di `src/mocks/handlers/` memakai logika mock yang sama dan menjadi **dokumentasi kontrak API** untuk backend (path, payload, bentuk respons). Service sengaja tidak bergantung pada service worker MSW, karena browser bisa menghentikannya saat tab lama tidak aktif, dan request lalu lolos ke server (404).
 
-Saat backend Go siap:
+Saat semua layanan backend Go siap:
 
 1. Isi `NEXT_PUBLIC_API_URL` dengan URL backend.
 2. Kosongkan `NEXT_PUBLIC_API_MOCKING`.
 
-Tidak ada kode komponen yang perlu diubah. Tipe di `src/types/` menjadi kontrak data dengan backend. Error mock memakai `ApiResponseError` (`src/lib/apiError.ts`) agar pesan dan error per field terbaca sama seperti error dari axios.
+Tidak ada kode komponen yang perlu diubah.
+
+### Mode campuran (sebagian layanan memakai backend)
+
+Selama backend dibangun bertahap, layanan yang sudah selesai bisa dipindah satu per satu lewat `NEXT_PUBLIC_API_REAL_SERVICES`, sementara layanan lain tetap tiruan. Contoh untuk auth:
+
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8080/api
+NEXT_PUBLIC_API_MOCKING=enabled
+NEXT_PUBLIC_API_REAL_SERVICES=auth
+```
+
+- Service memakai `shouldMockService('<layanan>')` dari `src/lib/env.ts`, dan handler MSW layanan itu tidak didaftarkan agar service worker tidak mencegat request ke backend.
+- Pengguna dari backend disalin ke sesi `mockDb` (`syncRealUser`), sehingga layanan tiruan lain (dashboard, katalog) tetap mengenali pengguna yang login lewat backend.
+- Saat auth memakai backend, panel akun demo disembunyikan dan tombol Google menjadi link ke `GET /api/auth/google`.
+- Backend harus mengizinkan origin client lewat `FRONTEND_URL` (CORS dengan credentials). Front-end dan API di `localhost` dengan port berbeda tetap dianggap satu situs, jadi cookie `SameSite=Lax` terkirim. Tipe di `src/types/` menjadi kontrak data dengan backend. Error mock memakai `ApiResponseError` (`src/lib/apiError.ts`) agar pesan dan error per field terbaca sama seperti error dari axios.
 
 Catatan: saat mock aktif, halaman baru dirender setelah service worker MSW siap, sehingga konten tidak ikut di HTML awal. Ini hanya berlaku di mode mock.
 
 ### Data dan akun demo
 
-Data tiruan disimpan di `localStorage` browser dengan kunci `ws-mock-db-v7`, jadi akun dan progres tetap ada setelah reload. Hapus kunci itu untuk kembali ke data awal. Naikkan versi kunci di `src/mocks/db.ts` bila bentuk data berubah.
+Data tiruan disimpan di `localStorage` browser dengan kunci `ws-mock-db-v8`, jadi akun dan progres tetap ada setelah reload. Hapus kunci itu untuk kembali ke data awal. Naikkan versi kunci di `src/mocks/db.ts` bila bentuk data berubah.
 
 Akun bawaan ada di `src/mocks/demoAccounts.ts`, dan halaman login menyediakan tombol masuk cepat:
 
@@ -105,7 +122,10 @@ Respons memakai `IApiResponse<T>` (`{ success, message, data }`); error validasi
 
 ### Auth
 
-Didefinisikan di `src/mocks/handlers/auth.ts` (logika di `src/mocks/authApi.ts`) dan `src/types/auth.ts`: `POST /auth/login`, `POST /auth/register`, `POST /auth/google`, `POST /auth/logout`, `POST /auth/refresh`, `GET /auth/me`, `PATCH /users/me/onboarding`. Di produksi sesi memakai cookie httpOnly.
+Didefinisikan di `src/mocks/handlers/auth.ts` (logika di `src/mocks/authApi.ts`) dan `src/types/auth.ts`: `POST /auth/login`, `POST /auth/register`, `POST /auth/logout`, `POST /auth/refresh`, `GET /auth/me`, `PATCH /users/me/onboarding`. Sesi memakai cookie httpOnly dari backend; client tidak menyimpan token.
+
+- **Login Google** dengan backend adalah navigasi penuh ke `GET /auth/google?next=/path` (bukan XHR). Backend mengarahkan ke Google, lalu kembali ke front-end dengan cookie terpasang. Bila gagal, backend mengarahkan ke `/login?error=google` atau `?error=account_disabled`, dan halaman login menampilkan pesannya. `POST /auth/google` hanya ada di mode mock.
+- **Refresh otomatis:** request yang mendapat 401 memanggil `POST /auth/refresh` sekali lalu diulang. `GET /auth/me` juga memicu refresh (access token hanya 30 menit), tetapi bila refresh gagal pengguna tidak diarahkan ke login, karena tamu boleh membuka halaman publik.
 
 ### Pembelajaran (dashboard mahasiswa)
 
@@ -185,6 +205,19 @@ Filter case, pencarian (nomor kandidat atau judul case), dan urutan di antrean d
 
 Deskripsi level 1-5 di form memakai kerangka umum (`src/constants/review.ts`); di produksi admin menulisnya per kriteria saat menyusun rubrik.
 
+### Panel admin
+
+Didefinisikan di `src/mocks/handlers/admin.ts` (logika di `src/mocks/adminApi.ts`) dan `src/types/admin.ts`. Semua endpoint khusus peran admin (403 untuk peran lain).
+
+| Endpoint                                      | Keterangan                                                                                                                                               |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /admin/cases`                            | Ringkasan semua case: tier, status, mitra, jumlah peserta, submission yang menunggu review                                                               |
+| `GET /admin/cases/:id`                        | Isi lengkap case untuk pembuat case (`IAdminCase`). 404 bila tidak ada                                                                                   |
+| `POST /admin/cases` `{ input, isPublish }`    | Buat case baru. Draft cukup berjudul; terbitkan memakai validasi penuh (total bobot rubrik 100%, minimal satu tugas dan slot, B2B wajib mitra dan harga) |
+| `PUT /admin/cases/:id` `{ input, isPublish }` | Simpan perubahan; `isPublish` menentukan status draft/terbit                                                                                             |
+
+PLACEHOLDER prototype: case contoh tampil sebagai terbit. Case yang dibuat atau disunting admin tersimpan di panel admin saja; katalog mahasiswa baru memakainya setelah backend tersedia. Materi pendukung hanya disimpan metadatanya (tanpa unggahan berkas).
+
 ### Verifikasi sertifikat
 
 Didefinisikan di `src/mocks/handlers/certificate.ts` dan `src/types/certificate.ts`:
@@ -245,7 +278,7 @@ src/
 └── types/               # Tipe API dan domain (kontrak dengan backend)
 ```
 
-Folder `mocks/` dan `components/providers/` tidak ada di struktur CLAUDE.md. Keduanya ditambahkan karena front-end dibangun lebih dulu dengan data tiruan, dan provider client perlu dipisah dari `layout.tsx` agar layout tetap Server Component.
+Folder `mocks/` ada karena front-end dibangun lebih dulu dengan data tiruan. Folder `components/providers/` memisahkan provider client dari `layout.tsx` agar layout tetap Server Component.
 
 ## Brand
 

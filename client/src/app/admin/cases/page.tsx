@@ -1,25 +1,22 @@
 import { Suspense } from 'react';
 
-import { WorkspacePlaceholder } from '@/components/app/WorkspacePlaceholder';
-import { PageLoader, RequireAuth } from '@/components/routing';
+import { PageLoader } from '@/components/routing';
 import { PATHS } from '@/constants/paths';
 import { createPageMetadata } from '@/lib/seo';
+import { AdminCasesView } from './_components/AdminCasesView';
 
 export const metadata = createPageMetadata({
   title: 'Kelola Case',
+  description: 'Daftar case AI dan B2B, draft maupun terbit.',
   path: PATHS.admin,
   noIndex: true,
 });
 
 export default function AdminCasesPage() {
   return (
+    // useSearchParams (filter di URL) butuh Suspense agar halaman tetap bisa di-prerender.
     <Suspense fallback={<PageLoader />}>
-      <RequireAuth roles={['admin']}>
-        <WorkspacePlaceholder
-          title="selamat datang di panel admin."
-          description="Di sini nanti kamu membuat case study, menyusun rubrik, dan menugaskan reviewer."
-        />
-      </RequireAuth>
+      <AdminCasesView />
     </Suspense>
   );
 }

@@ -7,3 +7,4 @@ export * from './site';
 export * from './studentNav';
 export * from './payment';
 export * from './review';
+export * from './adminNav';

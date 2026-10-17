@@ -8,3 +8,4 @@ export * from './result';
 export * from './certificate';
 export * from './profile';
 export * from './reviewer';
+export * from './admin';

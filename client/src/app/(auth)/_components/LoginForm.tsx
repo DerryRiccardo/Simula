@@ -1,10 +1,12 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { PasswordField, TextField } from '@/components/forms';
 import { Button } from '@/components/ui';
@@ -18,9 +20,25 @@ import { AuthDivider, AuthHeader } from './AuthHeader';
 import { DemoAccounts } from './DemoAccounts';
 import { GoogleButton } from './GoogleButton';
 
+// Kode `?error=` dari backend setelah login Google gagal.
+const LOGIN_ERROR_MESSAGES: Record<string, string> = {
+  google: 'Login Google gagal atau dibatalkan. Silakan coba lagi.',
+  account_disabled: 'Akun kamu dinonaktifkan. Hubungi tim Simula untuk bantuan.',
+};
+
 export function LoginForm() {
-  const next = useSearchParams().get('next');
+  const searchParams = useSearchParams();
+  const next = searchParams.get('next');
+  const errorCode = searchParams.get('error');
   const login = useLogin(next);
+
+  useEffect(() => {
+    if (!errorCode) return;
+    // id tetap agar toast tidak muncul dua kali saat effect dijalankan ulang.
+    toast.error(LOGIN_ERROR_MESSAGES[errorCode] ?? LOGIN_ERROR_MESSAGES.google, {
+      id: 'login-error',
+    });
+  }, [errorCode]);
 
   const {
     register,

@@ -16,6 +16,8 @@ export interface ISidebarItem {
   /** Tautan tujuan. Item tanpa href harus punya onSelect. */
   href?: string;
   onSelect?: () => void;
+  /** Ikon di kotak berwarna, mis. penanda tier di sub-menu (hijau = AI, biru = B2B). */
+  iconTone?: 'ai' | 'brand';
   badge?: number | string;
   /** attention = menunggu tindakan (biru); muted = sekadar jumlah. */
   badgeTone?: 'attention' | 'muted';
@@ -54,14 +56,26 @@ function ItemContent({ item, isActive }: { item: ISidebarItem; isActive: boolean
   const Icon = item.icon;
   return (
     <>
-      {Icon && (
-        <Icon
+      {Icon && item.iconTone ? (
+        <span
           className={cn(
-            'size-[1.0625rem] shrink-0 transition-colors',
-            isActive ? 'text-brand' : 'text-ink-subtle group-hover/row:text-ink-muted'
+            'grid size-5 shrink-0 place-items-center rounded-md',
+            item.iconTone === 'ai' ? 'bg-ai-soft text-ai' : 'bg-brand-soft text-brand'
           )}
-          strokeWidth={1.75}
-        />
+          aria-hidden="true"
+        >
+          <Icon className="size-3" strokeWidth={2.25} />
+        </span>
+      ) : (
+        Icon && (
+          <Icon
+            className={cn(
+              'size-[1.0625rem] shrink-0 transition-colors',
+              isActive ? 'text-brand' : 'text-ink-subtle group-hover/row:text-ink-muted'
+            )}
+            strokeWidth={1.75}
+          />
+        )
       )}
       <span className="min-w-0 flex-1 truncate">{item.label}</span>
       {item.shortcut && (

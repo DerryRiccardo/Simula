@@ -10,7 +10,12 @@ const api = axios.create({
 });
 
 // 401 → refresh sesi sekali; request lain yang gagal selama refresh masuk antrean lalu diulang.
-// Endpoint auth (termasuk /auth/me untuk cek sesi) dikecualikan agar tidak memicu redirect.
+// Endpoint auth tidak memicu refresh. /auth/me (cek sesi) memicu refresh karena access token
+// berumur pendek, tetapi bila refresh gagal tidak diarahkan ke login: tamu boleh membuka halaman
+// publik.
+const NO_REFRESH_URL = /\/auth\/(login|register|google|refresh|logout)/;
+const SESSION_CHECK_URL = /\/auth\/me$/;
+
 let isRefreshing = false;
 let queue: { resolve: () => void; reject: (e: unknown) => void }[] = [];
 
@@ -19,8 +24,13 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const original = error.config as
       (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined;
-    const isAuthUrl = /\/auth\/(login|register|google|refresh|logout|me)/.test(original?.url ?? '');
-    if (!original || error.response?.status !== 401 || original._retry || isAuthUrl) {
+    const url = original?.url ?? '';
+    if (
+      !original ||
+      error.response?.status !== 401 ||
+      original._retry ||
+      NO_REFRESH_URL.test(url)
+    ) {
       return Promise.reject(error);
     }
 
@@ -38,7 +48,7 @@ api.interceptors.response.use(
       return api(original);
     } catch (e) {
       queue.forEach((p) => p.reject(e));
-      if (window.location.pathname !== PATHS.login) {
+      if (!SESSION_CHECK_URL.test(url) && window.location.pathname !== PATHS.login) {
         const next = encodeURIComponent(window.location.pathname + window.location.search);
         // Interceptor berjalan di luar komponen React, dan sesi yang habis memang perlu reload
         // penuh agar seluruh cache data pengguna sebelumnya ikut terbuang.

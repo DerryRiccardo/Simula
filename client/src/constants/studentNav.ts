@@ -8,6 +8,8 @@ export interface INavItem {
   /** Boleh berisi query, misalnya "/my-cases?status=passed" untuk sub-menu. */
   href: string;
   icon?: LucideIcon;
+  /** Ikon di kotak berwarna untuk sub-menu per tier. */
+  iconTone?: 'ai' | 'brand';
   children?: INavItem[];
 }
 

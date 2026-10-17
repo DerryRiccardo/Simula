@@ -2,11 +2,11 @@
 
 import { GraduationCap, ShieldCheck, UserCheck, type LucideIcon } from 'lucide-react';
 
-import { env } from '@/lib/env';
+import { shouldMockService } from '@/lib/env';
 import { DEMO_EMAILS, DEMO_PASSWORD } from '@/mocks/demoAccounts';
 import type { ILoginPayload, TRole } from '@/types';
 
-// Panel masuk cepat untuk presentasi; hanya muncul saat mode mock aktif.
+// Panel masuk cepat untuk presentasi; hanya muncul saat auth memakai data tiruan.
 const DEMO_ACCOUNTS: { role: TRole; label: string; icon: LucideIcon }[] = [
   { role: 'student', label: 'Mahasiswa', icon: GraduationCap },
   { role: 'reviewer', label: 'Reviewer', icon: UserCheck },
@@ -19,7 +19,7 @@ interface DemoAccountsProps {
 }
 
 export function DemoAccounts({ onSelect, isDisabled = false }: DemoAccountsProps) {
-  if (!env.isApiMocking) return null;
+  if (!shouldMockService('auth')) return null;
 
   return (
     <div className="rounded-card border border-dashed border-line bg-surface-soft p-4">
