@@ -1,0 +1,165 @@
+openapi: 3.0.3
+info:
+  title: Simula API
+  version: 0.1.0
+  description: |
+    Kontrak REST API Simula. Bentuk data mengikuti tipe di `client/src/types/`.
+
+    - Semua respons sukses dibungkus `Envelope` ({ success, message, data }).
+    - Semua respons error memakai `ErrorEnvelope`; `errors` berisi error validasi per field.
+    - JSON camelCase, enum string lowercase, field kosong bernilai `null`, waktu ISO 8601 UTC.
+    - Sesi memakai cookie httpOnly `access_token` dan `refresh_token`.
+servers:
+  - url: http://localhost:8080/api
+    description: Lokal
+
+tags:
+  - name: System
+    description: Health check
+
+paths:
+  /health:
+    get:
+      tags: [System]
+      summary: Liveness, proses berjalan
+      operationId: getHealth
+      responses:
+        "200":
+          description: Proses berjalan
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Liveness"
+
+  /health/ready:
+    get:
+      tags: [System]
+      summary: Readiness, database dan Redis bisa dijangkau
+      operationId: getHealthReady
+      responses:
+        "200":
+          description: Semua dependency siap
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Readiness"
+        "503":
+          description: Ada dependency yang tidak bisa dijangkau (success = false)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Readiness"
+
+components:
+  schemas:
+    Envelope:
+      type: object
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          nullable: true
+
+    ErrorEnvelope:
+      type: object
+      required: [success, message, errors]
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        message:
+          type: string
+          description: Pesan untuk user, ditampilkan client sebagai toast
+        errors:
+          type: array
+          items:
+            $ref: "#/components/schemas/FieldError"
+
+    FieldError:
+      type: object
+      required: [field, message]
+      properties:
+        field:
+          type: string
+          description: Nama field JSON di form client, misalnya `email` atau `values.designDoc`
+        message:
+          type: string
+
+    PaginationMeta:
+      type: object
+      required: [page, limit, totalItems, totalPages]
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalItems:
+          type: integer
+        totalPages:
+          type: integer
+
+    Liveness:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+
+    Readiness:
+      type: object
+      required: [status, checks]
+      properties:
+        status:
+          type: string
+          enum: [ok, not_ready]
+        checks:
+          type: array
+          items:
+            type: object
+            required: [name, status]
+            properties:
+              name:
+                type: string
+                example: database
+              status:
+                type: string
+                enum: [up, down]
+
+  responses:
+    ValidationError:
+      description: Error validasi per field (422)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    Unauthenticated:
+      description: Sesi tidak ada atau kedaluwarsa (401); client memanggil /auth/refresh
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    NotFound:
+      description: Data tidak ada atau bukan milik user (404)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"

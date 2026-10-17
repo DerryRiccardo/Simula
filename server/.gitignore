@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+bin/
+*.exe
+coverage.out
+
+# AI & IDE
+.agents/
+.claude/
+.codex/
+AGENTS.md
+CLAUDE.md
+RULES.md
