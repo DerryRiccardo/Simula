@@ -12,7 +12,7 @@ import { formatDateTime } from '@/lib/formatters';
 import type { IAdminCase } from '@/types';
 import { getEmptyCase, toCaseInput } from '../_schema';
 import { CaseBuilderForm } from './builder/CaseBuilderForm';
-import { CaseStatusBadge } from './CaseStatusBadge';
+import { CaseStatusBadge } from '@/components/admin';
 
 function BuilderHeader({ adminCase }: { adminCase: IAdminCase | null }) {
   return (
@@ -57,7 +57,7 @@ export function CaseBuilderView({ id }: { id: string | null }) {
   return (
     <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8">
       <Link
-        href={PATHS.admin}
+        href={PATHS.adminCases}
         className="group flex w-fit items-center gap-1.5 text-sm text-ink-muted transition-colors hover:text-ink"
       >
         <ArrowLeft className="size-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
@@ -75,7 +75,7 @@ export function CaseBuilderView({ id }: { id: string | null }) {
           description="Case ini mungkin sudah dihapus, atau tautannya salah."
           action={
             <Button asChild size="pill">
-              <Link href={PATHS.admin}>Kembali ke daftar case</Link>
+              <Link href={PATHS.adminCases}>Kembali ke daftar case</Link>
             </Button>
           }
         />

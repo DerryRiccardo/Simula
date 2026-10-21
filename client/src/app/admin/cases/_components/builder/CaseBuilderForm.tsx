@@ -104,7 +104,7 @@ export function CaseBuilderForm({ adminCase, defaultValues }: CaseBuilderFormPro
           <BriefSection />
           <SlotsSection />
           <RubricSection />
-          {tier === 'b2b' && <CommercialSection />}
+          {tier === 'b2b' && <CommercialSection adminCase={adminCase} />}
 
           <div className="sticky bottom-4 z-10 flex flex-wrap items-center justify-between gap-3 rounded-card border border-line bg-white/95 px-5 py-4 shadow-lift backdrop-blur-sm">
             <p className="text-sm text-ink-muted">

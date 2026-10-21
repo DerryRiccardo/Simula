@@ -15,13 +15,14 @@ import type { IReviewSubmissionDetail } from '@/types';
 type TPanelTab = 'submission' | 'context' | 'tasks' | 'requirements' | 'materials';
 
 interface CasePanelProps {
-  detail: IReviewSubmissionDetail;
+  /** Portal reviewer dan panel admin memakai bentuk data yang sama untuk bagian ini. */
+  detail: Pick<IReviewSubmissionDetail, 'brief' | 'submission' | 'caseInfo'>;
   /** Catatan di atas isi submission, misalnya permintaan revisi sebelumnya. */
   notice?: ReactNode;
 }
 
-// Panel kiri halaman review: jawaban kandidat dan soalnya dalam satu tempat. Brief yang tampil
-// sama persis dengan yang dibaca kandidat; rubrik ada di form penilaian di sebelah kanan.
+// Jawaban kandidat dan soalnya dalam satu tempat (halaman review reviewer dan detail penilaian
+// admin). Brief yang tampil sama persis dengan yang dibaca kandidat; rubrik ada di panel kanan.
 export function CasePanel({ detail, notice }: CasePanelProps) {
   const [tab, setTab] = useState<TPanelTab>('submission');
   const { brief, submission, caseInfo } = detail;

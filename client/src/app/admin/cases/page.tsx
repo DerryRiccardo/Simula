@@ -8,7 +8,7 @@ import { AdminCasesView } from './_components/AdminCasesView';
 export const metadata = createPageMetadata({
   title: 'Kelola Case',
   description: 'Daftar case AI dan B2B, draft maupun terbit.',
-  path: PATHS.admin,
+  path: PATHS.adminCases,
   noIndex: true,
 });
 

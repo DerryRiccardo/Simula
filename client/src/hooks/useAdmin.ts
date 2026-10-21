@@ -11,9 +11,39 @@ import type { IAdminCaseSavePayload } from '@/types';
 
 export const adminKeys = {
   all: ['admin'] as const,
+  overview: () => [...adminKeys.all, 'overview'] as const,
+  reviews: () => [...adminKeys.all, 'reviews'] as const,
+  review: (id: string) => [...adminKeys.all, 'review', id] as const,
+  partners: () => [...adminKeys.all, 'partners'] as const,
+  members: () => [...adminKeys.all, 'members'] as const,
+  member: (id: string) => [...adminKeys.all, 'member', id] as const,
+  orders: () => [...adminKeys.all, 'orders'] as const,
+  talentPool: () => [...adminKeys.all, 'talent-pool'] as const,
+  fields: () => [...adminKeys.all, 'fields'] as const,
+  settings: () => [...adminKeys.all, 'settings'] as const,
   cases: () => [...adminKeys.all, 'cases'] as const,
   case: (id: string) => [...adminKeys.all, 'case', id] as const,
 };
+
+export function useAdminOverview() {
+  return useQuery({ queryKey: adminKeys.overview(), queryFn: adminService.getOverview });
+}
+
+export function useAdminMembers() {
+  return useQuery({ queryKey: adminKeys.members(), queryFn: adminService.listMembers });
+}
+
+export function useAdminMember(id: string) {
+  return useQuery({
+    queryKey: adminKeys.member(id),
+    queryFn: () => adminService.getMember(id),
+    retry: false,
+  });
+}
+
+export function useAdminOrders() {
+  return useQuery({ queryKey: adminKeys.orders(), queryFn: adminService.listOrders });
+}
 
 export function useAdminCases() {
   return useQuery({ queryKey: adminKeys.cases(), queryFn: adminService.listCases });
@@ -51,7 +81,7 @@ export function useSaveAdminCase() {
           ? 'Case diterbitkan'
           : 'Draft tersimpan';
       toast.success(title, { description: saved.title });
-      if (payload.isPublish) router.push(PATHS.admin);
+      if (payload.isPublish) router.push(PATHS.adminCases);
       else if (!id) router.replace(PATHS.adminCaseEdit(saved.id));
     },
     onError: (error) => handleApiError(error, 'Case gagal disimpan. Coba lagi.'),

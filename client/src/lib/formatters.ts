@@ -29,6 +29,16 @@ export const formatPrice = (price: number | null) =>
 
 export const formatNumber = (value: number) => new Intl.NumberFormat('id-ID').format(value);
 
+const compactRupiahFormatter = new Intl.NumberFormat('id-ID', {
+  style: 'currency',
+  currency: 'IDR',
+  notation: 'compact',
+  maximumFractionDigits: 1,
+});
+
+/** "Rp 888 rb", "Rp 12,5 jt": untuk angka besar di ruang sempit (tile ringkasan). */
+export const formatCompactPrice = (price: number) => compactRupiahFormatter.format(price);
+
 export const formatDate = (iso: string) =>
   format(new Date(iso), 'd MMMM yyyy', { locale: localeId });
 

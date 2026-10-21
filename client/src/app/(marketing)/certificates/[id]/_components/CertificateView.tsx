@@ -10,6 +10,7 @@ import { CertificatePaper } from '@/components/student';
 import { Button } from '@/components/ui';
 import { PATHS } from '@/constants/paths';
 import { SITE } from '@/constants/site';
+import { formatDate } from '@/lib/formatters';
 import { useCertificateVerification } from '@/hooks/useCertificate';
 import type { ICertificateVerification } from '@/types';
 import { CertificateActions } from './CertificateActions';
@@ -70,6 +71,35 @@ function VerifiedCertificate({ verification }: { verification: ICertificateVerif
   );
 }
 
+// Dicabut admin: data tetap ditampilkan agar recruiter tahu sertifikat ini pernah terbit,
+// tetapi kertas sertifikat dan aksi bagikan disembunyikan.
+function RevokedCertificate({
+  verification,
+  revokedAt,
+}: {
+  verification: ICertificateVerification;
+  revokedAt: string;
+}) {
+  return (
+    <div className="grid gap-8">
+      <header className="min-w-0">
+        <p className="inline-flex items-center gap-1.5 rounded-tag bg-surface-soft px-2 py-1 text-xs font-medium text-ink-muted">
+          <ShieldX className="size-3.5" strokeWidth={2} />
+          Dicabut
+        </p>
+        <h1 className="mt-3 text-page-title">Sertifikat ini tidak berlaku lagi</h1>
+        <p className="mt-2 max-w-[60ch] text-[0.9375rem] leading-relaxed text-pretty text-ink-muted">
+          Sertifikat atas nama {verification.certificate.recipientName} dicabut oleh {SITE.name}{' '}
+          pada {formatDate(revokedAt)}, sehingga tidak bisa dipakai sebagai bukti kompetensi.
+        </p>
+      </header>
+      <div className="max-w-xl">
+        <CertificateDetails verification={verification} />
+      </div>
+    </div>
+  );
+}
+
 // Halaman publik: recruiter membuka dari tautan di CV/LinkedIn tanpa perlu masuk.
 export function CertificateView({ id }: { id: string }) {
   const { data: verification, isLoading, isError, refetch } = useCertificateVerification(id);
@@ -101,6 +131,8 @@ export function CertificateView({ id }: { id: string }) {
             </Button>
           }
         />
+      ) : verification.revokedAt ? (
+        <RevokedCertificate verification={verification} revokedAt={verification.revokedAt} />
       ) : (
         <VerifiedCertificate verification={verification} />
       )}

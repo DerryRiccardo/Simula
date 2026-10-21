@@ -71,6 +71,9 @@ function getOwnedOrder(orderId: string) {
   return order;
 }
 
+/** Panel admin: kedaluwarsakan semua order yang lewat batas bayar sebelum ditampilkan. */
+export const expireOverdueOrders = () => mockDb.listAllOrders().forEach(expireIfOverdue);
+
 export const checkoutApi = {
   /** null jika slug tidak ditemukan. */
   getCheckout: (slug: string): ICheckoutSummary | null => {

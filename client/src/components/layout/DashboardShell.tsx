@@ -1,10 +1,11 @@
 'use client';
 
 import { Suspense, useState, type ReactNode } from 'react';
-import { ChevronRight, Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 import { Button, Sheet, SheetContent, SheetTitle } from '@/components/ui';
 import { cn } from '@/lib/utils';
+import { Breadcrumb, type IBreadcrumbItem } from './Breadcrumb';
 
 const COLLAPSE_STORAGE_KEY = 'ws-sidebar-collapsed';
 
@@ -16,36 +17,10 @@ function readIsCollapsed() {
   }
 }
 
-function Breadcrumb({ items }: { items: string[] }) {
-  return (
-    <nav aria-label="Breadcrumb" className="min-w-0 flex-1">
-      <ol className="flex items-center gap-1.5 text-sm">
-        {items.map((crumb, index) => {
-          const isLast = index === items.length - 1;
-          return (
-            <li
-              key={crumb}
-              className={cn('flex min-w-0 items-center gap-1.5', !isLast && 'hidden sm:flex')}
-            >
-              <span
-                className={cn('truncate', isLast ? 'font-semibold text-ink' : 'text-ink-subtle')}
-                aria-current={isLast ? 'page' : undefined}
-              >
-                {crumb}
-              </span>
-              {!isLast && <ChevronRight className="size-3.5 shrink-0 text-ink-subtle" />}
-            </li>
-          );
-        })}
-      </ol>
-    </nav>
-  );
-}
-
 interface DashboardShellProps {
   /** Isi sidebar; onNavigate menutup panel menu di ponsel setelah item dipilih. */
   renderSidebar: (onNavigate?: () => void) => ReactNode;
-  breadcrumb: string[];
+  breadcrumb: IBreadcrumbItem[];
   /** Kontrol di kanan header, misalnya kotak pencarian. */
   headerEnd?: ReactNode;
   /** Elemen melayang di luar alur halaman, misalnya dialog pencarian atau tombol bantuan. */

@@ -5,13 +5,12 @@ import { ArrowLeft, History, SearchX } from 'lucide-react';
 
 import { Reveal } from '@/components/animated';
 import { EmptyState, ErrorState, Skeleton } from '@/components';
+import { CasePanel, DecisionSummary } from '@/components/review';
 import { Button } from '@/components/ui';
 import { PATHS } from '@/constants/paths';
 import { useReviewSubmission } from '@/hooks/useReviewer';
 import type { IReviewSubmissionDetail } from '@/types';
-import { CasePanel } from './CasePanel';
 import { DecisionPanel } from './DecisionPanel';
-import { DecisionSummary } from './DecisionSummary';
 import { ReviewHeader } from './ReviewHeader';
 
 // Kiri: submission dan brief (menempel saat menggulir). Kanan: form penilaian.
@@ -41,7 +40,16 @@ function ReviewContent({ detail }: { detail: IReviewSubmissionDetail }) {
           <CasePanel detail={detail} notice={revisionNotice} />
         </aside>
         <Reveal offset={12} className="min-w-0">
-          {isPending ? <DecisionPanel detail={detail} /> : <DecisionSummary detail={detail} />}
+          {isPending ? (
+            <DecisionPanel detail={detail} />
+          ) : (
+            <DecisionSummary
+              item={detail.item}
+              review={detail.review}
+              lastRevision={detail.lastRevision}
+              revisionFootnote="Menunggu kandidat mengirim ulang. Submission ulang kembali ke antreanmu."
+            />
+          )}
         </Reveal>
       </div>
     </>

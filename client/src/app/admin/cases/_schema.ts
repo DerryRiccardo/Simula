@@ -46,8 +46,7 @@ export const adminCaseSchema = z
     passingScore: z.number().int().min(1, 'Antara 1 dan 100.').max(100, 'Antara 1 dan 100.'),
     price: z.number().int().min(0),
     deadlineDays: z.number().int().min(0),
-    partnerName: z.string(),
-    partnerIndustry: z.string(),
+    partnerId: z.string(),
     reviewerRole: z.string(),
   })
   .superRefine((value, ctx) => {
@@ -63,9 +62,8 @@ export const adminCaseSchema = z
     const b2bRules: [keyof IAdminCaseInput, boolean, string][] = [
       ['price', value.price >= 10_000, 'Harga minimal Rp10.000.'],
       ['deadlineDays', value.deadlineDays >= 1, 'Tenggat minimal 1 hari.'],
-      ['partnerName', value.partnerName.trim().length >= 2, 'Nama mitra wajib diisi.'],
-      ['partnerIndustry', value.partnerIndustry.trim().length >= 2, 'Industri mitra wajib diisi.'],
-      ['reviewerRole', value.reviewerRole.trim().length >= 2, 'Jabatan reviewer wajib diisi.'],
+      ['partnerId', value.partnerId !== '', 'Pilih mitra.'],
+      ['reviewerRole', value.reviewerRole.trim().length >= 2, 'Peran penilai wajib diisi.'],
     ];
     b2bRules.forEach(([path, isValid, message]) => {
       if (!isValid) ctx.addIssue({ code: 'custom', path: [path], message });
@@ -130,8 +128,7 @@ export const getEmptyCase = (): IAdminCaseInput => ({
   passingScore: DEFAULT_PASSING_SCORE.ai,
   price: 0,
   deadlineDays: 7,
-  partnerName: '',
-  partnerIndustry: '',
+  partnerId: '',
   reviewerRole: '',
 });
 

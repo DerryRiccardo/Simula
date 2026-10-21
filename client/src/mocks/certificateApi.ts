@@ -34,6 +34,7 @@ export const certificateApi = {
       partner: detail.partner,
       passingScore: getCaseBrief(detail).passingScore,
       isOwner: mockDb.getSessionUser()?.id === record.userId,
+      revokedAt: record.certificateRevocation?.revokedAt ?? null,
     };
   },
 };

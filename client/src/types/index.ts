@@ -9,3 +9,6 @@ export * from './certificate';
 export * from './profile';
 export * from './reviewer';
 export * from './admin';
+export * from './partner';
+export * from './member';
+export * from './platform';

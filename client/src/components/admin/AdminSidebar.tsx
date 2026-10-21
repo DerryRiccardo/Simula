@@ -5,10 +5,9 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { Logo } from '@/components/layout/Logo';
 import { SidebarUserCard } from '@/components/layout/SidebarUserCard';
 import { DashboardSidebar, type ISidebarGroup, type ISidebarItem } from '@/components/ui';
-import { ADMIN_NAV } from '@/constants/adminNav';
-import { PATHS } from '@/constants/paths';
+import { ADMIN_EXACT_NAV_IDS, ADMIN_NAV } from '@/constants/adminNav';
 import type { INavItem } from '@/constants/studentNav';
-import { useAdminCases } from '@/hooks/useAdmin';
+import { useAdminCases, useAdminOverview } from '@/hooks/useAdmin';
 import { matchesNavHref } from '@/lib/navigation';
 
 const toBadge = (count: number | undefined) => (count ? count : undefined);
@@ -17,8 +16,9 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { data: cases } = useAdminCases();
+  const { data: overview } = useAdminOverview();
 
-  // Angka sama dengan jumlah di daftar case; draft perlu ditindaklanjuti, jadi berwarna biru.
+  // Jumlah case sekadar informasi (abu-abu); draft dan review B2B menunggu tindakan (biru).
   const badges: Record<string, { count?: number; tone: ISidebarItem['badgeTone'] }> = {
     cases: { count: cases?.length, tone: 'muted' },
     'cases-ai': { count: cases?.filter((item) => item.tier === 'ai').length, tone: 'muted' },
@@ -27,13 +27,17 @@ export function AdminSidebar({ onNavigate }: { onNavigate?: () => void }) {
       count: cases?.filter((item) => item.status === 'draft').length,
       tone: 'attention',
     },
+    'reviews-b2b': { count: overview?.stats.pendingReviewCount, tone: 'attention' },
   };
 
-  // "Case" tetap aktif di halaman edit, tetapi tidak di "Buat case baru" yang punya menu sendiri.
+  // Menu induk ikut aktif di halaman turunannya (Case tetap aktif di pembuat case).
   const isActive = (item: INavItem, isChild: boolean) =>
-    item.id === 'cases'
-      ? matchesNavHref(item.href, pathname, searchParams, true) && pathname !== PATHS.adminCaseNew
-      : matchesNavHref(item.href, pathname, searchParams, !isChild);
+    matchesNavHref(
+      item.href,
+      pathname,
+      searchParams,
+      !isChild && !ADMIN_EXACT_NAV_IDS.includes(item.id)
+    );
 
   const toSidebarItem = (item: INavItem, isChild: boolean): ISidebarItem => ({
     id: item.id,

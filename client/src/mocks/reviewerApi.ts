@@ -17,6 +17,7 @@ import {
   MAX_REVISIONS,
 } from '@/mocks/grading';
 import { getReviewerRole, resolveReview } from '@/mocks/resultApi';
+import { getEffectiveReviewerId } from '@/mocks/reviewerAssignments';
 import type {
   IGradeSubmissionPayload,
   IReviewerQueue,
@@ -30,8 +31,8 @@ import type {
 } from '@/types';
 
 // Logika portal reviewer untuk mode mock. Dipakai service saat mock aktif dan oleh handler MSW.
-// PLACEHOLDER: akun demo reviewer ditugaskan ke semua B2B case agar setiap submission bisa
-// didemokan. Di produksi admin menugaskan reviewer per case (CONTEXT.md 4.11).
+// Reviewer hanya melihat submission yang dipegangnya: dari case yang ditugaskan admin, atau yang
+// dipindahkan kepadanya lewat Ganti reviewer (lihat mocks/reviewerAssignments.ts).
 
 const DECIDED_STATUSES: TEnrollmentStatus[] = ['revision_requested', 'passed', 'failed'];
 const MIN_REASON_LENGTH = 20;
@@ -43,10 +44,10 @@ function requireReviewer() {
   return user;
 }
 
-const isAssigned = (record: IMockEnrollmentRecord) => findCaseById(record.caseId)?.tier === 'b2b';
-
-const isInQueue = (record: IMockEnrollmentRecord) =>
-  isAssigned(record) && (record.status === 'in_review' || DECIDED_STATUSES.includes(record.status));
+const isInQueue = (record: IMockEnrollmentRecord, reviewerId: string) =>
+  findCaseById(record.caseId)?.tier === 'b2b' &&
+  getEffectiveReviewerId(record) === reviewerId &&
+  (record.status === 'in_review' || DECIDED_STATUSES.includes(record.status));
 
 /** Nomor kandidat stabil dari id enrollment; identitas asli tidak pernah dikirim ke reviewer. */
 function getCandidateLabel(enrollmentId: string) {
@@ -92,9 +93,9 @@ function toQueueItem(record: IMockEnrollmentRecord): IReviewQueueItem {
 }
 
 function getAssignedRecord(id: string) {
-  requireReviewer();
+  const user = requireReviewer();
   const record = mockDb.findEnrollmentById(id);
-  if (!record || !isInQueue(record)) {
+  if (!record || !isInQueue(record, user.id)) {
     throw new ApiResponseError(404, 'Submission tidak ditemukan di antreanmu.');
   }
   return record;
@@ -108,8 +109,11 @@ function requirePending(record: IMockEnrollmentRecord) {
 
 export const reviewerApi = {
   getQueue: (): IReviewerQueue => {
-    requireReviewer();
-    const items = mockDb.listAllEnrollments().filter(isInQueue).map(toQueueItem);
+    const user = requireReviewer();
+    const items = mockDb
+      .listAllEnrollments()
+      .filter((record) => isInQueue(record, user.id))
+      .map(toQueueItem);
     return {
       pending: items
         .filter((item) => item.status === 'in_review')
@@ -122,9 +126,9 @@ export const reviewerApi = {
 
   /** null jika submission tidak ada di antrean reviewer ini. */
   getSubmission: (id: string): IReviewSubmissionDetail | null => {
-    requireReviewer();
+    const user = requireReviewer();
     const record = mockDb.findEnrollmentById(id);
-    const context = record && isInQueue(record) ? getCaseContext(record.caseId) : null;
+    const context = record && isInQueue(record, user.id) ? getCaseContext(record.caseId) : null;
     if (!record || !context) return null;
     return {
       item: toQueueItem(record),
@@ -185,7 +189,11 @@ export const reviewerApi = {
       // Rekomendasi hanya bermakna untuk kandidat yang lulus.
       isRecommended: isPassed && payload.isRecommended,
     };
-    mockDb.updateEnrollment(record.id, { reviewDraft: null });
+    // Keputusan dikunci ke reviewer yang memutuskan, agar riwayatnya tidak ikut berpindah.
+    mockDb.updateEnrollment(record.id, {
+      reviewDraft: null,
+      assignedReviewerId: getEffectiveReviewerId(record),
+    });
     return toQueueItem(applyReview(record, review));
   },
 
@@ -222,7 +230,10 @@ export const reviewerApi = {
       ]);
     }
     try {
-      mockDb.updateEnrollment(record.id, { reviewDraft: null });
+      mockDb.updateEnrollment(record.id, {
+        reviewDraft: null,
+        assignedReviewerId: getEffectiveReviewerId(record),
+      });
       return toQueueItem(
         applyRevisionRequest(record, {
           reason: payload.reason,

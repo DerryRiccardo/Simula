@@ -3,21 +3,44 @@
 import type { ReactNode } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 
+import type { IBreadcrumbItem } from '@/components/layout/Breadcrumb';
 import { DashboardShell } from '@/components/layout/DashboardShell';
-import { ADMIN_NAV } from '@/constants/adminNav';
+import { findAdminNavMatch } from '@/constants/adminNav';
 import { PATHS } from '@/constants/paths';
 import { matchesNavHref } from '@/lib/navigation';
 import { AdminSidebar } from './AdminSidebar';
 
-/** "Konten / Case / AI Case Study", atau nama halaman pembuat case. */
-function getBreadcrumb(pathname: string, searchParams: URLSearchParams) {
-  const section = ADMIN_NAV[0];
-  if (pathname === PATHS.adminCaseNew) return [section.title, 'Buat case baru'];
-  if (pathname.endsWith('/edit')) return [section.title, 'Case', 'Edit'];
-  const child = section.items[0].children?.find((item) =>
-    matchesNavHref(item.href, pathname, searchParams, false)
+/**
+ * "Konten / Case / AI Case Study", atau halaman turunan (Edit, Detail, Penugasan) di bawah menu.
+ * Grup menu hanya judul; menu dan sub-menu di atas halaman aktif bisa diklik untuk kembali.
+ */
+function getBreadcrumb(pathname: string, searchParams: URLSearchParams): IBreadcrumbItem[] {
+  const match = findAdminNavMatch(pathname, (item, isPrefix) =>
+    matchesNavHref(item.href, pathname, searchParams, isPrefix)
   );
-  return child ? [section.title, 'Case', child.label] : [section.title, 'Case'];
+  if (!match) return [{ label: 'Panel admin', href: PATHS.admin }];
+  const { section, item, child } = match;
+  // Grup berisi satu menu bernama sama (Penilaian), cukup ditulis sekali.
+  const group: IBreadcrumbItem[] = section.title === item.label ? [] : [{ label: section.title }];
+  const isSubpage = pathname.startsWith(`${item.href}/`);
+  const isReviewerAssignment = pathname.startsWith(`${item.href}/reviewers/`);
+
+  if (isSubpage) {
+    const subpage =
+      pathname === PATHS.adminCaseNew
+        ? 'Buat case baru'
+        : pathname.endsWith('/edit')
+          ? 'Edit'
+          : isReviewerAssignment
+            ? 'Penugasan'
+            : 'Detail';
+    // Penugasan dibuka dari tab Reviewer, jadi "kembali" mengarah ke tab itu.
+    const parentHref = isReviewerAssignment ? `${item.href}?tab=reviewers` : item.href;
+    return [...group, { label: item.label, href: parentHref }, { label: subpage }];
+  }
+  return child
+    ? [...group, { label: item.label, href: item.href }, { label: child.label }]
+    : [...group, { label: item.label }];
 }
 
 export function AdminShell({ children }: { children: ReactNode }) {

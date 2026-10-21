@@ -2,7 +2,7 @@ import { CircleCheck, CircleDot, RotateCcw } from 'lucide-react';
 
 import { formatPoints, getCriterionPoints, MAX_LEVEL } from '@/lib/score';
 import { formatDate } from '@/lib/formatters';
-import type { IReviewSubmissionDetail } from '@/types';
+import type { IReviewQueueItem, IReviewResult, IRevisionRequest } from '@/types';
 
 function FeedbackList({ title, points }: { title: string; points: string[] }) {
   if (points.length === 0) return null;
@@ -20,10 +20,21 @@ function FeedbackList({ title, points }: { title: string; points: string[] }) {
   );
 }
 
-// Riwayat: keputusan yang sudah dikirim, baca saja. Keputusan tidak bisa diubah.
-export function DecisionSummary({ detail }: { detail: IReviewSubmissionDetail }) {
-  const { item, review, lastRevision } = detail;
+interface DecisionSummaryProps {
+  item: Pick<IReviewQueueItem, 'status' | 'score' | 'decidedAt'>;
+  review: IReviewResult | null;
+  lastRevision: IRevisionRequest | null;
+  /** Keterangan di bawah catatan revisi, berbeda untuk reviewer dan admin. */
+  revisionFootnote: string;
+}
 
+// Keputusan yang sudah dikirim, baca saja (riwayat reviewer dan detail penilaian admin).
+export function DecisionSummary({
+  item,
+  review,
+  lastRevision,
+  revisionFootnote,
+}: DecisionSummaryProps) {
   if (item.status === 'revision_requested') {
     return (
       <section className="rounded-card border border-line bg-white p-5">
@@ -44,9 +55,7 @@ export function DecisionSummary({ detail }: { detail: IReviewSubmissionDetail })
             <p className="mt-0.5 text-sm leading-relaxed text-ink-muted">{lastRevision.note}</p>
           </>
         )}
-        <p className="mt-4 border-t border-line pt-4 text-xs text-ink-subtle">
-          Menunggu kandidat mengirim ulang. Submission ulang kembali ke antreanmu.
-        </p>
+        <p className="mt-4 border-t border-line pt-4 text-xs text-ink-subtle">{revisionFootnote}</p>
       </section>
     );
   }

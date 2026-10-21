@@ -7,7 +7,7 @@ import { PATHS } from '@/constants/paths';
 import { formatDate, formatNumber } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type { IAdminCaseSummary } from '@/types';
-import { CaseStatusBadge } from './CaseStatusBadge';
+import { CaseStatusBadge } from '@/components/admin';
 
 // Kolom tabel hanya di layar lebar; di bawahnya angka dan aksi turun ke bawah judul.
 export const ADMIN_CASE_GRID =

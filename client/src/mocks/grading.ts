@@ -93,7 +93,9 @@ const getStepCount = (record: IMockEnrollmentRecord) =>
   (getCaseContext(record.caseId)?.brief.rubric.length ?? 0) + 1;
 
 const getStartedAt = (record: IMockEnrollmentRecord) =>
-  new Date(record.submission?.submittedAt ?? record.updatedAt).getTime();
+  new Date(
+    record.aiGradingStartedAt ?? record.submission?.submittedAt ?? record.updatedAt
+  ).getTime();
 
 /** null jika enrollment tidak sedang dinilai AI. */
 export function getAiGradingProgress(record: IMockEnrollmentRecord): IAiGradingProgress | null {

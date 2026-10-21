@@ -13,6 +13,12 @@ export const authApi = {
     if (!user || user.password !== password) {
       throw new ApiResponseError(401, 'Email atau kata sandi salah.');
     }
+    if (user.reviewerProfile?.isActive === false) {
+      throw new ApiResponseError(
+        403,
+        'Akun reviewer ini sedang dinonaktifkan. Hubungi tim Simula.'
+      );
+    }
     mockDb.setSession(user.id);
     return toPublicUser(user);
   },

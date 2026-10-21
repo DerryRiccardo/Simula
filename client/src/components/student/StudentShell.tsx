@@ -1,14 +1,16 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { LifeBuoy, Mail, MessageCircle, Search } from 'lucide-react';
 
+import type { IBreadcrumbItem } from '@/components/layout/Breadcrumb';
 import { DashboardShell } from '@/components/layout/DashboardShell';
 import { Button, Popover, PopoverContent, PopoverTrigger } from '@/components/ui';
 import { PATHS } from '@/constants/paths';
 import { SITE } from '@/constants/site';
 import { STUDENT_NAV } from '@/constants/studentNav';
+import { matchesNavHref } from '@/lib/navigation';
 import { CommandSearch } from './CommandSearch';
 import { StudentSidebar } from './StudentSidebar';
 
@@ -24,15 +26,39 @@ const CASE_SUBPAGE_LABEL: Record<string, string> = {
   result: 'Hasil',
 };
 
-/** "Belajar / Case Saya", ditambah nama halaman turunan (Detail, Checkout, dst.). */
-function getBreadcrumb(pathname: string) {
-  if (pathname === PATHS.profile) return ['Akun', 'Profil'];
+/**
+ * "Belajar / Jelajahi Case / Detail case / Pengerjaan". Grup menu hanya judul; menu dan halaman
+ * detail case di atas halaman aktif bisa diklik untuk kembali.
+ */
+function getBreadcrumb(pathname: string, searchParams: URLSearchParams): IBreadcrumbItem[] {
+  if (pathname === PATHS.profile) return [{ label: 'Akun' }, { label: 'Profil' }];
   for (const section of STUDENT_NAV) {
     for (const item of section.items) {
-      if (pathname === item.href) return [section.title, item.label];
+      if (pathname === item.href) {
+        // Sub-menu memakai filter di URL (?tier, ?status), mis. "Case Saya / Perlu revisi".
+        const child = item.children?.find((entry) =>
+          matchesNavHref(entry.href, pathname, searchParams, false)
+        );
+        return child
+          ? [
+              { label: section.title },
+              { label: item.label, href: item.href },
+              { label: child.label },
+            ]
+          : [{ label: section.title }, { label: item.label }];
+      }
       if (pathname.startsWith(`${item.href}/`)) {
-        const subpage = pathname.split('/')[3];
-        return [section.title, item.label, CASE_SUBPAGE_LABEL[subpage ?? ''] ?? 'Detail'];
+        const [, , slug, subpage] = pathname.split('/');
+        const trail = [{ label: section.title }, { label: item.label, href: item.href }];
+        const subpageLabel = CASE_SUBPAGE_LABEL[subpage ?? ''];
+        // Halaman turunan case (checkout, pengerjaan, dst.) bisa kembali ke detail case-nya.
+        return subpageLabel && slug
+          ? [
+              ...trail,
+              { label: 'Detail case', href: PATHS.caseDetail(slug) },
+              { label: subpageLabel },
+            ]
+          : [...trail, { label: 'Detail' }];
       }
     }
   }
@@ -77,6 +103,7 @@ function HelpButton() {
 
 export function StudentShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchShortcut = getSearchShortcut();
 
@@ -95,7 +122,7 @@ export function StudentShell({ children }: { children: ReactNode }) {
 
   return (
     <DashboardShell
-      breadcrumb={getBreadcrumb(pathname)}
+      breadcrumb={getBreadcrumb(pathname, searchParams)}
       renderSidebar={(onNavigate) => (
         <StudentSidebar
           onOpenSearch={openSearch}
