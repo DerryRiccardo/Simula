@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/DerryRiccardo/Simula/server/config"
+	studentHandler "github.com/DerryRiccardo/Simula/server/handler/student"
 	"github.com/DerryRiccardo/Simula/server/initializers"
 	"github.com/DerryRiccardo/Simula/server/middleware"
 	"github.com/DerryRiccardo/Simula/server/router"
@@ -34,11 +35,14 @@ func RunServer(ctx context.Context, cfg *config.Config) error {
 		return err
 	}
 	auth := newAuthComponents(cfg, newAuthUseCase(cfg, db, rdb))
+	store := newStorage(cfg)
 	router.Register(engine, router.Handlers{
 		Health:     newHealthHandler(cfg, db, rdb),
 		Auth:       auth.auth,
 		Onboarding: auth.onboarding,
 		Learning:   newLearningHandler(db),
+		Workspace:  newWorkspaceHandler(db, store),
+		Upload:     studentHandler.Upload(newUploadUseCase(cfg, db, store)),
 	}, auth.middlewares)
 
 	return initializers.RunHTTPServer(ctx, cfg, initializers.NewHTTPServer(cfg, engine))

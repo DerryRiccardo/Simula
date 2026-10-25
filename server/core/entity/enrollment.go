@@ -104,6 +104,78 @@ func (e *Enrollment) CertificatePublicID() *string {
 	return &id
 }
 
+// EditableStatuses adalah status enrollment yang draft dan submission-nya masih bisa diubah.
+var EditableStatuses = []EnrollmentStatus{EnrollmentInProgress, EnrollmentRevisionRequested}
+
+// ReviewSLABusinessDays adalah batas reviewer mitra menilai sejak submit terakhir (CONTEXT.md 4.10).
+const ReviewSLABusinessDays = 5
+
+// CanStart bernilai true bila case B2B yang sudah dibayar boleh mulai dikerjakan.
+func (e *Enrollment) CanStart() bool {
+	return e.Status == EnrollmentNotStarted
+}
+
+// CanViewBrief bernilai true bila brief lengkap boleh dibuka: AI sudah dimulai, B2B sudah dibayar.
+func (e *Enrollment) CanViewBrief() bool {
+	return e.Status != EnrollmentPendingPayment
+}
+
+// IsEditable bernilai true bila draft dan submission masih bisa diubah.
+func (e *Enrollment) IsEditable() bool {
+	return containsStatus(EditableStatuses, e.Status)
+}
+
+// IsPastDeadline bernilai true bila tenggat pengerjaan sudah lewat pada waktu now. AI case tidak
+// punya tenggat.
+func (e *Enrollment) IsPastDeadline(now time.Time) bool {
+	return e.DeadlineAt != nil && !now.Before(*e.DeadlineAt)
+}
+
+// WorkDeadline menghitung tenggat pengerjaan dalam hari kalender sejak mulai mengerjakan. nil bila
+// case tidak punya tenggat.
+func WorkDeadline(startedAt time.Time, deadlineDays *int) *time.Time {
+	if deadlineDays == nil || *deadlineDays <= 0 {
+		return nil
+	}
+	deadline := startedAt.AddDate(0, 0, *deadlineDays)
+	return &deadline
+}
+
+// StatusAfterSubmit menentukan status enrollment setelah submit: AI dinilai AI, B2B menunggu review.
+func StatusAfterSubmit(tier Tier) EnrollmentStatus {
+	if tier == TierAI {
+		return EnrollmentAIGrading
+	}
+	return EnrollmentInReview
+}
+
+// EnrollmentStatusChange adalah perubahan status yang hanya berlaku bila status lama masih salah
+// satu dari From, supaya dua request bersamaan tidak sama-sama lolos.
+type EnrollmentStatusChange struct {
+	EnrollmentID string
+	From         []EnrollmentStatus
+	To           EnrollmentStatus
+	ReviewDueAt  *time.Time
+	ChangedAt    time.Time
+}
+
+// jakarta adalah zona waktu hari kerja. WIB tidak mengenal DST, jadi offset tetap cukup dan tidak
+// bergantung pada database zona waktu sistem.
+var jakarta = time.FixedZone("WIB", 7*60*60)
+
+// AddBusinessDays menambahkan hari kerja (Senin–Jumat, zona Asia/Jakarta) ke t. Libur nasional
+// belum diperhitungkan. Hasilnya dalam UTC.
+func AddBusinessDays(t time.Time, days int) time.Time {
+	local := t.In(jakarta)
+	for added := 0; added < days; {
+		local = local.AddDate(0, 0, 1)
+		if weekday := local.Weekday(); weekday != time.Saturday && weekday != time.Sunday {
+			added++
+		}
+	}
+	return local.UTC()
+}
+
 // DashboardStats adalah angka ringkasan dashboard dan sidebar.
 type DashboardStats struct {
 	TotalCount       int

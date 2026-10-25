@@ -7,7 +7,8 @@
 //	SEED_PASSWORD=<password> go run ./scripts/seed -refresh-cases
 //
 // -refresh-cases mengganti isi case contoh yang sudah ada dengan isi cases.json terbaru, selama case
-// itu belum punya enrollment atau order.
+// itu belum punya enrollment atau order. Seed juga membuat satu enrollment B2B "sudah dibayar"
+// untuk akun mahasiswa, sehingga case itu tidak ikut di-refresh.
 package main
 
 import (
@@ -95,7 +96,10 @@ func run() error {
 		fmt.Printf("%-9s %-24s %s\n", account.role, account.email, status)
 	}
 
-	return seedCases(ctx, db, *refreshCases)
+	if err := seedCases(ctx, db, *refreshCases); err != nil {
+		return err
+	}
+	return seedDemoEnrollment(ctx, db, accounts[0].email)
 }
 
 func seedUser(ctx context.Context, users coreRepo.UserRepository, account seedAccount, hash string) (bool, error) {

@@ -23,7 +23,8 @@ COALESCE((SELECT round(avg(r.rating)::numeric, 1) FROM case_ratings r WHERE r.ca
 
 // caseSummaryColumns hanya memilih kolom kartu katalog, karena tabel cases lebar (brief, konteks).
 const caseSummaryColumns = `cases.id, cases.slug, cases.title, cases.summary, cases.tier, cases.status,
-cases.field_key, cases.level, cases.duration_label, cases.price, cases.partner_id, ` + caseComputedColumns
+cases.field_key, cases.level, cases.duration_label, cases.price, cases.partner_id, cases.deadline_days,
+cases.passing_score, ` + caseComputedColumns
 
 const caseDetailColumns = "cases.*, " + caseComputedColumns
 
@@ -76,12 +77,53 @@ func (r *caseRepo) GetPublishedBySlug(ctx context.Context, slug string) (entity.
 
 func (r *caseRepo) GetByID(ctx context.Context, id string) (entity.Case, error) {
 	var c entity.Case
-	err := r.db.WithContext(ctx).Select("id", "tier", "status").Where("id = ?", id).Take(&c).Error
+	err := r.db.WithContext(ctx).Select("id", "tier", "status", "deadline_days").Where("id = ?", id).Take(&c).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return entity.Case{}, coreErrors.ErrCaseNotFound
 	}
 	if err != nil {
 		return entity.Case{}, fmt.Errorf("failed to get case %s: %w", id, err)
+	}
+	return c, nil
+}
+
+func (r *caseRepo) GetWithBriefBySlug(ctx context.Context, slug string) (entity.Case, error) {
+	return r.getWithBrief(ctx, "cases.slug = ?", slug)
+}
+
+func (r *caseRepo) GetWithSlotsByID(ctx context.Context, id string) (entity.Case, error) {
+	var c entity.Case
+	err := r.db.WithContext(ctx).
+		Select("id", "tier", "status", "deadline_days").
+		Preload("Slots", orderByPosition).
+		Where("id = ?", id).
+		Take(&c).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return entity.Case{}, coreErrors.ErrCaseNotFound
+	}
+	if err != nil {
+		return entity.Case{}, fmt.Errorf("failed to get case slots %s: %w", id, err)
+	}
+	return c, nil
+}
+
+func (r *caseRepo) getWithBrief(ctx context.Context, condition string, value string) (entity.Case, error) {
+	var c entity.Case
+	err := r.db.WithContext(ctx).
+		Select(caseDetailColumns).
+		Preload("Partner").
+		Preload("Tasks", orderByPosition).
+		Preload("Slots", orderByPosition).
+		Preload("Rubric", orderByPosition).
+		Preload("Materials", orderByPosition).
+		Preload("Materials.File").
+		Where(condition, value).
+		Take(&c).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return entity.Case{}, coreErrors.ErrCaseNotFound
+	}
+	if err != nil {
+		return entity.Case{}, fmt.Errorf("failed to get case brief %s: %w", value, err)
 	}
 	return c, nil
 }

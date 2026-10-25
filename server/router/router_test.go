@@ -23,6 +23,8 @@ func registerForTest() (*gin.Engine, []Route) {
 			Auth:       authHandler.Auth(nil, sessioncookie.Config{}, "http://localhost:3000"),
 			Onboarding: studentHandler.Onboarding(nil),
 			Learning:   studentHandler.Learning(nil),
+			Workspace:  studentHandler.Workspace(nil),
+			Upload:     studentHandler.Upload(nil),
 		},
 		Middlewares{
 			Auth:         noop,
@@ -70,6 +72,12 @@ func TestRegister_AccessGroups(t *testing.T) {
 		{Method: "GET", Path: "/api/me/enrollments", Access: AccessStudent},
 		{Method: "POST", Path: "/api/me/enrollments", Access: AccessStudent},
 		{Method: "GET", Path: "/api/me/certificates", Access: AccessStudent},
+		{Method: "GET", Path: "/api/cases/:slug/workspace", Access: AccessStudent},
+		{Method: "GET", Path: "/api/cases/:slug/status", Access: AccessStudent},
+		{Method: "POST", Path: "/api/me/enrollments/:id/start", Access: AccessStudent},
+		{Method: "PUT", Path: "/api/me/enrollments/:id/draft", Access: AccessStudent},
+		{Method: "POST", Path: "/api/me/enrollments/:id/submit", Access: AccessStudent},
+		{Method: "POST", Path: "/api/uploads", Access: AccessStudent},
 	}
 	for _, want := range tests {
 		t.Run(want.Method+" "+want.Path, func(t *testing.T) {

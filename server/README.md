@@ -22,7 +22,7 @@ go run ./scripts/seed             # opsional: akun development, butuh SEED_PASSW
 go run .
 ```
 
-Seed membuat akun development (password = `SEED_PASSWORD`): `mahasiswa@simula.test`, `reviewer@simula.test`, `admin@simula.test`, serta 12 case contoh (7 AI, 5 B2B, beserta mitra, tugas, slot, dan rubrik) dari `scripts/seed/data/cases.json`. Slug-nya sama dengan data tiruan client. Seed ditolak bila `APP_ENV=production` dan melewati akun atau case yang sudah ada. Setelah `cases.json` diubah, jalankan `go run ./scripts/seed -refresh-cases` untuk mengganti isi case contoh yang belum punya enrollment atau order.
+Seed membuat akun development (password = `SEED_PASSWORD`): `mahasiswa@simula.test`, `reviewer@simula.test`, `admin@simula.test`, serta 12 case contoh (7 AI, 5 B2B, beserta mitra, tugas, slot, dan rubrik) dari `scripts/seed/data/cases.json`. Slug-nya sama dengan data tiruan client. Seed ditolak bila `APP_ENV=production` dan melewati akun atau case yang sudah ada. Setelah `cases.json` diubah, jalankan `go run ./scripts/seed -refresh-cases` untuk mengganti isi case contoh yang belum punya enrollment atau order. Seed juga memberi akun mahasiswa satu B2B case berstatus "Belum dimulai" (`mencegah-overselling-flash-sale`, dianggap sudah dibayar) untuk mencoba alur B2B sebelum checkout tersedia.
 
 Server berjalan di http://localhost:8080. Cek dengan:
 
@@ -70,8 +70,22 @@ Catatan Windows: `go test -race` butuh compiler C (cgo). Bila belum ada, jalanka
 | GET | `/api/me/enrollments` | Mahasiswa | Case Saya (filter tier, status, bidang, pencarian; sort) |
 | POST | `/api/me/enrollments` | Mahasiswa | Mulai AI case gratis (idempoten); B2B ditolak 409 |
 | GET | `/api/me/certificates` | Mahasiswa | Sertifikat Saya |
+| GET | `/api/cases/:slug/workspace` | Mahasiswa | Halaman pengerjaan: brief lengkap, draft, submission terakhir, catatan revisi |
+| GET | `/api/cases/:slug/status` | Mahasiswa | Halaman status: timeline, batas review, progres penilaian AI |
+| POST | `/api/me/enrollments/:id/start` | Mahasiswa | Mulai B2B yang sudah dibayar; tenggat dalam hari kalender |
+| PUT | `/api/me/enrollments/:id/draft` | Mahasiswa | Simpan draft |
+| POST | `/api/me/enrollments/:id/submit` | Mahasiswa | Kirim submission (AI → dinilai AI, B2B → menunggu review, SLA 5 hari kerja); ditolak setelah tenggat |
+| POST | `/api/uploads` | Mahasiswa | URL unggah berkas langsung ke R2 |
 
 Kontrak lengkap: [`docs/openapi.yaml`](docs/openapi.yaml).
+
+## Unggah berkas (Cloudflare R2)
+
+- Isi `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, dan `R2_BUCKET` di `.env`. Tanpa nilai ini server tetap berjalan, tetapi unggah dan submit berkas gagal.
+- Bucket private. CORS bucket harus mengizinkan `PUT` dari origin front-end dengan header `content-type`.
+- Alur: client meminta URL ke `POST /api/uploads`, mengunggah langsung ke R2 dengan `PUT`, lalu menyimpan `fileId` di isian slot. Saat submit, server memeriksa setiap berkas di R2 (ada dan ukurannya sama).
+- Key object: `submissions/{enrollmentId}/{attempt}/{slotId}/{fileId}.{ext}`. Nama berkas asli hanya disimpan di database.
+- Berkas yang tidak pernah dipakai di draft atau submission dihapus task worker setiap jam setelah 24 jam.
 
 ## Auth
 

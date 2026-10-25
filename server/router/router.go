@@ -33,6 +33,8 @@ type Handlers struct {
 	Auth       *authHandler.AuthHandler
 	Onboarding *studentHandler.OnboardingHandler
 	Learning   *studentHandler.LearningHandler
+	Workspace  *studentHandler.WorkspaceHandler
+	Upload     *studentHandler.UploadHandler
 }
 
 // Middlewares adalah middleware akses yang dipasang per grup.
@@ -77,6 +79,12 @@ func Register(engine *gin.Engine, h Handlers, mw Middlewares) []Route {
 	student.GET("/me/enrollments", h.Learning.ListEnrollments)
 	student.POST("/me/enrollments", h.Learning.StartCase)
 	student.GET("/me/certificates", h.Learning.ListCertificates)
+	student.GET("/cases/:slug/workspace", h.Workspace.GetWorkspace)
+	student.GET("/cases/:slug/status", h.Workspace.GetStatus)
+	student.POST("/me/enrollments/:id/start", h.Workspace.StartWork)
+	student.PUT("/me/enrollments/:id/draft", h.Workspace.SaveDraft)
+	student.POST("/me/enrollments/:id/submit", h.Workspace.Submit)
+	student.POST("/uploads", h.Upload.Create)
 
 	return r.routes
 }

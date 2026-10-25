@@ -101,10 +101,11 @@ type Case struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 
-	Partner *Partner
-	Tasks   []CaseTask        `gorm:"foreignKey:CaseID"`
-	Slots   []CaseSlot        `gorm:"foreignKey:CaseID"`
-	Rubric  []RubricCriterion `gorm:"foreignKey:CaseID"`
+	Partner   *Partner
+	Tasks     []CaseTask        `gorm:"foreignKey:CaseID"`
+	Slots     []CaseSlot        `gorm:"foreignKey:CaseID"`
+	Rubric    []RubricCriterion `gorm:"foreignKey:CaseID"`
+	Materials []CaseMaterial    `gorm:"foreignKey:CaseID"`
 
 	// DeliverableCount adalah jumlah slot submission.
 	DeliverableCount int `gorm:"->;-:migration"`
@@ -126,6 +127,16 @@ func (c *Case) PartnerName() *string {
 	}
 	name := c.Partner.Name
 	return &name
+}
+
+// SlotByKey mencari slot submission berdasarkan slot_key.
+func (c *Case) SlotByKey(key string) (CaseSlot, bool) {
+	for _, slot := range c.Slots {
+		if slot.SlotKey == key {
+			return slot, true
+		}
+	}
+	return CaseSlot{}, false
 }
 
 // CaseTask adalah satu tugas di brief lengkap.
@@ -162,6 +173,41 @@ type CaseSlot struct {
 	LinkHint    string
 	MinLength   *int
 	MaxLength   *int
+}
+
+// AllowedFormats mengembalikan ekstensi yang diterima slot berkas.
+func (s CaseSlot) AllowedFormats() []string {
+	if len(s.Formats) == 0 {
+		return DefaultSlotFormats
+	}
+	return s.Formats
+}
+
+// MaxSizeMB mengembalikan ukuran maksimal berkas slot dalam MB.
+func (s CaseSlot) MaxSizeMB() int {
+	if s.MaxSizeMb == nil || *s.MaxSizeMb <= 0 {
+		return DefaultSlotMaxSizeMB
+	}
+	return *s.MaxSizeMb
+}
+
+// TextMaxLength mengembalikan panjang maksimal isian teks slot.
+func (s CaseSlot) TextMaxLength() int {
+	if s.MaxLength == nil || *s.MaxLength <= 0 {
+		return TextSlotMaxLength
+	}
+	return *s.MaxLength
+}
+
+// CaseMaterial adalah materi pendukung yang bisa diunduh peserta yang sudah mulai atau membayar.
+type CaseMaterial struct {
+	ID          string
+	CaseID      string
+	Position    int
+	Name        string
+	Description string
+	FileID      string
+	File        *File
 }
 
 // RubricCriterion adalah satu kriteria rubrik. LevelDescriptions kosong atau berisi 5 deskripsi.

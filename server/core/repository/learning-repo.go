@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/DerryRiccardo/Simula/server/core/entity"
 	paginationPkg "github.com/DerryRiccardo/Simula/server/pkg/pagination"
@@ -27,9 +28,18 @@ type CaseRepository interface {
 	// GetPublishedBySlug mengisi semua kolom, Partner, Slots, dan Rubric. Mengembalikan
 	// coreErrors.ErrCaseNotFound bila tidak ada atau belum terbit.
 	GetPublishedBySlug(ctx context.Context, slug string) (entity.Case, error)
-	// GetByID hanya mengisi ID, Tier, dan Status. Mengembalikan coreErrors.ErrCaseNotFound bila
+	// GetByID hanya mengisi ID, Tier, Status, dan DeadlineDays. Mengembalikan coreErrors.ErrCaseNotFound bila
 	// tidak ada.
 	GetByID(ctx context.Context, id string) (entity.Case, error)
+	// GetWithBriefBySlug mengisi semua kolom (termasuk kolom terhitung), Partner, Tasks, Slots,
+	// Rubric, dan Materials (dengan File) tanpa memandang status terbit, karena peserta yang sudah
+	// mengambil case tetap boleh mengerjakannya. Mengembalikan coreErrors.ErrCaseNotFound bila tidak
+	// ada.
+	GetWithBriefBySlug(ctx context.Context, slug string) (entity.Case, error)
+	// GetWithSlotsByID hanya mengisi ID, Tier, Status, DeadlineDays, dan Slots. Dipakai jalur tulis
+	// (draft, submit, unggah) yang hanya butuh aturan slot. Mengembalikan coreErrors.ErrCaseNotFound
+	// bila tidak ada.
+	GetWithSlotsByID(ctx context.Context, id string) (entity.Case, error)
 }
 
 // EnrollmentFilter menyaring Case Saya. Field kosong berarti tidak disaring.
@@ -48,11 +58,20 @@ type EnrollmentRepository interface {
 	// GetForUser mengisi relasi seperti ListByUser. Mengembalikan coreErrors.ErrEnrollmentNotFound
 	// bila tidak ada atau bukan milik user.
 	GetForUser(ctx context.Context, userID, enrollmentID string) (entity.Enrollment, error)
+	// GetByIDForUser mengembalikan baris enrollment saja, tanpa relasi. Mengembalikan
+	// coreErrors.ErrEnrollmentNotFound bila tidak ada atau bukan milik user.
+	GetByIDForUser(ctx context.Context, userID, enrollmentID string) (entity.Enrollment, error)
 	// FindByUserAndCase mengembalikan coreErrors.ErrEnrollmentNotFound bila user belum mengambil case.
 	FindByUserAndCase(ctx context.Context, userID, caseID string) (entity.Enrollment, error)
+	// FindWithCertificate sama dengan FindByUserAndCase, ditambah Certificate. Case tidak dimuat
+	// karena pemanggil sudah memegang case-nya.
+	FindWithCertificate(ctx context.Context, userID, caseID string) (entity.Enrollment, error)
 	// Create mengembalikan coreErrors.ErrEnrollmentExists bila user sudah mengambil case ini, atau
 	// coreErrors.ErrCandidateNumberTaken bila nomor kandidat bentrok (coba lagi dengan nomor lain).
 	Create(ctx context.Context, enrollment *entity.Enrollment) error
+	// Start mengubah not_started menjadi in_progress beserta waktu mulai dan tenggat. Mengembalikan
+	// coreErrors.ErrStatusConflict bila status sudah bukan not_started.
+	Start(ctx context.Context, enrollmentID string, startedAt time.Time, deadlineAt *time.Time) error
 }
 
 // CertificateRepository membaca sertifikat peserta.

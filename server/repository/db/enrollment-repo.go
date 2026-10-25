@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -65,6 +66,33 @@ func (r *enrollmentRepo) GetForUser(ctx context.Context, userID, enrollmentID st
 	return enrollment, nil
 }
 
+func (r *enrollmentRepo) GetByIDForUser(ctx context.Context, userID, enrollmentID string) (entity.Enrollment, error) {
+	var enrollment entity.Enrollment
+	err := r.db.WithContext(ctx).Where("id = ? AND user_id = ?", enrollmentID, userID).Take(&enrollment).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return entity.Enrollment{}, coreErrors.ErrEnrollmentNotFound
+	}
+	if err != nil {
+		return entity.Enrollment{}, fmt.Errorf("failed to get enrollment %s: %w", enrollmentID, err)
+	}
+	return enrollment, nil
+}
+
+func (r *enrollmentRepo) FindWithCertificate(ctx context.Context, userID, caseID string) (entity.Enrollment, error) {
+	var enrollment entity.Enrollment
+	err := r.db.WithContext(ctx).
+		Preload("Certificate").
+		Where("user_id = ? AND case_id = ?", userID, caseID).
+		Take(&enrollment).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return entity.Enrollment{}, coreErrors.ErrEnrollmentNotFound
+	}
+	if err != nil {
+		return entity.Enrollment{}, fmt.Errorf("failed to find enrollment: %w", err)
+	}
+	return enrollment, nil
+}
+
 func (r *enrollmentRepo) FindByUserAndCase(ctx context.Context, userID, caseID string) (entity.Enrollment, error) {
 	var enrollment entity.Enrollment
 	err := r.db.WithContext(ctx).Where("user_id = ? AND case_id = ?", userID, caseID).Take(&enrollment).Error
@@ -96,6 +124,24 @@ func (r *enrollmentRepo) Create(ctx context.Context, enrollment *entity.Enrollme
 		return coreErrors.ErrEnrollmentExists
 	}
 	return coreErrors.ErrCandidateNumberTaken
+}
+
+func (r *enrollmentRepo) Start(ctx context.Context, enrollmentID string, startedAt time.Time, deadlineAt *time.Time) error {
+	result := r.db.WithContext(ctx).Model(&entity.Enrollment{}).
+		Where("id = ? AND status = ?", enrollmentID, entity.EnrollmentNotStarted).
+		Updates(map[string]any{
+			"status":      entity.EnrollmentInProgress,
+			"started_at":  startedAt,
+			"deadline_at": deadlineAt,
+			"updated_at":  startedAt,
+		})
+	if result.Error != nil {
+		return fmt.Errorf("failed to start enrollment %s: %w", enrollmentID, result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return coreErrors.ErrStatusConflict
+	}
+	return nil
 }
 
 // withCase memuat ringkasan case, mitranya, dan sertifikat.

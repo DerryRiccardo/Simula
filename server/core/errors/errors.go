@@ -15,4 +15,8 @@ var (
 	ErrEnrollmentNotFound    = errors.New("enrollment not found")
 	ErrEnrollmentExists      = errors.New("enrollment already exists")
 	ErrCandidateNumberTaken  = errors.New("candidate number already used")
+	// ErrStatusConflict berarti status sudah berubah oleh request lain sebelum update ini.
+	ErrStatusConflict  = errors.New("status changed concurrently")
+	ErrObjectNotFound  = errors.New("storage object not found")
+	ErrStorageDisabled = errors.New("storage is not configured")
 )

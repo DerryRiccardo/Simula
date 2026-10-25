@@ -67,6 +67,14 @@ type Config struct {
 	GoogleClientID     string `envconfig:"GOOGLE_CLIENT_ID"`
 	GoogleClientSecret string `envconfig:"GOOGLE_CLIENT_SECRET"`
 	GoogleRedirectURL  string `envconfig:"GOOGLE_REDIRECT_URL" default:"http://localhost:8080/api/auth/google/callback"`
+
+	// Cloudflare R2 (bucket private) untuk berkas submission. Unggah berkas nonaktif bila salah
+	// satu dari empat nilai pertama kosong.
+	R2AccountID       string        `envconfig:"R2_ACCOUNT_ID"`
+	R2AccessKeyID     string        `envconfig:"R2_ACCESS_KEY_ID"`
+	R2SecretAccessKey string        `envconfig:"R2_SECRET_ACCESS_KEY"`
+	R2Bucket          string        `envconfig:"R2_BUCKET"`
+	R2UploadURLTTL    time.Duration `envconfig:"R2_UPLOAD_URL_TTL" default:"15m"`
 }
 
 const minJWTSecretLength = 32
@@ -74,6 +82,11 @@ const minJWTSecretLength = 32
 // IsGoogleLoginEnabled bernilai true bila kredensial OAuth Google diisi.
 func (c *Config) IsGoogleLoginEnabled() bool {
 	return c.GoogleClientID != "" && c.GoogleClientSecret != ""
+}
+
+// IsStorageEnabled bernilai true bila kredensial dan bucket R2 diisi.
+func (c *Config) IsStorageEnabled() bool {
+	return c.R2AccountID != "" && c.R2AccessKeyID != "" && c.R2SecretAccessKey != "" && c.R2Bucket != ""
 }
 
 // Load membaca environment variable ke Config lalu memvalidasi nilainya.
@@ -124,6 +137,9 @@ func (c *Config) validate() error {
 	}
 	if c.AccessTokenTTL <= 0 || c.RefreshTokenTTL <= c.AccessTokenTTL {
 		return fmt.Errorf("REFRESH_TOKEN_TTL must be longer than a positive ACCESS_TOKEN_TTL")
+	}
+	if c.R2UploadURLTTL <= 0 {
+		return fmt.Errorf("R2_UPLOAD_URL_TTL must be positive")
 	}
 	if c.IsProduction() && !c.CookieSecure {
 		return fmt.Errorf("COOKIE_SECURE must be true in production")

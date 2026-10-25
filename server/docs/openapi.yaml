@@ -443,6 +443,205 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthenticated"
 
+  /cases/{slug}/workspace:
+    get:
+      tags: [Workspace]
+      summary: Halaman pengerjaan
+      description: >-
+        Info case, brief lengkap, enrollment, draft, submission terakhir, dan catatan revisi. Brief
+        bernilai null bila user belum mengambil case atau B2B belum dibayar.
+      operationId: getWorkspace
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Isi halaman pengerjaan
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Workspace"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /cases/{slug}/status:
+    get:
+      tags: [Workspace]
+      summary: Halaman status (menunggu review, perlu revisi, sedang dinilai AI)
+      operationId: getCaseStatus
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Status enrollment beserta timeline
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/CaseStatus"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /me/enrollments/{id}/start:
+    post:
+      tags: [Workspace]
+      summary: Mulai mengerjakan case B2B yang sudah dibayar
+      description: Tanpa body. Tenggat = waktu mulai + deadlineDays hari kalender.
+      operationId: startWork
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Enrollment berstatus in_progress
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Enrollment"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /me/enrollments/{id}/draft:
+    put:
+      tags: [Workspace]
+      summary: Simpan draft (dipanggil otomatis berkala)
+      description: >-
+        Hanya saat status in_progress atau revision_requested dan tenggat belum lewat. Slot wajib
+        belum diperiksa; bentuk isian, batas panjang, dan kepemilikan berkas tetap diperiksa.
+      operationId: saveDraft
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmissionContent"
+      responses:
+        "200":
+          description: Draft tersimpan
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/SubmissionDraft"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /me/enrollments/{id}/submit:
+    post:
+      tags: [Workspace]
+      summary: Kirim submission
+      description: >-
+        AI menjadi ai_grading; B2B menjadi in_review dengan SLA review 5 hari kerja. Setiap berkas
+        diperiksa di R2 (harus sudah terunggah dengan ukuran yang sama). Field error memakai nama
+        values.<slotId>, isOwnWork, dan isLinkPublic.
+      operationId: submitWork
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmissionContent"
+      responses:
+        "200":
+          description: Enrollment setelah submit
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Enrollment"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /uploads:
+    post:
+      tags: [Workspace]
+      summary: Buat URL unggah berkas submission ke R2
+      description: >-
+        Server memvalidasi slot, format, dan ukuran, lalu mencatat berkas sebagai pending. Browser
+        mengirim PUT ke uploadUrl dengan header yang diberikan. Berkas yang tidak dipakai di draft
+        atau submission dalam 24 jam dihapus.
+      operationId: createUpload
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enrollmentId, slotId, fileName, sizeBytes]
+              properties:
+                enrollmentId: { type: string, format: uuid }
+                slotId: { type: string }
+                fileName: { type: string, maxLength: 200 }
+                sizeBytes: { type: integer, minimum: 1 }
+      responses:
+        "201":
+          description: URL unggah
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/UploadTicket"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
 components:
   securitySchemes:
     accessCookie:
@@ -733,7 +932,163 @@ components:
                 type: string
                 enum: [up, down]
 
+    SlotValue:
+      description: Isian slot (TSlotValue)
+      nullable: true
+      oneOf:
+        - type: string
+        - $ref: "#/components/schemas/FileMeta"
+    FileMeta:
+      type: object
+      required: [fileId, fileName, sizeBytes]
+      properties:
+        fileId: { type: string, format: uuid }
+        fileName: { type: string }
+        sizeBytes: { type: integer }
+    SubmissionContent:
+      type: object
+      required: [values, note, isLinkPublic, isOwnWork]
+      properties:
+        values:
+          type: object
+          description: Isian per slotId
+          additionalProperties:
+            $ref: "#/components/schemas/SlotValue"
+        note: { type: string, maxLength: 1000 }
+        isLinkPublic: { type: boolean }
+        isOwnWork: { type: boolean }
+    SubmissionDraft:
+      allOf:
+        - $ref: "#/components/schemas/SubmissionContent"
+        - type: object
+          required: [savedAt]
+          properties:
+            savedAt: { type: string, format: date-time }
+    SubmissionRecord:
+      allOf:
+        - $ref: "#/components/schemas/SubmissionContent"
+        - type: object
+          required: [submittedAt, attempt]
+          properties:
+            submittedAt: { type: string, format: date-time }
+            attempt: { type: integer, minimum: 1 }
+    SubmissionSlot:
+      type: object
+      properties:
+        id: { type: string, description: slot_key }
+        title: { type: string }
+        description: { type: string }
+        kind: { type: string, enum: [file, link, text] }
+        isRequired: { type: boolean }
+        formats: { type: array, items: { type: string } }
+        maxSizeMb: { type: integer, nullable: true }
+        linkHint: { type: string }
+        minLength: { type: integer, nullable: true, description: Slot teks; panjang minimal saat submit }
+        maxLength: { type: integer, nullable: true, description: Slot teks; null = batas bawaan 20000 }
+    RubricCriterion:
+      type: object
+      properties:
+        name: { type: string }
+        weight: { type: integer }
+        description: { type: string }
+    CaseBrief:
+      type: object
+      properties:
+        context: { type: array, items: { type: string } }
+        tasks:
+          type: array
+          items:
+            type: object
+            properties:
+              title: { type: string }
+              description: { type: string }
+        materials:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              name: { type: string }
+              format: { type: string, example: PDF }
+              sizeLabel: { type: string, example: "1,8 MB" }
+              description: { type: string }
+        rubric: { type: array, items: { $ref: "#/components/schemas/RubricCriterion" } }
+        slots: { type: array, items: { $ref: "#/components/schemas/SubmissionSlot" } }
+        passingScore: { type: integer }
+        deadlineDays: { type: integer, nullable: true }
+    Workspace:
+      type: object
+      properties:
+        caseInfo: { $ref: "#/components/schemas/CaseDetail" }
+        brief:
+          allOf: [{ $ref: "#/components/schemas/CaseBrief" }]
+          nullable: true
+        enrollment:
+          allOf: [{ $ref: "#/components/schemas/Enrollment" }]
+          nullable: true
+        draft:
+          allOf: [{ $ref: "#/components/schemas/SubmissionDraft" }]
+          nullable: true
+        submission:
+          allOf: [{ $ref: "#/components/schemas/SubmissionRecord" }]
+          nullable: true
+        revision:
+          type: object
+          nullable: true
+          properties:
+            reason: { type: string }
+            note: { type: string }
+            reviewerRole: { type: string }
+            requestedAt: { type: string, format: date-time }
+    CaseStatus:
+      type: object
+      properties:
+        caseInfo: { $ref: "#/components/schemas/CaseDetail" }
+        enrollment:
+          allOf: [{ $ref: "#/components/schemas/Enrollment" }]
+          nullable: true
+        submission:
+          allOf: [{ $ref: "#/components/schemas/SubmissionRecord" }]
+          nullable: true
+        slots: { type: array, items: { $ref: "#/components/schemas/SubmissionSlot" } }
+        rubric: { type: array, items: { $ref: "#/components/schemas/RubricCriterion" } }
+        passingScore: { type: integer }
+        reviewDueAt: { type: string, format: date-time, nullable: true }
+        events:
+          type: array
+          items:
+            type: object
+            properties:
+              type: { type: string, enum: [paid, started, submitted, revision_requested, reviewed, retried] }
+              at: { type: string, format: date-time }
+              attempt: { type: integer, nullable: true }
+        aiGrading:
+          type: object
+          nullable: true
+          properties:
+            startedAt: { type: string, format: date-time }
+            estimatedDoneAt: { type: string, format: date-time }
+            checkedCriteria: { type: integer }
+    UploadTicket:
+      type: object
+      properties:
+        fileId: { type: string, format: uuid }
+        fileName: { type: string }
+        sizeBytes: { type: integer }
+        uploadUrl: { type: string, format: uri }
+        method: { type: string, enum: [PUT] }
+        headers:
+          type: object
+          description: Header yang wajib dikirim bersama PUT (mis. Content-Type)
+          additionalProperties: { type: string }
+        expiresAt: { type: string, format: date-time }
   responses:
+    Conflict:
+      description: Status tidak mengizinkan aksi ini (mis. sudah terkirim atau tenggat lewat)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
     ValidationError:
       description: Error validasi per field (422)
       content:
