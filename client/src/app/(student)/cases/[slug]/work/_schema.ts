@@ -14,7 +14,8 @@ export interface ISubmissionFormValues {
 }
 
 export const NOTE_MAX_LENGTH = 1000;
-export const TEXT_MIN_LENGTH = 30;
+/** Batas bawaan slot teks bila case tidak menentukan maxLength (sama dengan server). */
+export const TEXT_MAX_LENGTH = 20000;
 
 export { isFileMeta, isSlotFilled };
 
@@ -27,7 +28,11 @@ const isHttpUrl = (value: string) => {
   }
 };
 
-const fileMetaSchema = z.object({ fileName: z.string(), sizeBytes: z.number() });
+const fileMetaSchema = z.object({
+  fileId: z.string(),
+  fileName: z.string(),
+  sizeBytes: z.number(),
+});
 
 function buildSlotSchema(slot: ISubmissionSlot) {
   if (slot.kind === 'file') {
@@ -45,14 +50,18 @@ function buildSlotSchema(slot: ISubmissionSlot) {
         'Tautan harus diawali https:// dan bisa dibuka di browser.'
       );
   }
+  // Batas panjang mengikuti slot dari case, sama dengan validasi server saat submit.
+  const minLength = slot.minLength ?? 0;
+  const maxLength = slot.maxLength ?? TEXT_MAX_LENGTH;
   return z
     .string()
     .trim()
     .refine((value) => !slot.isRequired || value !== '', 'Isi jawaban untuk slot ini.')
     .refine(
-      (value) => value === '' || value.length >= TEXT_MIN_LENGTH,
-      `Jawaban minimal ${TEXT_MIN_LENGTH} karakter.`
-    );
+      (value) => value === '' || value.length >= minLength,
+      `Jawaban minimal ${minLength} karakter.`
+    )
+    .refine((value) => value.length <= maxLength, `Jawaban maksimal ${maxLength} karakter.`);
 }
 
 export function buildSubmissionSchema(slots: ISubmissionSlot[]) {
@@ -77,19 +86,24 @@ export function buildSubmissionSchema(slots: ISubmissionSlot[]) {
     });
 }
 
-/** Nilai awal form: draft terakhir, lalu submission sebelumnya (saat revisi), lalu kosong. */
+/**
+ * Nilai awal form: draft terakhir, lalu submission sebelumnya (saat revisi), lalu kosong. Centang
+ * "pekerjaan sendiri" ikut dipulihkan dari draft percobaan ini, tetapi wajib dicentang ulang saat
+ * mengisi ulang dari submission sebelumnya.
+ */
 export function getInitialValues(
   slots: ISubmissionSlot[],
-  source: ISubmissionContent | null
+  draft: ISubmissionContent | null,
+  previousSubmission: ISubmissionContent | null
 ): ISubmissionFormValues {
+  const source = draft ?? previousSubmission;
   return {
     slots: Object.fromEntries(
       slots.map((slot) => [slot.id, source?.values[slot.id] ?? (slot.kind === 'file' ? null : '')])
     ),
     note: source?.note ?? '',
     isLinkPublic: source?.isLinkPublic ?? false,
-    // Pernyataan keaslian wajib dicentang ulang setiap kali submit.
-    isOwnWork: false,
+    isOwnWork: draft?.isOwnWork ?? false,
   };
 }
 
@@ -99,6 +113,13 @@ export const toSubmissionContent = (values: ISubmissionFormValues): ISubmissionC
   isLinkPublic: values.isLinkPublic,
   isOwnWork: values.isOwnWork,
 });
+
+/**
+ * Nama field form untuk error dari server. Server memakai nama field ISubmissionContent
+ * (values.<slotId>), sedangkan form menyimpan isian slot di slots.<slotId>.
+ */
+export const toFormFieldName = (field: string) =>
+  field.startsWith('values.') ? `slots.${field.slice('values.'.length)}` : field;
 
 /** Validasi berkas saat dipilih. Mengembalikan pesan error, atau null bila valid. */
 export function validateFile(slot: ISubmissionSlot, file: File): string | null {

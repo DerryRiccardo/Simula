@@ -20,6 +20,10 @@ export interface ISubmissionSlot {
   maxSizeMb?: number;
   /** Contoh tautan yang diharapkan, ditampilkan sebagai placeholder. */
   linkHint?: string;
+  /** Slot teks: panjang minimal saat submit. null/kosong = tanpa batas minimal. */
+  minLength?: number | null;
+  /** Slot teks: panjang maksimal. null/kosong = batas bawaan server. */
+  maxLength?: number | null;
 }
 
 export interface ICaseTask {
@@ -54,7 +58,9 @@ export interface ICaseBrief {
   deadlineDays: number | null;
 }
 
+/** Berkas yang sudah diunggah. fileId dari POST /uploads; nama dan ukuran untuk tampilan. */
 export interface IFileMeta {
+  fileId: string;
   fileName: string;
   sizeBytes: number;
 }
@@ -88,10 +94,27 @@ export interface IRevisionRequest {
 
 export interface ICaseWorkspace {
   caseInfo: ICaseDetail;
-  brief: ICaseBrief;
+  /** null = belum mengambil case ini, atau B2B belum dibayar (brief masih terkunci). */
+  brief: ICaseBrief | null;
   /** null = pengguna belum mengambil case ini. */
   enrollment: IEnrollment | null;
   draft: ISubmissionDraft | null;
   submission: ISubmissionRecord | null;
   revision: IRevisionRequest | null;
+}
+
+/** Workspace yang brief-nya sudah terbuka: case sudah dimulai (AI) atau dibayar (B2B). */
+export interface IUnlockedWorkspace extends ICaseWorkspace {
+  brief: ICaseBrief;
+}
+
+/** URL unggah langsung ke penyimpanan (POST /uploads). Browser mengirim PUT dengan headers. */
+export interface IUploadTicket {
+  fileId: string;
+  fileName: string;
+  sizeBytes: number;
+  uploadUrl: string;
+  method: 'PUT';
+  headers: Record<string, string>;
+  expiresAt: string;
 }

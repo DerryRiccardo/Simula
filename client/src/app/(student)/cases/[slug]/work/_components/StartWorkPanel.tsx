@@ -8,10 +8,10 @@ import { TierBadge } from '@/components/student';
 import { Button } from '@/components/ui';
 import { useStartWork } from '@/hooks/useCaseWork';
 import { formatDate } from '@/lib/formatters';
-import type { ICaseWorkspace } from '@/types';
+import type { IUnlockedWorkspace } from '@/types';
 
 // B2B "Belum dimulai": brief masih terkunci, tenggat baru berjalan setelah klik Mulai (CONTEXT 4.7).
-export function StartWorkPanel({ workspace }: { workspace: ICaseWorkspace }) {
+export function StartWorkPanel({ workspace }: { workspace: IUnlockedWorkspace }) {
   const { caseInfo, brief, enrollment } = workspace;
   const startWork = useStartWork();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);

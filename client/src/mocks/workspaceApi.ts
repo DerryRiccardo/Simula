@@ -5,6 +5,7 @@ import { learningApi } from '@/mocks/learningApi';
 import type {
   ICaseWorkspace,
   IEnrollment,
+  IFileMeta,
   ISubmissionContent,
   ISubmissionDraft,
   TEnrollmentStatus,
@@ -74,6 +75,13 @@ export const workspaceApi = {
     mockDb.updateEnrollment(enrollmentId, { draft });
     return draft;
   },
+
+  /** Mode mock tidak mengunggah berkas; hanya nama dan ukurannya yang disimpan. */
+  uploadFile: (file: File): IFileMeta => ({
+    fileId: crypto.randomUUID(),
+    fileName: file.name,
+    sizeBytes: file.size,
+  }),
 
   /** B2B → menunggu review; AI → sedang dinilai AI. Draft dibersihkan. */
   submitWork: (enrollmentId: string, content: ISubmissionContent): IEnrollment => {

@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { PATHS } from '@/constants/paths';
 import { handleApiError } from '@/lib/apiError';
 import { workspaceService } from '@/services/workspace';
+import type { ICaseWorkspace } from '@/types';
 import { learningKeys } from './useLearning';
 
 export function useCaseWorkspace(slug: string) {
@@ -31,12 +32,26 @@ export function useStartWork() {
   });
 }
 
-/** Simpan draft. Toast hanya untuk simpan manual; simpan otomatis cukup indikator di header. */
-export function useSaveDraft() {
+/**
+ * Simpan draft. Toast hanya untuk simpan manual; simpan otomatis cukup indikator di header.
+ * Draft tersimpan langsung ditulis ke cache workspace, supaya saat kembali ke halaman ini form
+ * terisi draft terbaru tanpa menunggu cache kedaluwarsa.
+ */
+export function useSaveDraft(slug: string) {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: workspaceService.saveDraft,
+    onSuccess: (draft) =>
+      queryClient.setQueryData<ICaseWorkspace | null>(learningKeys.workspace(slug), (workspace) =>
+        workspace ? { ...workspace, draft } : workspace
+      ),
     onError: (error) => handleApiError(error, 'Draft gagal disimpan. Periksa koneksimu.'),
   });
+}
+
+/** Unggah berkas satu slot. Pesan error ditampilkan di bawah slot, bukan toast. */
+export function useUploadSlotFile() {
+  return useMutation({ mutationFn: workspaceService.uploadFile });
 }
 
 /** B2B → tetap di halaman pengerjaan (terkunci); AI → halaman status untuk mengikuti penilaian. */

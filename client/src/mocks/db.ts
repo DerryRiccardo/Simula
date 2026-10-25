@@ -323,7 +323,11 @@ const createSeedEnrollments = (): IMockEnrollmentRecord[] => {
       updatedAt: daysFromNow(-1),
       submission: {
         values: {
-          'design-doc': { fileName: 'design-doc-overselling.pdf', sizeBytes: 1_284_000 },
+          'design-doc': {
+            fileId: 'mock-file-1',
+            fileName: 'design-doc-overselling.pdf',
+            sizeBytes: 1_284_000,
+          },
           'prototype-repo': 'https://github.com/rahma-aulia/flash-sale-stock',
           'tradeoff-memo': null,
         },
@@ -356,8 +360,12 @@ const createSeedEnrollments = (): IMockEnrollmentRecord[] => {
       submission: {
         values: {
           notebook: 'https://github.com/rahma-aulia/analisis-keterlambatan',
-          dashboard: { fileName: 'dashboard-keterlambatan.pdf', sizeBytes: 2_410_000 },
-          deck: { fileName: 'rekomendasi-rute.pdf', sizeBytes: 3_050_000 },
+          dashboard: {
+            fileId: 'mock-file-2',
+            fileName: 'dashboard-keterlambatan.pdf',
+            sizeBytes: 2_410_000,
+          },
+          deck: { fileId: 'mock-file-3', fileName: 'rekomendasi-rute.pdf', sizeBytes: 3_050_000 },
         },
         note: '',
         isLinkPublic: true,
@@ -496,9 +504,17 @@ const createSeedCandidateEnrollments = (): IMockEnrollmentRecord[] => {
       submission: {
         ...declaration,
         values: {
-          'design-doc': { fileName: 'rancangan-stok-flash-sale.pdf', sizeBytes: 1_870_000 },
+          'design-doc': {
+            fileId: 'mock-file-4',
+            fileName: 'rancangan-stok-flash-sale.pdf',
+            sizeBytes: 1_870_000,
+          },
           'prototype-repo': 'https://github.com/kandidat-1093/stock-reservation',
-          'tradeoff-memo': { fileName: 'memo-tradeoff.pdf', sizeBytes: 412_000 },
+          'tradeoff-memo': {
+            fileId: 'mock-file-5',
+            fileName: 'memo-tradeoff.pdf',
+            sizeBytes: 412_000,
+          },
         },
         note: 'Prototipe memakai Redis untuk reservasi stok. Cara menjalankan ada di README.',
         submittedAt: daysFromNow(-4),
@@ -520,9 +536,17 @@ const createSeedCandidateEnrollments = (): IMockEnrollmentRecord[] => {
       submission: {
         ...declaration,
         values: {
-          model: { fileName: 'proyeksi-kas-6-cabang.xlsx', sizeBytes: 684_000 },
-          scenario: { fileName: 'analisis-skenario.pdf', sizeBytes: 905_000 },
-          memo: { fileName: 'memo-rekomendasi-v2.pdf', sizeBytes: 238_000 },
+          model: {
+            fileId: 'mock-file-6',
+            fileName: 'proyeksi-kas-6-cabang.xlsx',
+            sizeBytes: 684_000,
+          },
+          scenario: {
+            fileId: 'mock-file-7',
+            fileName: 'analisis-skenario.pdf',
+            sizeBytes: 905_000,
+          },
+          memo: { fileId: 'mock-file-8', fileName: 'memo-rekomendasi-v2.pdf', sizeBytes: 238_000 },
         },
         note: 'Sumber asumsi biaya sewa sudah saya tambahkan di tab Asumsi sesuai catatan revisi.',
         submittedAt: daysFromNow(-1),
@@ -553,8 +577,12 @@ const createSeedCandidateEnrollments = (): IMockEnrollmentRecord[] => {
         ...declaration,
         values: {
           notebook: 'https://github.com/kandidat-2210/delay-analysis',
-          dashboard: { fileName: 'dashboard-pengiriman.pdf', sizeBytes: 1_520_000 },
-          deck: { fileName: 'deck-rute-baru.pdf', sizeBytes: 2_960_000 },
+          dashboard: {
+            fileId: 'mock-file-9',
+            fileName: 'dashboard-pengiriman.pdf',
+            sizeBytes: 1_520_000,
+          },
+          deck: { fileId: 'mock-file-10', fileName: 'deck-rute-baru.pdf', sizeBytes: 2_960_000 },
         },
         note: '',
         submittedAt: daysFromNow(-8),
@@ -577,9 +605,9 @@ const createSeedCandidateEnrollments = (): IMockEnrollmentRecord[] => {
       submission: {
         ...declaration,
         values: {
-          'design-doc': { fileName: 'design-doc.pdf', sizeBytes: 980_000 },
+          'design-doc': { fileId: 'mock-file-11', fileName: 'design-doc.pdf', sizeBytes: 980_000 },
           'prototype-repo': 'https://github.com/kandidat-3318/flash-sale',
-          'tradeoff-memo': { fileName: 'tradeoff.pdf', sizeBytes: 301_000 },
+          'tradeoff-memo': { fileId: 'mock-file-12', fileName: 'tradeoff.pdf', sizeBytes: 301_000 },
         },
         note: '',
         submittedAt: daysFromNow(-9),

@@ -9,11 +9,11 @@ import {
   BriefTasks,
   FilterTabs,
 } from '@/components/student';
-import type { ICaseWorkspace } from '@/types';
+import type { IUnlockedWorkspace } from '@/types';
 
 type TBriefTab = 'context' | 'tasks' | 'materials' | 'rubric';
 
-export function BriefPanel({ workspace }: { workspace: ICaseWorkspace }) {
+export function BriefPanel({ workspace }: { workspace: IUnlockedWorkspace }) {
   const [tab, setTab] = useState<TBriefTab>('context');
   const { brief, caseInfo } = workspace;
 

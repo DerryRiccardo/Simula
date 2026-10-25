@@ -8,7 +8,7 @@ import { CaseProgressHeader, SubmittedSummary } from '@/components/student';
 import { Button } from '@/components/ui';
 import { PATHS } from '@/constants/paths';
 import { useCaseWorkspace } from '@/hooks/useCaseWork';
-import type { ICaseWorkspace, TEnrollmentStatus } from '@/types';
+import type { ICaseWorkspace, IUnlockedWorkspace, TEnrollmentStatus } from '@/types';
 import { BriefPanel } from './BriefPanel';
 import { RevisionNotice } from './RevisionNotice';
 import { StartWorkPanel } from './StartWorkPanel';
@@ -40,7 +40,10 @@ function WorkSkeleton() {
   );
 }
 
-function Workspace({ workspace }: { workspace: ICaseWorkspace }) {
+const hasBrief = (workspace: ICaseWorkspace): workspace is IUnlockedWorkspace =>
+  workspace.brief !== null;
+
+function Workspace({ workspace }: { workspace: IUnlockedWorkspace }) {
   const { enrollment, brief, caseInfo, revision } = workspace;
   if (!enrollment) return null;
   const isEditable = EDITABLE_STATUSES.includes(enrollment.status);
@@ -56,6 +59,7 @@ function Workspace({ workspace }: { workspace: ICaseWorkspace }) {
         <aside className="lg:sticky lg:top-28 lg:self-start" aria-label="Submission">
           {isEditable ? (
             <SubmissionForm
+              slug={caseInfo.slug}
               key={enrollment.id}
               enrollmentId={enrollment.id}
               tier={caseInfo.tier}
@@ -124,6 +128,17 @@ export function WorkView({ slug }: { slug: string }) {
           action={
             <Button asChild size="pill">
               <Link href={PATHS.caseCheckout(slug)}>Bayar sekarang</Link>
+            </Button>
+          }
+        />
+      ) : !hasBrief(workspace) ? (
+        <EmptyState
+          icon={Lock}
+          title="Brief belum terbuka"
+          description="Brief lengkap terbuka setelah kamu memulai (AI) atau membeli (B2B) case ini."
+          action={
+            <Button asChild size="pill">
+              <Link href={PATHS.caseDetail(slug)}>Lihat detail case</Link>
             </Button>
           }
         />

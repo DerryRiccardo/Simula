@@ -6,6 +6,7 @@ import { FlaskConical } from 'lucide-react';
 import { ConfirmDialog } from '@/components';
 import { Button } from '@/components/ui';
 import { useSimulateReview } from '@/hooks/useCaseStatus';
+import { canSimulateReview } from '@/services/reviewStatus';
 import type { TReviewSimulation, TTier } from '@/types';
 
 interface ISimulation {
@@ -63,8 +64,12 @@ interface ReviewDemoPanelProps {
 }
 
 // Prototype saja (CONTEXT.md bagian 9): menggantikan keputusan dari portal reviewer, atau
-// mempercepat penilaian AI untuk presentasi.
-export function ReviewDemoPanel({ slug, enrollmentId, tier = 'b2b' }: ReviewDemoPanelProps) {
+// mempercepat penilaian AI untuk presentasi. Disembunyikan saat status memakai backend.
+export function ReviewDemoPanel(props: ReviewDemoPanelProps) {
+  return canSimulateReview() ? <ReviewDemoPanelContent {...props} /> : null;
+}
+
+function ReviewDemoPanelContent({ slug, enrollmentId, tier = 'b2b' }: ReviewDemoPanelProps) {
   const simulate = useSimulateReview(slug);
   const [pending, setPending] = useState<ISimulation | null>(null);
   const simulations = tier === 'ai' ? AI_SIMULATIONS : B2B_SIMULATIONS;

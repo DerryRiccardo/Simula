@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Controller, useForm, useWatch, type Resolver } from 'react-hook-form';
+import { Controller, useForm, useWatch, type Path, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Check, CloudCheck, Loader2, Minus } from 'lucide-react';
 import { toast } from 'sonner';
@@ -10,6 +10,8 @@ import { ConfirmDialog } from '@/components';
 import { Button, Checkbox } from '@/components/ui';
 import { useSaveDraft, useSubmitWork } from '@/hooks/useCaseWork';
 import { useDebounce } from '@/hooks/useDebounce';
+import { getApiFieldErrors } from '@/lib/apiError';
+import { shouldMockService } from '@/lib/env';
 import { formatTime } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type {
@@ -24,6 +26,7 @@ import {
   buildSubmissionSchema,
   getInitialValues,
   isSlotFilled,
+  toFormFieldName,
   toSubmissionContent,
   type ISubmissionFormValues,
 } from '../_schema';
@@ -38,6 +41,7 @@ const CONFIRM_DESCRIPTION: Record<TTier, string> = {
 };
 
 interface SubmissionFormProps {
+  slug: string;
   enrollmentId: string;
   tier: TTier;
   slots: ISubmissionSlot[];
@@ -49,6 +53,7 @@ interface SubmissionFormProps {
 const serialize = (values: ISubmissionFormValues) => JSON.stringify(toSubmissionContent(values));
 
 export function SubmissionForm({
+  slug,
   enrollmentId,
   tier,
   slots,
@@ -57,7 +62,7 @@ export function SubmissionForm({
 }: SubmissionFormProps) {
   const schema = useMemo(() => buildSubmissionSchema(slots), [slots]);
   const initialValues = useMemo(
-    () => getInitialValues(slots, draft ?? previousSubmission),
+    () => getInitialValues(slots, draft, previousSubmission),
     [slots, draft, previousSubmission]
   );
   const form = useForm<ISubmissionFormValues>({
@@ -68,7 +73,7 @@ export function SubmissionForm({
   });
   const { control, formState, handleSubmit, setError, clearErrors } = form;
 
-  const saveDraft = useSaveDraft();
+  const saveDraft = useSaveDraft(slug);
   const submitWork = useSubmitWork();
   const [savedAt, setSavedAt] = useState(draft?.savedAt ?? null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -117,7 +122,19 @@ export function SubmissionForm({
 
   const handleConfirmSubmit = () => {
     const content = toSubmissionContent(form.getValues());
-    submitWork.mutate({ enrollmentId, content }, { onSuccess: () => setIsConfirmOpen(false) });
+    submitWork.mutate(
+      { enrollmentId, content },
+      {
+        onSuccess: () => setIsConfirmOpen(false),
+        // Validasi server ditampilkan di bawah field-nya, bukan hanya sebagai toast.
+        onError: (error) => {
+          setIsConfirmOpen(false);
+          getApiFieldErrors(error).forEach(({ field, message }) =>
+            setError(toFormFieldName(field) as Path<ISubmissionFormValues>, { message })
+          );
+        },
+      }
+    );
   };
 
   const saveLabel = saveDraft.isPending
@@ -168,6 +185,7 @@ export function SubmissionForm({
             name={`slots.${slot.id}`}
             render={({ field, fieldState }) => (
               <SlotField
+                enrollmentId={enrollmentId}
                 slot={slot}
                 value={field.value as TSlotValue}
                 onChange={(value) => {
@@ -284,9 +302,11 @@ export function SubmissionForm({
             Submit aktif setelah semua slot wajib valid dan pernyataan dicentang.
           </p>
         )}
-        <p className="text-[0.6875rem] leading-relaxed text-ink-subtle">
-          Prototype: berkas tidak benar-benar diunggah, hanya nama dan ukurannya yang disimpan.
-        </p>
+        {shouldMockService('workspace') && (
+          <p className="text-[0.6875rem] leading-relaxed text-ink-subtle">
+            Prototype: berkas tidak benar-benar diunggah, hanya nama dan ukurannya yang disimpan.
+          </p>
+        )}
       </div>
 
       <ConfirmDialog

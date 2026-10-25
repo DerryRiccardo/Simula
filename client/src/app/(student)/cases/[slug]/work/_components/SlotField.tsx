@@ -1,14 +1,17 @@
 'use client';
 
 import { useId, useState, type DragEvent } from 'react';
-import { FileText, Link2, Upload, X } from 'lucide-react';
+import { FileText, Link2, Loader2, Upload, X } from 'lucide-react';
 
+import { useUploadSlotFile } from '@/hooks/useCaseWork';
+import { getApiErrorMessage, getApiFieldErrors } from '@/lib/apiError';
 import { formatFileSize } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type { ISubmissionSlot, TSlotValue } from '@/types';
-import { isFileMeta, validateFile } from '../_schema';
+import { TEXT_MAX_LENGTH, isFileMeta, validateFile } from '../_schema';
 
 interface SlotFieldProps {
+  enrollmentId: string;
   slot: ISubmissionSlot;
   value: TSlotValue;
   onChange: (value: TSlotValue) => void;
@@ -21,7 +24,32 @@ interface SlotFieldProps {
 const inputClass =
   'w-full rounded-control border bg-white text-sm text-ink transition-colors outline-none placeholder:text-ink-subtle hover:border-ink/25 focus:border-brand focus:ring-3 focus:ring-brand/15 aria-invalid:border-error aria-invalid:ring-error/15';
 
+const UPLOAD_ERROR = 'Berkas gagal diunggah. Periksa koneksimu lalu coba lagi.';
+
+// Pesan per field dari backend (mis. format atau ukuran) lebih jelas daripada pesan umum validasi.
+const uploadErrorMessage = (error: unknown) =>
+  getApiFieldErrors(error)[0]?.message ?? getApiErrorMessage(error, UPLOAD_ERROR);
+
+function UploadProgress({ fileName, percent }: { fileName: string; percent: number }) {
+  return (
+    <div
+      className="rounded-control border border-line bg-surface-soft/60 px-3 py-2.5"
+      role="status"
+    >
+      <div className="flex items-center gap-3">
+        <Loader2 className="size-4 shrink-0 animate-spin text-ink-muted" />
+        <p className="min-w-0 flex-1 truncate text-sm text-ink">{fileName}</p>
+        <span className="font-mono text-[0.6875rem] text-ink-subtle tabular-nums">{percent}%</span>
+      </div>
+      <div className="mt-2 h-1 overflow-hidden rounded-full bg-line" aria-hidden="true">
+        <div className="h-full bg-brand transition-[width]" style={{ width: `${percent}%` }} />
+      </div>
+    </div>
+  );
+}
+
 function FilePicker({
+  enrollmentId,
   slot,
   value,
   onChange,
@@ -30,13 +58,28 @@ function FilePicker({
   inputId,
 }: SlotFieldProps & { inputId: string }) {
   const [isDragging, setIsDragging] = useState(false);
+  const [progress, setProgress] = useState<{ fileName: string; percent: number } | null>(null);
+  const upload = useUploadSlotFile();
   const formatLabel = slot.formats?.map((format) => format.toUpperCase()).join(', ');
 
   const pickFile = (file: File | undefined) => {
-    if (!file) return;
+    if (!file || upload.isPending) return;
     const problem = validateFile(slot, file);
     if (problem) return onFileError(problem);
-    onChange({ fileName: file.name, sizeBytes: file.size });
+    setProgress({ fileName: file.name, percent: 0 });
+    upload.mutate(
+      {
+        enrollmentId,
+        slotId: slot.id,
+        file,
+        onProgress: (percent) => setProgress({ fileName: file.name, percent }),
+      },
+      {
+        onSuccess: (meta) => onChange(meta),
+        onError: (uploadError) => onFileError(uploadErrorMessage(uploadError)),
+        onSettled: () => setProgress(null),
+      }
+    );
   };
 
   const handleDrop = (event: DragEvent<HTMLLabelElement>) => {
@@ -59,6 +102,8 @@ function FilePicker({
       }}
     />
   );
+
+  if (progress) return <UploadProgress {...progress} />;
 
   if (isFileMeta(value)) {
     return (
@@ -160,16 +205,24 @@ export function SlotField(props: SlotFieldProps) {
       )}
 
       {slot.kind === 'text' && (
-        <textarea
-          id={inputId}
-          rows={5}
-          value={textValue}
-          onChange={(event) => onChange(event.target.value)}
-          onBlur={onBlur}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? errorId : undefined}
-          className={cn(inputClass, 'resize-y border-line px-3 py-2.5 leading-relaxed')}
-        />
+        <>
+          <textarea
+            id={inputId}
+            rows={5}
+            value={textValue}
+            onChange={(event) => onChange(event.target.value)}
+            onBlur={onBlur}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? errorId : undefined}
+            className={cn(inputClass, 'resize-y border-line px-3 py-2.5 leading-relaxed')}
+          />
+          <p className="flex justify-between gap-3 font-mono text-[0.6875rem] text-ink-subtle tabular-nums">
+            <span>{slot.minLength ? `Minimal ${slot.minLength} karakter` : ''}</span>
+            <span>
+              {textValue.trim().length}/{slot.maxLength ?? TEXT_MAX_LENGTH}
+            </span>
+          </p>
+        </>
       )}
 
       {error && (
