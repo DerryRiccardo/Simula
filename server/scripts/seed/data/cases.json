@@ -1,0 +1,1542 @@
+[
+  {
+    "slug": "optimasi-api-endpoint-produk",
+    "title": "Optimasi API Endpoint Produk yang Lambat",
+    "summary": "Cari akar masalah endpoint yang lambat saat traffic naik, lalu refactor tanpa mengubah output API.",
+    "tier": "ai",
+    "fieldKey": "backend",
+    "level": "intermediate",
+    "durationLabel": "3-4 jam",
+    "price": null,
+    "about": "TokoKita, toko online dengan 50.000 produk, mendapati halaman kategori melambat dari 300 milidetik menjadi 3–5 detik setiap kali ada promo. Kamu berperan sebagai back-end developer yang diminta menemukan akar masalahnya, memperbaiki endpoint tanpa mengubah output API, dan membuktikan hasilnya dengan angka.",
+    "activities": [
+      "Membaca skema database dan alur kode endpoint katalog untuk menemukan pola query yang boros",
+      "Mengukur jumlah query dan waktu respons, lalu membaca query plan (EXPLAIN ANALYZE)",
+      "Menambahkan index, menghapus N+1 query, dan memindahkan pagination ke database",
+      "Menulis README berisi akar masalah, perubahan, dan perbandingan sebelum–sesudah"
+    ],
+    "skills": [
+      "Query optimization",
+      "Indexing database",
+      "Profiling",
+      "REST API"
+    ],
+    "prerequisites": [
+      "Dasar SQL",
+      "Pernah membuat REST API sederhana",
+      "Dasar Git"
+    ],
+    "reviewerRole": null,
+    "partner": null,
+    "context": [
+      "TokoKita menjual perlengkapan rumah tangga dengan katalog 50.000 produk di 12 kategori. Halaman kategori di web dan aplikasi mobile memanggil endpoint GET /api/products?category={slug}&page={n} yang mengembalikan 24 produk per halaman. Pada hari biasa traffic sekitar 40 request per detik dan waktu respons p95 sekitar 300 milidetik.",
+      "Saat promo gajian bulan lalu, traffic naik menjadi 400 request per detik. Waktu respons p95 melonjak ke 3–5 detik, CPU database bertahan di 95%, dan sekitar 8% request berakhir timeout. Tim produk memperkirakan 1 dari 5 pengunjung meninggalkan halaman sebelum produknya tampil.",
+      "Dari pembacaan awal kode, endpoint bekerja seperti ini: (1) mengambil semua produk di kategori dengan filter LOWER(categories.slug) = ?, (2) mengurutkan dan memotong halaman di kode aplikasi, (3) untuk setiap produk menjalankan satu query ke product_images untuk gambar utama dan satu query ke reviews untuk menghitung rata-rata rating, lalu (4) mengembalikan seluruh kolom produk, termasuk deskripsi panjang yang tidak ditampilkan di halaman kategori.",
+      "Skema dan ukuran data: products (id, category_id, name, slug, price, stock, description, created_at) berisi 50.000 baris; categories (id, slug, name) 12 baris; product_images (id, product_id, url, position) 180.000 baris; reviews (id, product_id, rating, body, created_at) 1,2 juta baris. Selain primary key, belum ada index lain.",
+      "Batasan: bentuk JSON response (nama field, urutan produk berdasarkan created_at terbaru, 24 item per halaman, dan objek pagination) wajib sama persis karena aplikasi mobile versi lama tidak bisa diperbarui paksa. Kamu boleh menambah index, mengubah query, dan menambah cache di memori aplikasi, tetapi tidak boleh menambah layanan berbayar baru. Kamu boleh membangun ulang endpoint ini dengan bahasa dan framework pilihanmu selama skema dan bentuk response-nya sama.",
+      "AI Reviewer membaca kode dan README di dalam .zip, tetapi tidak menjalankan kode. Karena itu, hasil pengukuranmu (jumlah query per request, query plan, waktu sebelum dan sesudah) harus ditulis di README atau ringkasan analisis."
+    ],
+    "tasks": [
+      {
+        "title": "Diagnosis akar masalah",
+        "description": "Identifikasi minimal tiga penyebab lambatnya endpoint. Untuk setiap penyebab, tunjukkan buktinya: query plan, jumlah query per request, atau waktu eksekusi. Urutkan penyebab dari dampak terbesar."
+      },
+      {
+        "title": "Rancang perbaikan",
+        "description": "Untuk setiap penyebab, tulis perbaikan yang kamu pilih dan alasannya. Jelaskan index apa yang ditambahkan, cara menghilangkan N+1 (JOIN, agregasi, atau batch query), dan bagaimana pagination dipindahkan ke database."
+      },
+      {
+        "title": "Implementasikan tanpa mengubah output",
+        "description": "Refactor endpoint, sertakan migrasi index, dan tambahkan minimal satu test yang memastikan response baru sama dengan response lama untuk kategori dan halaman yang sama."
+      },
+      {
+        "title": "Ukur dan dokumentasikan hasilnya",
+        "description": "Sajikan tabel sebelum–sesudah (jumlah query per request dan waktu respons di data uji), lalu tulis risiko yang tersisa dan langkah lanjutan bila traffic naik 10 kali lipat."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "kode_sumber",
+        "title": "Kode sumber (.zip)",
+        "description": "Kode endpoint setelah perbaikan, file migrasi index, test, dan README.md di root. Jangan sertakan node_modules, vendor, .env, atau dataset besar; folder dan berkas seperti itu diabaikan.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "zip"
+        ],
+        "maxSizeMb": 20
+      },
+      {
+        "slotKey": "ringkasan_analisis",
+        "title": "Ringkasan analisis",
+        "description": "Tuliskan akar masalah beserta buktinya, perubahan yang kamu buat, dan angka sebelum–sesudah. Bagian ini dibaca bersama README.",
+        "kind": "text",
+        "isRequired": true,
+        "minLength": 300,
+        "maxLength": 6000
+      },
+      {
+        "slotKey": "repo_portofolio",
+        "title": "Tautan repositori (opsional)",
+        "description": "Untuk portofolio. Tautan tidak dibuka dan tidak dinilai.",
+        "kind": "link",
+        "isRequired": false,
+        "linkHint": "https://github.com/username/optimasi-katalog"
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Ketepatan analisis masalah",
+        "weight": 30,
+        "description": "Akar masalah diidentifikasi dengan benar dan didukung bukti pengukuran.",
+        "levelDescriptions": [
+          "Tidak menyebut akar masalah, atau hanya menebak tanpa bukti.",
+          "Menyebut penyebab umum seperti \"database lambat\" tanpa menunjuk query atau kode yang bermasalah.",
+          "Menemukan satu atau dua penyebab utama (index atau N+1) dengan bukti terbatas.",
+          "Menemukan index yang hilang, N+1 query, dan pagination di aplikasi, dengan bukti pengukuran.",
+          "Semua penyebab utama ditemukan, diurutkan menurut dampak, dan didukung query plan serta angka."
+        ]
+      },
+      {
+        "name": "Efektivitas perbaikan",
+        "weight": 35,
+        "description": "Perubahan mengatasi penyebab yang ditemukan dan output API tetap sama.",
+        "levelDescriptions": [
+          "Tidak ada perbaikan, atau perubahan merusak output API.",
+          "Perbaikan kosmetik yang tidak menyentuh penyebab utama.",
+          "Satu penyebab utama diperbaiki; penyebab lain dibiarkan tanpa penjelasan.",
+          "Penyebab utama diperbaiki dan output dijaga sama, dengan sedikit celah (mis. tanpa test pembanding).",
+          "Semua penyebab utama diperbaiki, output terbukti sama lewat test, dan peningkatannya terukur."
+        ]
+      },
+      {
+        "name": "Kualitas kode",
+        "weight": 20,
+        "description": "Kode mudah dibaca, query aman dari SQL injection, dan perubahan rapi.",
+        "levelDescriptions": [
+          "Kode tidak bisa dipahami atau menyusun SQL dari input user.",
+          "Kode berjalan tetapi berantakan, banyak duplikasi, atau penamaan membingungkan.",
+          "Kode cukup rapi dengan beberapa masalah keterbacaan.",
+          "Kode rapi, query berparameter, dan struktur jelas.",
+          "Kode rapi, teruji, migrasi terpisah dengan jelas, dan mudah dirawat tim lain."
+        ]
+      },
+      {
+        "name": "Kejelasan dokumentasi",
+        "weight": 15,
+        "description": "README dan ringkasan menjelaskan masalah, keputusan, dan hasil dengan runtut.",
+        "levelDescriptions": [
+          "Tidak ada README atau ringkasan.",
+          "Dokumentasi hanya berisi cara menjalankan tanpa menjelaskan perubahan.",
+          "Perubahan dijelaskan, tetapi tanpa angka sebelum–sesudah.",
+          "Masalah, perubahan, dan hasil dijelaskan dengan angka.",
+          "Runtut dan ringkas, dengan tabel hasil, alasan setiap keputusan, dan langkah lanjutan."
+        ]
+      }
+    ],
+    "passingScore": 60,
+    "deadlineDays": null
+  },
+  {
+    "slug": "mencegah-overselling-flash-sale",
+    "title": "Mencegah Overselling saat Flash Sale",
+    "summary": "Rancang solusi race condition pada sistem stok saat ribuan pembeli checkout bersamaan.",
+    "tier": "b2b",
+    "fieldKey": "backend",
+    "level": "advanced",
+    "durationLabel": "5-7 hari",
+    "price": 149000,
+    "about": "Sagara Commerce kehilangan kepercayaan pembeli karena 5–8% pesanan flash sale ternyata tidak punya stok. Kamu diminta merancang dan membuktikan solusi untuk race condition pada layanan stok, lalu mempertanggungjawabkan pilihanmu di hadapan Senior Backend Engineer mereka.",
+    "activities": [
+      "Mempelajari arsitektur layanan order, stok, dan pembayaran milik mitra",
+      "Menulis design doc beserta diagram alur reservasi stok",
+      "Membangun prototipe yang terbukti tidak overselling di bawah beban bersamaan",
+      "Menulis memo trade-off untuk tim engineering mitra"
+    ],
+    "skills": [
+      "Concurrency",
+      "Desain sistem",
+      "Distributed locking",
+      "Penulisan teknis"
+    ],
+    "prerequisites": [
+      "Memahami transaksi database",
+      "Pernah membangun back-end service",
+      "Dasar arsitektur microservice"
+    ],
+    "reviewerRole": "Senior Backend Engineer",
+    "partner": {
+      "name": "Sagara Commerce",
+      "industry": "E-commerce",
+      "about": "Marketplace dengan jutaan transaksi per bulan. Tim engineering-nya menangani lonjakan traffic besar setiap kampanye flash sale."
+    },
+    "context": [
+      "Sagara Commerce adalah marketplace dengan sekitar 3 juta transaksi per bulan. Setiap tanggal kembar mereka mengadakan flash sale: 200–500 produk dengan stok terbatas (umumnya 50–1.000 unit) dijual dengan diskon besar selama 15 menit. Pada puncak flash sale terakhir, layanan menerima sekitar 12.000 permintaan checkout per menit untuk 20 produk terpopuler.",
+      "Masalahnya: 5–8% pesanan flash sale berstatus \"dibayar\" tetapi stoknya ternyata sudah habis. Tim customer service harus membatalkan pesanan dan mengembalikan dana secara manual, rata-rata 1.400 pesanan per event, dan rating aplikasi turun dari 4,6 ke 4,1 dalam dua bulan.",
+      "Arsitektur saat ini: order-service menerima checkout, memanggil inventory-service lewat HTTP untuk membaca stok (SELECT stock FROM inventory WHERE sku = ?), lalu bila stok > 0 membuat pesanan dan mengirim event ke payment-service. Pengurangan stok baru dilakukan setelah pembayaran berhasil, dengan UPDATE inventory SET stock = stock - 1. Database PostgreSQL 15 (satu primary, dua read replica; inventory-service membaca dari replica). Redis 7 dan Kafka sudah tersedia di infrastruktur mereka.",
+      "Batasan dari mitra: (1) pembeli harus mendapat jawaban \"berhasil\" atau \"stok habis\" dalam 2 detik; (2) stok yang sudah dipesan tetapi tidak dibayar dalam 10 menit harus kembali tersedia; (3) solusi tidak boleh membuat sistem berhenti total bila Redis atau salah satu layanan bermasalah; (4) tim mitra berisi 6 engineer back-end, jadi solusi harus bisa dirawat tim sekecil itu.",
+      "Mitra tidak menentukan teknologi. Kamu bebas memilih pendekatan (row lock, conditional update, reservasi di Redis, antrean per SKU, atau kombinasi), selama kamu bisa menjelaskan mengapa pendekatan itu lebih cocok dibanding alternatifnya untuk kondisi di atas."
+    ],
+    "tasks": [
+      {
+        "title": "Design doc dan diagram",
+        "description": "Jelaskan akar masalah race condition pada alur sekarang, rancangan solusimu (alur reservasi, kedaluwarsa reservasi, dan pengembalian stok), serta perilaku sistem saat komponen gagal. Sertakan diagram urutan (sequence diagram) untuk checkout berhasil, stok habis, dan pembayaran kedaluwarsa."
+      },
+      {
+        "title": "Prototipe fungsional",
+        "description": "Bangun prototipe layanan stok dan checkout yang menerapkan rancanganmu. Sertakan load test (mis. k6, Locust, atau skrip goroutine/thread) yang mensimulasikan minimal 1.000 checkout bersamaan untuk stok 100 unit, dan buktikan tidak ada pesanan melebihi stok. Tulis cara menjalankannya di README."
+      },
+      {
+        "title": "Memo trade-off",
+        "description": "Dalam 1–2 halaman, bandingkan minimal dua pendekatan alternatif dengan pilihanmu dari sisi konsistensi, latensi, kompleksitas operasional, dan risiko kegagalan. Akhiri dengan rekomendasi yang bisa langsung dibaca engineering manager mitra."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "design_doc",
+        "title": "Design doc",
+        "description": "Dokumen rancangan beserta diagram. Diagram boleh dibuat dengan alat apa pun dan disematkan di dokumen.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx"
+        ],
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "repo_prototipe",
+        "title": "Repositori prototipe",
+        "description": "Tautan repositori publik berisi kode, load test, hasil load test, dan README cara menjalankan.",
+        "kind": "link",
+        "isRequired": true,
+        "linkHint": "https://github.com/username/flash-sale-inventory"
+      },
+      {
+        "slotKey": "memo_tradeoff",
+        "title": "Memo trade-off",
+        "description": "Memo 1–2 halaman untuk engineering manager mitra.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx"
+        ],
+        "maxSizeMb": 5
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Fungsional",
+        "weight": 25,
+        "description": "Prototipe berjalan sesuai rancangan dan load test membuktikan tidak ada overselling.",
+        "levelDescriptions": [
+          "Prototipe tidak bisa dijalankan atau tidak ada.",
+          "Prototipe berjalan tetapi masih overselling, atau tidak ada load test.",
+          "Tidak overselling pada uji sederhana, tetapi belum diuji dengan beban bersamaan yang realistis.",
+          "Load test bersamaan membuktikan stok tidak pernah negatif dan reservasi kedaluwarsa dikembalikan.",
+          "Semua skenario (berhasil, stok habis, kedaluwarsa, komponen gagal) teruji dan hasilnya terdokumentasi."
+        ]
+      },
+      {
+        "name": "Desain sistem",
+        "weight": 30,
+        "description": "Rancangan menjawab race condition, kedaluwarsa reservasi, dan kegagalan komponen sesuai batasan mitra.",
+        "levelDescriptions": [
+          "Tidak ada rancangan, atau rancangan tidak menyentuh race condition.",
+          "Rancangan menyebut solusi umum (mis. \"pakai lock\") tanpa detail alur.",
+          "Alur utama jelas, tetapi kedaluwarsa reservasi atau kegagalan komponen tidak dibahas.",
+          "Alur reservasi, kedaluwarsa, dan kegagalan dibahas dengan diagram yang konsisten.",
+          "Rancangan lengkap, memenuhi keempat batasan mitra, dan menyebut cara memantaunya di produksi."
+        ]
+      },
+      {
+        "name": "Analisis trade-off",
+        "weight": 25,
+        "description": "Pilihan dibandingkan dengan alternatif secara jujur dan relevan dengan kondisi mitra.",
+        "levelDescriptions": [
+          "Tidak ada perbandingan.",
+          "Menyebut alternatif tanpa membandingkan.",
+          "Membandingkan satu alternatif secara umum.",
+          "Membandingkan minimal dua alternatif dari sisi konsistensi, latensi, dan operasional.",
+          "Perbandingan tajam dan terkait angka mitra, dengan rekomendasi yang jelas beserta risikonya."
+        ]
+      },
+      {
+        "name": "Kualitas kode",
+        "weight": 20,
+        "description": "Kode prototipe mudah dibaca, teruji, dan siap dikembangkan tim mitra.",
+        "levelDescriptions": [
+          "Kode tidak bisa dipahami.",
+          "Kode berjalan tetapi tanpa struktur dan tanpa test.",
+          "Struktur cukup jelas dengan test minimal.",
+          "Kode rapi, ada test untuk alur kritis, dan README jelas.",
+          "Kode rapi, teruji menyeluruh, konfigurasi terpisah, dan mudah dijalankan ulang oleh orang lain."
+        ]
+      }
+    ],
+    "passingScore": 70,
+    "deadlineDays": 7
+  },
+  {
+    "slug": "dashboard-retensi-pelanggan",
+    "title": "Dashboard Retensi Pelanggan untuk Tim Bisnis",
+    "summary": "Olah data transaksi menjadi dashboard retensi dan rekomendasi yang mudah dipahami tim bisnis.",
+    "tier": "ai",
+    "fieldKey": "data",
+    "level": "beginner",
+    "durationLabel": "3 jam",
+    "price": null,
+    "about": "Kopi Senja, jaringan kedai kopi dengan aplikasi pemesanan, ingin tahu berapa banyak pelanggan baru yang kembali membeli. Kamu berperan sebagai data analyst yang mengolah data transaksi menjadi cohort retensi, dashboard sederhana, dan tiga rekomendasi untuk tim bisnis.",
+    "activities": [
+      "Membersihkan data transaksi dan menentukan definisi pelanggan aktif",
+      "Menghitung retensi bulanan per cohort pelanggan baru",
+      "Menyusun dashboard satu halaman untuk tim bisnis",
+      "Menulis tiga rekomendasi berbasis temuan"
+    ],
+    "skills": [
+      "Cohort analysis",
+      "Visualisasi data",
+      "Spreadsheet",
+      "Storytelling data"
+    ],
+    "prerequisites": [
+      "Dasar spreadsheet atau Python",
+      "Memahami rata-rata dan persentase"
+    ],
+    "reviewerRole": null,
+    "partner": null,
+    "context": [
+      "Kopi Senja punya 18 gerai di Jabodetabek dan aplikasi pemesanan yang diluncurkan Januari 2026. Sejak peluncuran, 42.000 pelanggan pernah memesan lewat aplikasi. Tim marketing menghabiskan Rp180 juta per bulan untuk promo pelanggan baru (voucher 50% untuk pesanan pertama), tetapi belum tahu apakah pelanggan itu kembali membeli.",
+      "Data yang tersedia adalah ringkasan transaksi Januari–Juni 2026 berikut. Jumlah pelanggan baru per bulan: Januari 9.800, Februari 7.200, Maret 6.900, April 6.100, Mei 5.400, Juni 4.900. Dari cohort Januari, yang masih memesan pada bulan ke-1 sampai ke-5 berturut-turut: 3.430, 2.550, 2.160, 1.960, 1.860. Cohort Februari: 2.300, 1.580, 1.370, 1.290. Cohort Maret: 2.140, 1.450, 1.260. Cohort April: 2.010, 1.400. Cohort Mei: 1.890.",
+      "Informasi tambahan dari tim bisnis: 61% pelanggan cohort Januari memakai voucher pesanan pertama, sedangkan cohort Mei hanya 38% karena nilai voucher diturunkan menjadi 30% pada April. Program poin loyalitas dimulai 1 Maret 2026. Rata-rata nilai pesanan Rp46.000.",
+      "Dashboard akan dibaca kepala marketing dan kepala operasional yang tidak terbiasa dengan istilah statistik. Mereka butuh jawaban atas tiga pertanyaan: berapa persen pelanggan baru yang kembali, apakah retensi membaik setelah program poin, dan di mana anggaran promo sebaiknya dipindahkan.",
+      "Kamu boleh memakai spreadsheet, Python, atau alat BI apa pun. Karena AI Reviewer membaca berkas, kirim dashboard dalam bentuk PDF (ekspor) dan sertakan berkas perhitungan."
+    ],
+    "tasks": [
+      {
+        "title": "Bangun tabel cohort",
+        "description": "Hitung persentase retensi tiap cohort untuk bulan ke-1 sampai ke-5 dari angka di brief. Tulis definisi yang kamu pakai (mis. \"retensi bulan ke-n = pelanggan cohort yang memesan di bulan ke-n dibagi ukuran cohort\")."
+      },
+      {
+        "title": "Susun dashboard satu halaman",
+        "description": "Tampilkan heatmap atau tabel cohort, tren retensi bulan ke-1 antar-cohort, dan satu angka utama yang paling penting untuk tim bisnis. Beri judul dan keterangan yang bisa dipahami tanpa penjelasan lisan."
+      },
+      {
+        "title": "Tafsirkan temuan",
+        "description": "Jawab tiga pertanyaan tim bisnis di brief. Bedakan dengan jelas mana yang didukung data dan mana yang masih dugaan (mis. pengaruh perubahan voucher dan program poin)."
+      },
+      {
+        "title": "Tulis tiga rekomendasi",
+        "description": "Setiap rekomendasi berisi tindakan, alasan berbasis angka, dan cara mengukur keberhasilannya dalam dua bulan ke depan."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "dashboard",
+        "title": "Dashboard (PDF)",
+        "description": "Ekspor dashboard satu halaman dalam PDF. Pastikan teks dan angka terbaca saat diperbesar.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf"
+        ],
+        "maxSizeMb": 10
+      },
+      {
+        "slotKey": "perhitungan",
+        "title": "Berkas perhitungan",
+        "description": "Spreadsheet berisi tabel cohort dan rumus yang kamu pakai.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "xlsx"
+        ],
+        "maxSizeMb": 10
+      },
+      {
+        "slotKey": "rekomendasi",
+        "title": "Temuan dan rekomendasi",
+        "description": "Jawaban atas tiga pertanyaan tim bisnis dan tiga rekomendasi.",
+        "kind": "text",
+        "isRequired": true,
+        "minLength": 300,
+        "maxLength": 4000
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Ketepatan perhitungan",
+        "weight": 35,
+        "description": "Persentase retensi dihitung dengan benar dan definisinya konsisten.",
+        "levelDescriptions": [
+          "Tidak ada perhitungan retensi.",
+          "Perhitungan salah secara mendasar (mis. membagi dengan total pelanggan, bukan ukuran cohort).",
+          "Sebagian besar angka benar, dengan beberapa kesalahan atau definisi tidak ditulis.",
+          "Semua angka cohort benar dan definisinya ditulis.",
+          "Semua angka benar, definisi jelas, dan ada pengecekan silang (mis. retensi tidak pernah naik tanpa penjelasan)."
+        ]
+      },
+      {
+        "name": "Kejelasan visualisasi",
+        "weight": 30,
+        "description": "Dashboard bisa dipahami pembaca non-teknis tanpa penjelasan lisan.",
+        "levelDescriptions": [
+          "Tidak ada visualisasi.",
+          "Grafik ada tetapi salah jenis atau tidak berlabel.",
+          "Grafik tepat jenis tetapi pesan utamanya tidak menonjol.",
+          "Grafik tepat, berlabel, dan angka utama mudah ditemukan.",
+          "Dashboard fokus, hierarkinya jelas, dan setiap elemen menjawab pertanyaan tim bisnis."
+        ]
+      },
+      {
+        "name": "Kualitas rekomendasi",
+        "weight": 35,
+        "description": "Rekomendasi berasal dari temuan, bisa dilaksanakan, dan punya ukuran keberhasilan.",
+        "levelDescriptions": [
+          "Tidak ada rekomendasi.",
+          "Rekomendasi umum yang tidak terkait data.",
+          "Rekomendasi terkait data tetapi tanpa ukuran keberhasilan.",
+          "Tiga rekomendasi berbasis angka dengan ukuran keberhasilan.",
+          "Rekomendasi tajam, memisahkan fakta dan dugaan, serta mengusulkan cara menguji dugaan itu."
+        ]
+      }
+    ],
+    "passingScore": 60,
+    "deadlineDays": null
+  },
+  {
+    "slug": "analisis-keterlambatan-pengiriman",
+    "title": "Analisis Keterlambatan Pengiriman Antarkota",
+    "summary": "Temukan pola keterlambatan dari data historis pengiriman dan usulkan perbaikan rute.",
+    "tier": "b2b",
+    "fieldKey": "data",
+    "level": "intermediate",
+    "durationLabel": "5-7 hari",
+    "price": 149000,
+    "about": "Samudra Logistik mencatat 18% pengiriman antarkota terlambat dari janji ke pelanggan. Kamu diminta menelusuri data historis pengiriman, menemukan pola penyebab keterlambatan, dan mengusulkan perbaikan rute serta operasional yang akan dinilai Lead Data Analyst mereka.",
+    "activities": [
+      "Membersihkan dan mengeksplorasi data historis 6 bulan pengiriman",
+      "Mengukur keterlambatan per rute, hub, hari, dan jenis layanan",
+      "Menguji dugaan penyebab dengan analisis yang tepat",
+      "Menyusun laporan dan presentasi singkat untuk manajemen operasional"
+    ],
+    "skills": [
+      "Exploratory data analysis",
+      "Python / SQL",
+      "Visualisasi data",
+      "Analisis bisnis"
+    ],
+    "prerequisites": [
+      "Dasar Python atau SQL",
+      "Dasar statistik deskriptif"
+    ],
+    "reviewerRole": "Lead Data Analyst",
+    "partner": {
+      "name": "Samudra Logistik",
+      "industry": "Logistik",
+      "about": "Penyedia jasa pengiriman antarkota dengan ratusan titik hub di Jawa, Sumatra, dan Sulawesi."
+    },
+    "context": [
+      "Samudra Logistik melayani pengiriman paket antarkota di Jawa dan Bali dengan 14 hub sortir. Layanan Reguler menjanjikan 2–4 hari dan layanan Kilat 1–2 hari. Dalam 6 bulan terakhir, 18% paket Reguler dan 11% paket Kilat tiba melewati janji. Klien korporat terbesar mereka (12% pendapatan) mengancam memindahkan kontrak bila keterlambatan tidak turun di bawah 8% dalam satu kuartal.",
+      "Mitra akan memberikan dataset anonim berisi sekitar 240.000 baris pengiriman Januari–Juni 2026 setelah kamu membayar: shipment_id, layanan, hub asal, hub tujuan, waktu pickup, waktu tiba di setiap hub, waktu terkirim, janji hari, berat, armada (truk sendiri atau vendor), serta catatan cuaca harian per hub. Dataset ini ada di tab Materi.",
+      "Dugaan awal tim operasional: (1) hub Cikarang kelebihan muatan setiap Senin, (2) armada vendor lebih sering terlambat dibanding truk sendiri, (3) hujan deras di jalur pantura menyebabkan sebagian besar keterlambatan. Mereka belum pernah menguji dugaan ini dengan data.",
+      "Keputusan yang akan diambil dari analisismu: rute mana yang perlu jadwal keberangkatan baru, apakah kontrak vendor perlu ditinjau, dan berapa kapasitas tambahan yang dibutuhkan di hub tertentu. Manajemen operasional hanya punya 15 menit untuk membaca ringkasanmu."
+    ],
+    "tasks": [
+      {
+        "title": "Eksplorasi dan pembersihan data",
+        "description": "Laporkan kualitas data (data kosong, waktu tidak logis, duplikat) dan cara kamu menanganinya. Definisikan keterlambatan dengan jelas, termasuk zona waktu dan hari libur."
+      },
+      {
+        "title": "Analisis pola keterlambatan",
+        "description": "Ukur keterlambatan per rute, hub, hari dalam minggu, armada, dan layanan. Uji ketiga dugaan tim operasional dan nyatakan mana yang didukung data, mana yang tidak, beserta besarnya pengaruh."
+      },
+      {
+        "title": "Rekomendasi perbaikan",
+        "description": "Usulkan maksimal lima perbaikan, urutkan berdasarkan dampak terhadap target 8%. Untuk setiap usulan, perkirakan penurunan keterlambatan dan biaya atau usaha yang dibutuhkan."
+      },
+      {
+        "title": "Ringkasan untuk manajemen",
+        "description": "Siapkan presentasi maksimal 8 slide yang bisa dibaca dalam 15 menit: temuan utama, bukti, dan keputusan yang diminta."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "notebook",
+        "title": "Notebook atau skrip analisis",
+        "description": "Tautan ke notebook (Google Colab, Kaggle, atau repositori) yang bisa dibuka reviewer tanpa izin tambahan.",
+        "kind": "link",
+        "isRequired": true,
+        "linkHint": "https://colab.research.google.com/drive/..."
+      },
+      {
+        "slotKey": "laporan",
+        "title": "Laporan analisis",
+        "description": "Laporan lengkap: metodologi, temuan, dan rekomendasi.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx"
+        ],
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "presentasi",
+        "title": "Presentasi untuk manajemen",
+        "description": "Maksimal 8 slide dalam PDF.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "pptx"
+        ],
+        "maxSizeMb": 20
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Kedalaman analisis",
+        "weight": 35,
+        "description": "Analisis menelusuri pola keterlambatan dari beberapa dimensi dan menguji dugaan tim operasional.",
+        "levelDescriptions": [
+          "Hanya statistik deskriptif umum tanpa menelusuri pola.",
+          "Melihat satu atau dua dimensi tanpa menguji dugaan.",
+          "Menguji sebagian dugaan dengan bukti terbatas.",
+          "Ketiga dugaan diuji dan pola utama ditemukan dengan bukti.",
+          "Analisis menemukan penyebab yang tidak terduga dan mengukur pengaruh tiap faktor secara terpisah."
+        ]
+      },
+      {
+        "name": "Ketepatan metode",
+        "weight": 25,
+        "description": "Metode dan definisi tepat untuk data dan pertanyaan, termasuk penanganan data bermasalah.",
+        "levelDescriptions": [
+          "Metode tidak sesuai atau data tidak dibersihkan.",
+          "Pembersihan data minim dan definisi keterlambatan tidak jelas.",
+          "Metode cukup tepat dengan beberapa kelemahan yang tidak disebutkan.",
+          "Metode tepat, definisi jelas, dan keterbatasan disebutkan.",
+          "Metode tepat dan teruji, misalnya mengendalikan faktor pengganggu seperti rute saat membandingkan armada."
+        ]
+      },
+      {
+        "name": "Kualitas rekomendasi",
+        "weight": 25,
+        "description": "Rekomendasi terkait temuan, diprioritaskan, dan dikaitkan dengan target 8%.",
+        "levelDescriptions": [
+          "Tidak ada rekomendasi.",
+          "Rekomendasi umum yang tidak terkait temuan.",
+          "Rekomendasi terkait temuan tanpa prioritas atau perkiraan dampak.",
+          "Rekomendasi diprioritaskan dengan perkiraan dampak.",
+          "Rekomendasi diprioritaskan, dampak dan biaya diperkirakan, serta jelas apakah target 8% tercapai."
+        ]
+      },
+      {
+        "name": "Komunikasi temuan",
+        "weight": 15,
+        "description": "Laporan dan presentasi jelas bagi manajemen yang hanya punya 15 menit.",
+        "levelDescriptions": [
+          "Tidak ada ringkasan.",
+          "Temuan tersebar dan sulit diikuti.",
+          "Cukup jelas tetapi terlalu teknis untuk manajemen.",
+          "Jelas, visual tepat, dan keputusan yang diminta terlihat.",
+          "Ringkas dan meyakinkan; setiap slide punya satu pesan yang didukung angka."
+        ]
+      }
+    ],
+    "passingScore": 70,
+    "deadlineDays": 7
+  },
+  {
+    "slug": "desain-ulang-onboarding-aplikasi",
+    "title": "Mendesain Ulang Alur Onboarding Aplikasi",
+    "summary": "Identifikasi titik drop-off pengguna baru dan usulkan alur onboarding yang lebih jelas.",
+    "tier": "ai",
+    "fieldKey": "uiux",
+    "level": "beginner",
+    "durationLabel": "4 jam",
+    "price": null,
+    "about": "Aplikasi budgeting Rapi kehilangan 64% pengguna baru sebelum mereka mencatat transaksi pertama. Kamu berperan sebagai UI/UX designer yang menganalisis alur onboarding saat ini, menemukan titik masalahnya, dan mengusulkan alur baru beserta wireframe.",
+    "activities": [
+      "Membaca data funnel dan keluhan pengguna onboarding",
+      "Mengevaluasi alur lama dengan heuristik usability",
+      "Merancang alur dan wireframe onboarding baru",
+      "Menjelaskan alasan setiap keputusan desain"
+    ],
+    "skills": [
+      "User flow",
+      "Wireframing",
+      "Heuristic evaluation",
+      "UX writing"
+    ],
+    "prerequisites": [
+      "Dasar Figma",
+      "Mengenal prinsip dasar UX"
+    ],
+    "reviewerRole": null,
+    "partner": null,
+    "context": [
+      "Rapi adalah aplikasi pencatat keuangan pribadi untuk mahasiswa dan pekerja muda. Dalam tiga bulan terakhir 25.000 orang mengunduh Rapi, tetapi hanya 36% yang mencatat transaksi pertama. Pengguna yang mencatat minimal 3 transaksi di minggu pertama punya peluang 4 kali lebih besar untuk tetap aktif setelah sebulan.",
+      "Alur onboarding saat ini berisi 7 layar berurutan: (1) tiga layar pengenalan fitur yang bisa digeser, (2) daftar akun dengan email, nomor telepon, dan password, (3) verifikasi OTP, (4) formulir profil (nama, tanggal lahir, pekerjaan, penghasilan bulanan), (5) memilih 8 kategori pengeluaran dari 24 pilihan, (6) mengisi saldo awal setiap rekening, (7) halaman beranda kosong dengan tulisan \"Belum ada transaksi\".",
+      "Data funnel: layar pengenalan 100% → daftar akun 81% → OTP 72% → profil 58% → kategori 47% → saldo awal 39% → beranda 37% → transaksi pertama 36%. Rata-rata waktu dari membuka aplikasi sampai beranda: 6 menit 40 detik.",
+      "Kutipan dari 40 ulasan dan survei keluar: \"Kenapa harus isi penghasilan dulu?\" (17 orang), \"Bingung pilih kategori, banyak banget\" (12 orang), \"Saya nggak tahu saldo pasti rekening saya\" (9 orang), \"Setelah daftar malah layar kosong, terus ngapain?\" (8 orang).",
+      "Kirim hasil desain sebagai PDF ekspor dari Figma atau alat desain lain. Tautan Figma boleh disertakan di penjelasan sebagai portofolio, tetapi tidak dibuka saat penilaian."
+    ],
+    "tasks": [
+      {
+        "title": "Evaluasi alur lama",
+        "description": "Petakan alur 7 layar dan tandai tiga titik drop-off terbesar. Untuk setiap titik, jelaskan masalahnya dengan heuristik usability (mis. Nielsen) dan kaitkan dengan data funnel serta kutipan pengguna."
+      },
+      {
+        "title": "Rancang alur baru",
+        "description": "Usulkan alur onboarding baru yang membawa pengguna ke transaksi pertama secepat mungkin. Tentukan data mana yang ditunda, dibuat opsional, atau dihapus, dan di mana pengguna diajak mencatat transaksi pertama."
+      },
+      {
+        "title": "Buat wireframe",
+        "description": "Buat wireframe mid-fidelity untuk setiap layar alur baru, termasuk empty state beranda dan teks tombol. Ukuran layar mobile 360–390 piksel."
+      },
+      {
+        "title": "Jelaskan keputusan dan cara mengukurnya",
+        "description": "Tulis alasan setiap perubahan dan metrik yang dipakai untuk membuktikan alur baru lebih baik (mis. persentase transaksi pertama dan waktu sampai transaksi pertama)."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "wireframe",
+        "title": "Alur dan wireframe (PDF)",
+        "description": "Diagram alur baru dan wireframe setiap layar dalam satu PDF.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf"
+        ],
+        "maxSizeMb": 20
+      },
+      {
+        "slotKey": "penjelasan_desain",
+        "title": "Penjelasan keputusan desain",
+        "description": "Evaluasi alur lama, alasan setiap perubahan, dan metrik keberhasilan.",
+        "kind": "text",
+        "isRequired": true,
+        "minLength": 400,
+        "maxLength": 5000
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Identifikasi masalah",
+        "weight": 30,
+        "description": "Titik masalah alur lama ditemukan dan dikaitkan dengan data funnel serta suara pengguna.",
+        "levelDescriptions": [
+          "Tidak ada evaluasi alur lama.",
+          "Menyebut masalah umum tanpa mengaitkannya dengan data.",
+          "Menemukan sebagian titik drop-off dengan alasan yang kurang kuat.",
+          "Tiga titik drop-off terbesar ditemukan dan dijelaskan dengan heuristik serta data.",
+          "Analisis tajam, menghubungkan data funnel, kutipan, dan heuristik menjadi penyebab yang meyakinkan."
+        ]
+      },
+      {
+        "name": "Kualitas solusi",
+        "weight": 40,
+        "description": "Alur dan wireframe baru mengurangi hambatan menuju transaksi pertama dan konsisten.",
+        "levelDescriptions": [
+          "Tidak ada alur atau wireframe baru.",
+          "Perubahan kosmetik yang tidak mengurangi langkah atau hambatan.",
+          "Alur lebih pendek tetapi ada layar penting yang hilang atau tidak konsisten.",
+          "Alur jelas menuju transaksi pertama, wireframe lengkap termasuk empty state.",
+          "Alur dan wireframe matang, teks tombol dan bantuan ditulis baik, serta kasus tepi dipikirkan."
+        ]
+      },
+      {
+        "name": "Kejelasan rasional",
+        "weight": 30,
+        "description": "Setiap keputusan dijelaskan dan disertai cara mengukur keberhasilannya.",
+        "levelDescriptions": [
+          "Tidak ada penjelasan.",
+          "Penjelasan berisi deskripsi layar tanpa alasan.",
+          "Sebagian keputusan dijelaskan alasannya.",
+          "Setiap keputusan punya alasan dan metrik keberhasilan disebutkan.",
+          "Alasan ringkas dan meyakinkan, trade-off diakui, dan rencana pengujian (mis. A/B) diusulkan."
+        ]
+      }
+    ],
+    "passingScore": 60,
+    "deadlineDays": null
+  },
+  {
+    "slug": "redesain-checkout-mobile",
+    "title": "Redesain Checkout Mobile untuk Menurunkan Cart Abandonment",
+    "summary": "Gunakan data funnel nyata untuk merancang ulang alur checkout di aplikasi mobile.",
+    "tier": "b2b",
+    "fieldKey": "uiux",
+    "level": "intermediate",
+    "durationLabel": "4-6 hari",
+    "price": 129000,
+    "about": "Kirana Retail kehilangan 71% keranjang belanja di aplikasi mobile sebelum pembayaran selesai. Kamu diminta memakai data funnel dan rekaman sesi mereka untuk merancang ulang alur checkout, lalu mempresentasikannya kepada Product Design Lead mitra.",
+    "activities": [
+      "Menganalisis data funnel dan temuan riset pengguna mitra",
+      "Merumuskan masalah dan prinsip desain checkout",
+      "Membuat prototipe interaktif alur checkout baru",
+      "Menyusun rencana usability testing"
+    ],
+    "skills": [
+      "Riset UX",
+      "Prototyping",
+      "Desain mobile",
+      "Usability testing"
+    ],
+    "prerequisites": [
+      "Mahir Figma",
+      "Pernah membuat studi kasus UI/UX"
+    ],
+    "reviewerRole": "Product Design Lead",
+    "partner": {
+      "name": "Kirana Retail",
+      "industry": "Retail",
+      "about": "Jaringan retail gaya hidup dengan toko fisik dan aplikasi belanja yang terus mengembangkan kanal digitalnya."
+    },
+    "context": [
+      "Kirana Retail adalah jaringan toko fesyen dan kecantikan dengan 120 gerai dan aplikasi belanja yang diunduh 1,8 juta kali. Aplikasi menyumbang 34% penjualan online. Tahun ini mereka menargetkan cart abandonment turun dari 71% menjadi 60%, setara tambahan sekitar Rp2,1 miliar penjualan per bulan.",
+      "Funnel checkout bulan lalu: masuk keranjang 100% → klik Checkout 54% → isi alamat 41% → pilih pengiriman 37% → pilih pembayaran 33% → pembayaran berhasil 29%. Alur saat ini terdiri dari 5 layar terpisah; pengguna baru wajib membuat akun sebelum mengisi alamat, dan ongkos kirim baru terlihat di layar ketiga.",
+      "Temuan riset mitra dari 30 rekaman sesi dan 8 wawancara: pengguna kaget dengan ongkos kirim (\"tadi kirain gratis ongkir\"), formulir alamat 11 kolom tanpa isi otomatis, kode voucher harus diketik ulang di layar terakhir, dan pilihan pembayaran menampilkan 14 metode tanpa urutan.",
+      "Batasan: aplikasi harus tetap mendukung pembeli tamu untuk promo tertentu, ongkos kirim dihitung oleh layanan pihak ketiga (respons 1–2 detik), dan desain mengikuti design system Kirana (komponen dan warna ada di tab Materi). Prioritas mitra adalah pengguna Android kelas menengah dengan layar 360–412 piksel."
+    ],
+    "tasks": [
+      {
+        "title": "Rumuskan masalah",
+        "description": "Dari data funnel dan riset, tentukan tiga masalah utama yang paling memengaruhi abandonment. Tulis dalam format pernyataan masalah dan kaitkan dengan angka funnel."
+      },
+      {
+        "title": "Rancang alur dan prototipe",
+        "description": "Buat alur checkout baru dan prototipe interaktif high-fidelity untuk pembeli lama dan pembeli tamu, termasuk keadaan loading ongkos kirim, error alamat, dan voucher tidak berlaku."
+      },
+      {
+        "title": "Hubungkan ke tujuan bisnis",
+        "description": "Jelaskan bagaimana setiap perubahan diharapkan menurunkan abandonment, dan langkah funnel mana yang terdampak. Sebutkan risikonya bagi bisnis."
+      },
+      {
+        "title": "Rencana usability testing",
+        "description": "Susun rencana uji dengan 5–8 peserta: tujuan, profil peserta, skenario tugas, metrik, dan kriteria keberhasilan."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "prototipe",
+        "title": "Prototipe Figma",
+        "description": "Tautan prototipe interaktif yang bisa dibuka tanpa login (mode view).",
+        "kind": "link",
+        "isRequired": true,
+        "linkHint": "https://www.figma.com/proto/..."
+      },
+      {
+        "slotKey": "studi_kasus",
+        "title": "Dokumen studi kasus",
+        "description": "Rumusan masalah, alur, alasan desain, dan dampak ke bisnis.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf"
+        ],
+        "maxSizeMb": 25
+      },
+      {
+        "slotKey": "rencana_uji",
+        "title": "Rencana usability testing",
+        "description": "Rencana uji 1–3 halaman.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx"
+        ],
+        "maxSizeMb": 5
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Kualitas riset",
+        "weight": 25,
+        "description": "Masalah dirumuskan dari data funnel dan temuan riset mitra, bukan asumsi.",
+        "levelDescriptions": [
+          "Tidak ada rumusan masalah.",
+          "Masalah berasal dari asumsi pribadi.",
+          "Masalah terkait data tetapi tidak diprioritaskan.",
+          "Tiga masalah utama diprioritaskan dan didukung angka funnel serta temuan riset.",
+          "Rumusan masalah tajam dan menemukan hubungan antartemuan yang tidak disebut mitra."
+        ]
+      },
+      {
+        "name": "Kualitas desain",
+        "weight": 35,
+        "description": "Prototipe menyelesaikan masalah, konsisten dengan design system, dan menangani kasus tepi.",
+        "levelDescriptions": [
+          "Tidak ada prototipe.",
+          "Desain hanya mempercantik tampilan tanpa mengubah alur.",
+          "Alur membaik tetapi kasus tepi atau pembeli tamu tidak ditangani.",
+          "Alur jelas untuk pembeli lama dan tamu, termasuk loading dan error, konsisten dengan design system.",
+          "Desain matang dan detail, aksesibel, serta siap diserahkan ke engineer."
+        ]
+      },
+      {
+        "name": "Dampak ke tujuan bisnis",
+        "weight": 25,
+        "description": "Perubahan dihubungkan dengan target abandonment dan risikonya dijelaskan.",
+        "levelDescriptions": [
+          "Tidak menyebut tujuan bisnis.",
+          "Menyebut tujuan tanpa mengaitkan perubahan.",
+          "Sebagian perubahan dikaitkan dengan langkah funnel.",
+          "Setiap perubahan dikaitkan dengan langkah funnel dan risikonya disebut.",
+          "Perkiraan dampak masuk akal terhadap target 60% dan disertai cara memantaunya."
+        ]
+      },
+      {
+        "name": "Rencana pengujian",
+        "weight": 15,
+        "description": "Rencana usability testing bisa langsung dijalankan dan mengukur hal yang tepat.",
+        "levelDescriptions": [
+          "Tidak ada rencana uji.",
+          "Rencana umum tanpa skenario tugas.",
+          "Skenario ada tetapi metrik atau kriteria keberhasilan tidak jelas.",
+          "Tujuan, peserta, skenario, dan metrik jelas.",
+          "Rencana lengkap dan siap dijalankan, termasuk cara mengolah hasil dan keputusan lanjutan."
+        ]
+      }
+    ],
+    "passingScore": 70,
+    "deadlineDays": 6
+  },
+  {
+    "slug": "prioritas-fitur-dari-feedback",
+    "title": "Menyusun Prioritas Fitur dari Feedback Pengguna",
+    "summary": "Kelompokkan feedback pengguna dan susun prioritas fitur dengan kerangka yang bisa dipertanggungjawabkan.",
+    "tier": "ai",
+    "fieldKey": "product",
+    "level": "beginner",
+    "durationLabel": "3 jam",
+    "price": null,
+    "about": "Tim produk aplikasi les online Pintar menerima ratusan masukan pengguna setiap bulan dan hanya punya kapasitas untuk tiga fitur di kuartal depan. Kamu berperan sebagai associate product manager yang mengelompokkan masukan, menilai prioritas dengan kerangka RICE, dan merekomendasikan tiga fitur.",
+    "activities": [
+      "Mengelompokkan 30 masukan pengguna ke dalam tema masalah",
+      "Menilai setiap kandidat fitur dengan kerangka RICE",
+      "Memilih tiga fitur dan menjelaskan yang tidak dipilih",
+      "Menulis ringkasan untuk tim engineering dan manajemen"
+    ],
+    "skills": [
+      "Prioritisasi (RICE)",
+      "Analisis feedback",
+      "Product thinking"
+    ],
+    "prerequisites": [
+      "Dasar spreadsheet",
+      "Mengenal peran product manager"
+    ],
+    "reviewerRole": null,
+    "partner": null,
+    "context": [
+      "Pintar adalah aplikasi les online untuk siswa SMA dengan 80.000 pengguna aktif bulanan. Pendapatan berasal dari paket langganan Rp99.000 per bulan; 9.600 pengguna saat ini berlangganan. Target kuartal depan: menaikkan konversi dari pengguna gratis ke berbayar dari 12% menjadi 15% dan menurunkan pembatalan langganan dari 9% menjadi 7% per bulan.",
+      "Tim engineering terdiri dari 4 orang dengan kapasitas sekitar 24 minggu-orang per kuartal. Kandidat fitur dan perkiraan usahanya: (A) mode offline untuk video, 10 minggu-orang; (B) latihan soal adaptif, 12; (C) pengingat jadwal belajar, 2; (D) forum tanya jawab dengan tutor, 8; (E) laporan progres untuk orang tua, 4; (F) pembayaran lewat e-wallet, 3; (G) mode gelap, 1.",
+      "Ringkasan 30 masukan (jumlah pengguna yang menyampaikan hal serupa dalam tanda kurung): video sering berhenti di jaringan lambat (210), ingin bayar pakai GoPay/OVO (180), soal latihan terlalu mudah atau terlalu sulit (150), orang tua ingin tahu perkembangan anak (95), lupa jadwal belajar (90), ingin bertanya langsung ke tutor (85), ingin mode gelap (60). Sebagian masukan lain berupa keluhan bug login (40) dan permintaan materi kelas 9 (30).",
+      "Data tambahan: 38% pengguna yang membatalkan langganan menyebut \"tidak sempat belajar\" sebagai alasan, 27% menyebut \"materi tidak sesuai kemampuan\". Di halaman pembayaran, 22% pengguna berhenti saat diminta kartu kredit atau transfer bank."
+    ],
+    "tasks": [
+      {
+        "title": "Kelompokkan masukan",
+        "description": "Kelompokkan masukan menjadi tema masalah (bukan tema fitur), lalu petakan setiap tema ke kandidat fitur. Catat masukan yang tidak termasuk fitur, seperti bug dan permintaan konten."
+      },
+      {
+        "title": "Nilai dengan RICE",
+        "description": "Hitung skor RICE (Reach, Impact, Confidence, Effort) setiap kandidat fitur. Tulis asumsi di balik setiap angka dan kaitkan Impact dengan dua target kuartal."
+      },
+      {
+        "title": "Pilih tiga fitur",
+        "description": "Pilih tiga fitur yang muat dalam 24 minggu-orang. Jelaskan mengapa fitur dengan skor tinggi tertentu tidak dipilih, atau mengapa urutan berbeda dari skor bila ada."
+      },
+      {
+        "title": "Komunikasikan keputusan",
+        "description": "Tulis ringkasan satu halaman untuk manajemen dan tim engineering: keputusan, alasan, risiko, dan metrik yang akan dipantau."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "tabel_rice",
+        "title": "Tabel pengelompokan dan RICE",
+        "description": "Spreadsheet berisi pengelompokan masukan dan perhitungan RICE beserta asumsinya.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "xlsx",
+          "pdf"
+        ],
+        "maxSizeMb": 10
+      },
+      {
+        "slotKey": "ringkasan_keputusan",
+        "title": "Ringkasan keputusan",
+        "description": "Tiga fitur terpilih, alasan, fitur yang ditunda, risiko, dan metrik.",
+        "kind": "text",
+        "isRequired": true,
+        "minLength": 400,
+        "maxLength": 5000
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Pengelompokan masukan",
+        "weight": 30,
+        "description": "Masukan dikelompokkan berdasarkan masalah pengguna dan dipisahkan dari bug atau permintaan konten.",
+        "levelDescriptions": [
+          "Tidak ada pengelompokan.",
+          "Masukan disalin ulang sebagai daftar fitur tanpa dikelompokkan.",
+          "Pengelompokan ada tetapi mencampur masalah, fitur, dan bug.",
+          "Tema masalah jelas, dipetakan ke kandidat fitur, dan bug dipisahkan.",
+          "Pengelompokan tajam dan menghubungkan masukan dengan data pembatalan serta pembayaran."
+        ]
+      },
+      {
+        "name": "Logika prioritas",
+        "weight": 40,
+        "description": "Skor RICE masuk akal, asumsinya ditulis, dan pilihan akhir sesuai kapasitas serta target.",
+        "levelDescriptions": [
+          "Tidak ada prioritas atau pilihan tanpa alasan.",
+          "Skor RICE ada tetapi angka tanpa asumsi atau tidak konsisten.",
+          "Skor dan asumsi ada, tetapi pilihan melebihi kapasitas atau tidak terkait target.",
+          "Skor konsisten, pilihan muat dalam kapasitas, dan terkait dua target.",
+          "Logika kuat, termasuk alasan menyimpang dari skor bila perlu dan rencana untuk fitur yang ditunda."
+        ]
+      },
+      {
+        "name": "Kejelasan komunikasi",
+        "weight": 30,
+        "description": "Ringkasan bisa dipahami manajemen dan engineering tanpa membuka spreadsheet.",
+        "levelDescriptions": [
+          "Tidak ada ringkasan.",
+          "Ringkasan panjang dan tidak menyebut keputusan dengan jelas.",
+          "Keputusan jelas tetapi alasan atau risiko kurang.",
+          "Keputusan, alasan, risiko, dan metrik disampaikan ringkas.",
+          "Ringkasan meyakinkan, mengantisipasi pertanyaan pemangku kepentingan, dan menyebut kapan keputusan ditinjau ulang."
+        ]
+      }
+    ],
+    "passingScore": 60,
+    "deadlineDays": null
+  },
+  {
+    "slug": "strategi-kampanye-peluncuran",
+    "title": "Strategi Kampanye Peluncuran Produk Baru",
+    "summary": "Susun strategi kanal, anggaran, dan KPI untuk peluncuran produk kecantikan baru.",
+    "tier": "b2b",
+    "fieldKey": "marketing",
+    "level": "intermediate",
+    "durationLabel": "4-6 hari",
+    "price": 129000,
+    "about": "Kirana Retail akan meluncurkan serum lokal \"Kirana Glow\" untuk pasar usia 20–30 tahun dengan anggaran Rp350 juta. Kamu diminta menyusun strategi kampanye peluncuran 6 minggu, mulai dari insight audiens, kanal, anggaran, sampai KPI, untuk dinilai Brand Marketing Manager mitra.",
+    "activities": [
+      "Membaca riset pasar dan data pelanggan mitra",
+      "Merumuskan insight audiens dan pesan utama",
+      "Menyusun rencana kanal, jadwal, dan alokasi anggaran",
+      "Membuat contoh materi kampanye dan KPI"
+    ],
+    "skills": [
+      "Strategi pemasaran",
+      "Segmentasi audiens",
+      "Perencanaan anggaran",
+      "Copywriting"
+    ],
+    "prerequisites": [
+      "Dasar pemasaran digital"
+    ],
+    "reviewerRole": "Brand Marketing Manager",
+    "partner": {
+      "name": "Kirana Retail",
+      "industry": "Retail",
+      "about": "Jaringan retail gaya hidup dengan toko fisik dan aplikasi belanja yang terus mengembangkan kanal digitalnya."
+    },
+    "context": [
+      "Kirana Glow adalah serum niacinamide 5% seharga Rp89.000 untuk 20 ml, diproduksi oleh pabrik lokal bersertifikat BPOM dan halal. Produk dijual di 120 gerai Kirana, aplikasi Kirana, dan dua marketplace. Target 6 minggu pertama: 25.000 unit terjual dan 40% pembeli berasal dari pelanggan baru Kirana.",
+      "Riset mitra terhadap 600 responden perempuan dan laki-laki usia 20–30: 72% membeli skincare setelah melihat ulasan di TikTok atau Instagram, 64% membandingkan harga di marketplace sebelum membeli, dan 48% ragu mencoba merek lokal karena takut iritasi. Kompetitor utama menjual serum serupa di harga Rp79.000–Rp129.000 dan rutin bekerja sama dengan kreator.",
+      "Aset yang dimiliki Kirana: 2,3 juta pengikut Instagram, 410.000 pengikut TikTok, 1,1 juta anggota program loyalitas, dan kerja sama dengan 40 beauty advisor di gerai. Kampanye sebelumnya (lip tint, 2025) menghabiskan 70% anggaran untuk iklan berbayar dengan biaya per pembelian Rp41.000.",
+      "Batasan: total anggaran Rp350 juta sudah termasuk produksi konten, kreator, iklan, dan promo; diskon maksimal 20%; semua klaim produk harus sesuai izin BPOM (tidak boleh menjanjikan \"memutihkan\"). Panduan merek dan data penjualan kategori serum ada di tab Materi."
+    ],
+    "tasks": [
+      {
+        "title": "Insight audiens dan pesan",
+        "description": "Tentukan maksimal dua segmen prioritas, insight utama masing-masing, dan satu pesan kampanye yang menjawab keraguan terhadap merek lokal."
+      },
+      {
+        "title": "Strategi kanal dan jadwal",
+        "description": "Rancang alur kampanye 6 minggu (pra-peluncuran, peluncuran, keberlanjutan) dengan peran setiap kanal dan memanfaatkan aset milik Kirana."
+      },
+      {
+        "title": "Anggaran dan KPI",
+        "description": "Alokasikan Rp350 juta per kanal dan per fase. Tetapkan KPI per fase serta perkiraan biaya per pembelian dibanding kampanye lip tint."
+      },
+      {
+        "title": "Contoh materi",
+        "description": "Buat tiga contoh materi: satu naskah video pendek untuk kreator, satu konten Instagram, dan satu materi untuk beauty advisor di gerai. Pastikan klaim sesuai batasan BPOM."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "dokumen_strategi",
+        "title": "Dokumen strategi",
+        "description": "Insight, pesan, strategi kanal, jadwal, dan KPI.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "pptx"
+        ],
+        "maxSizeMb": 25
+      },
+      {
+        "slotKey": "anggaran",
+        "title": "Rincian anggaran",
+        "description": "Alokasi anggaran per kanal dan per fase beserta perhitungan KPI.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "xlsx",
+          "pdf"
+        ],
+        "maxSizeMb": 10
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Ketajaman insight audiens",
+        "weight": 30,
+        "description": "Segmen dan insight berasal dari riset mitra dan menjawab hambatan pembelian yang nyata.",
+        "levelDescriptions": [
+          "Tidak ada insight audiens.",
+          "Audiens dideskripsikan secara demografis tanpa insight.",
+          "Insight ada tetapi tidak terkait data riset.",
+          "Insight tajam, berbasis riset, dan menjawab keraguan terhadap merek lokal.",
+          "Insight segar dan meyakinkan, menjadi dasar yang jelas bagi pesan dan pilihan kanal."
+        ]
+      },
+      {
+        "name": "Kualitas strategi",
+        "weight": 35,
+        "description": "Kanal, fase, dan pesan saling terhubung serta memanfaatkan aset milik Kirana.",
+        "levelDescriptions": [
+          "Tidak ada strategi kanal.",
+          "Daftar kanal tanpa peran dan urutan.",
+          "Kanal dan fase jelas tetapi kurang terhubung dengan insight.",
+          "Strategi runtut per fase, memanfaatkan aset milik Kirana, dan terhubung dengan target.",
+          "Strategi kuat dan efisien, dengan rencana cadangan bila KPI minggu pertama tidak tercapai."
+        ]
+      },
+      {
+        "name": "Realisme anggaran",
+        "weight": 15,
+        "description": "Anggaran sesuai batas, rinci, dan KPI masuk akal dibanding kampanye sebelumnya.",
+        "levelDescriptions": [
+          "Tidak ada anggaran.",
+          "Anggaran melebihi batas atau tidak rinci.",
+          "Anggaran sesuai batas tetapi KPI tidak terhitung.",
+          "Anggaran rinci per kanal dan fase dengan KPI yang dihitung.",
+          "Anggaran efisien dengan perbandingan biaya per pembelian yang meyakinkan."
+        ]
+      },
+      {
+        "name": "Kreativitas materi",
+        "weight": 20,
+        "description": "Contoh materi menarik, sesuai pesan dan kanal, dan klaimnya patuh aturan.",
+        "levelDescriptions": [
+          "Tidak ada contoh materi.",
+          "Materi generik atau melanggar batasan klaim.",
+          "Materi sesuai pesan tetapi kurang sesuai karakter kanal.",
+          "Tiga materi sesuai kanal, pesan, dan aturan klaim.",
+          "Materi segar dan siap produksi, dengan hook kuat di detik awal video."
+        ]
+      }
+    ],
+    "passingScore": 70,
+    "deadlineDays": 6
+  },
+  {
+    "slug": "kalender-konten-media-sosial",
+    "title": "Kalender Konten Media Sosial untuk UMKM",
+    "summary": "Buat kalender konten satu bulan beserta tujuan dan metrik keberhasilannya.",
+    "tier": "ai",
+    "fieldKey": "marketing",
+    "level": "beginner",
+    "durationLabel": "2-3 jam",
+    "price": null,
+    "about": "Dapur Bu Sari, usaha katering rumahan di Yogyakarta, ingin Instagram-nya mendatangkan pesanan, bukan sekadar ramai. Kamu berperan sebagai social media specialist yang menyusun kalender konten satu bulan lengkap dengan tujuan, ide, caption, dan cara mengukur hasilnya.",
+    "activities": [
+      "Memahami bisnis, pelanggan, dan kondisi akun saat ini",
+      "Menentukan tujuan dan pilar konten",
+      "Menyusun kalender konten 4 minggu",
+      "Menulis contoh caption dan metrik keberhasilan"
+    ],
+    "skills": [
+      "Content planning",
+      "Social media marketing",
+      "Copywriting"
+    ],
+    "prerequisites": [
+      "Aktif menggunakan media sosial"
+    ],
+    "reviewerRole": null,
+    "partner": null,
+    "context": [
+      "Dapur Bu Sari menjual katering harian (Rp25.000 per porsi, minimal 10 porsi) dan nasi kotak acara (Rp35.000–Rp55.000 per kotak) untuk kantor dan keluarga di Yogyakarta. Pesanan masuk lewat WhatsApp. Omzet rata-rata Rp48 juta per bulan, 70% dari pelanggan lama.",
+      "Akun Instagram punya 3.200 pengikut. Dalam 3 bulan terakhir hanya ada 14 unggahan, kebanyakan foto menu dengan caption \"Order sekarang!\". Rata-rata jangkauan 900 akun per unggahan dan hanya 2–3 pesanan per bulan yang menyebut tahu dari Instagram. Unggahan dengan jangkauan tertinggi (4.100) adalah video Bu Sari memasak rendang untuk pesanan 200 kotak.",
+      "Pemilik bisa menyediakan waktu 3 jam per minggu untuk konten, memakai ponsel untuk foto dan video, dan dibantu satu karyawan. Tidak ada anggaran iklan bulan ini. Bulan depan ada dua momen penting: musim wisuda di kampus-kampus Yogyakarta dan akhir kuartal saat kantor sering mengadakan rapat."
+    ],
+    "tasks": [
+      {
+        "title": "Tujuan dan pilar konten",
+        "description": "Tetapkan satu tujuan bulanan yang terukur dan 3–4 pilar konten yang mendukungnya. Jelaskan mengapa pilar itu cocok untuk pelanggan Dapur Bu Sari."
+      },
+      {
+        "title": "Kalender 4 minggu",
+        "description": "Susun kalender berisi tanggal, format (foto, carousel, reels, story), pilar, ide konten, dan ajakan bertindak. Jumlah konten harus realistis untuk waktu 3 jam per minggu."
+      },
+      {
+        "title": "Contoh caption",
+        "description": "Tulis caption lengkap untuk lima konten terpenting, termasuk ajakan memesan lewat WhatsApp."
+      },
+      {
+        "title": "Metrik dan evaluasi",
+        "description": "Tentukan metrik yang dipantau setiap minggu dan cara Bu Sari mencatat pesanan yang berasal dari Instagram."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "kalender",
+        "title": "Kalender konten",
+        "description": "Spreadsheet atau PDF berisi kalender 4 minggu.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "xlsx",
+          "pdf"
+        ],
+        "maxSizeMb": 10
+      },
+      {
+        "slotKey": "strategi_caption",
+        "title": "Tujuan, pilar, caption, dan metrik",
+        "description": "Tujuan bulanan, pilar konten, lima contoh caption, dan rencana pengukuran.",
+        "kind": "text",
+        "isRequired": true,
+        "minLength": 400,
+        "maxLength": 6000
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Kesesuaian dengan audiens",
+        "weight": 40,
+        "description": "Tujuan, pilar, dan ide konten sesuai pelanggan katering harian dan nasi kotak di Yogyakarta.",
+        "levelDescriptions": [
+          "Tidak mempertimbangkan audiens.",
+          "Konten generik yang bisa dipakai bisnis apa pun.",
+          "Sebagian konten sesuai audiens dan momen bulan depan.",
+          "Pilar dan ide konten sesuai audiens serta memanfaatkan momen wisuda dan akhir kuartal.",
+          "Konten sangat relevan, memanfaatkan kekuatan yang terbukti (video memasak), dan mendorong pesanan."
+        ]
+      },
+      {
+        "name": "Variasi dan konsistensi",
+        "weight": 30,
+        "description": "Kalender seimbang antarpilar dan format, serta realistis dikerjakan 3 jam per minggu.",
+        "levelDescriptions": [
+          "Tidak ada kalender.",
+          "Kalender tidak lengkap atau tidak realistis.",
+          "Kalender lengkap tetapi monoton atau terlalu berat.",
+          "Kalender seimbang dan realistis untuk kapasitas pemilik.",
+          "Kalender seimbang, realistis, dan menyiapkan konten yang bisa dipakai ulang."
+        ]
+      },
+      {
+        "name": "Kualitas ide konten",
+        "weight": 30,
+        "description": "Ide dan caption menarik, jelas, dan mengarahkan ke pemesanan.",
+        "levelDescriptions": [
+          "Tidak ada ide atau caption.",
+          "Caption hanya berisi ajakan membeli.",
+          "Caption cukup baik tetapi ajakan bertindak lemah.",
+          "Caption menarik dengan ajakan bertindak yang jelas.",
+          "Ide segar, caption bercerita, dan ada cara melacak pesanan dari Instagram."
+        ]
+      }
+    ],
+    "passingScore": 60,
+    "deadlineDays": null
+  },
+  {
+    "slug": "proyeksi-arus-kas-ekspansi",
+    "title": "Proyeksi Arus Kas Ekspansi Cabang Baru",
+    "summary": "Bangun proyeksi arus kas 12 bulan dan analisis kelayakan pembukaan cabang baru.",
+    "tier": "b2b",
+    "fieldKey": "finance",
+    "level": "advanced",
+    "durationLabel": "5 hari",
+    "price": 139000,
+    "about": "Bentala Finance mendampingi klien jaringan klinik gigi yang ingin membuka cabang keempat dengan pinjaman Rp1,2 miliar. Kamu diminta membangun proyeksi arus kas 12 bulan, menguji skenario, dan memberi rekomendasi kelayakan yang akan dinilai Senior Financial Analyst mitra.",
+    "activities": [
+      "Membaca laporan keuangan tiga cabang yang sudah berjalan",
+      "Menyusun asumsi pendapatan, biaya, dan investasi cabang baru",
+      "Membangun model arus kas 12 bulan dengan tiga skenario",
+      "Menulis rekomendasi kelayakan untuk klien"
+    ],
+    "skills": [
+      "Financial modeling",
+      "Analisis skenario",
+      "Excel",
+      "Komunikasi bisnis"
+    ],
+    "prerequisites": [
+      "Dasar akuntansi",
+      "Mahir spreadsheet"
+    ],
+    "reviewerRole": "Senior Financial Analyst",
+    "partner": {
+      "name": "Bentala Finance",
+      "industry": "Jasa keuangan",
+      "about": "Perusahaan jasa keuangan yang mendampingi bisnis menengah dalam perencanaan modal dan ekspansi."
+    },
+    "context": [
+      "Klien Bentala, Senyum Klinik, mengoperasikan tiga klinik gigi di Bandung. Rata-rata satu cabang yang sudah matang menghasilkan pendapatan Rp310 juta per bulan dengan margin EBITDA 22%. Cabang ketiga yang dibuka 2024 butuh 9 bulan untuk mencapai titik impas operasional.",
+      "Rencana cabang keempat di Cimahi: biaya renovasi dan peralatan Rp1,45 miliar (dibayar 60% di bulan 0 dan 40% di bulan 1), modal kerja awal Rp150 juta, sewa Rp45 juta per bulan dengan deposit 3 bulan dibayar di bulan 0, gaji 3 dokter dan 6 staf Rp118 juta per bulan, bahan habis pakai 18% dari pendapatan. Klinik buka di bulan 2.",
+      "Pembiayaan: kas klien Rp650 juta dan pinjaman bank Rp1,2 miliar, bunga 11% per tahun, tenor 4 tahun, angsuran anuitas mulai bulan 3. Bank mensyaratkan debt service coverage ratio (DSCR) minimal 1,25 mulai bulan ke-7 dan saldo kas tidak boleh di bawah Rp100 juta.",
+      "Data historis cabang ketiga (pendapatan bulan 1–9 setelah buka, dalam juta rupiah): 92, 128, 156, 181, 203, 224, 241, 259, 270. Laporan keuangan lengkap tiga cabang dan data demografi Cimahi ada di tab Materi."
+    ],
+    "tasks": [
+      {
+        "title": "Susun asumsi",
+        "description": "Tentukan asumsi pendapatan bulanan, biaya, dan pembiayaan. Setiap asumsi diberi sumber atau alasan, terutama kurva pertumbuhan pendapatan cabang baru."
+      },
+      {
+        "title": "Bangun model arus kas",
+        "description": "Buat proyeksi arus kas bulanan 12 bulan (operasi, investasi, pendanaan), saldo kas akhir, dan DSCR per bulan. Model harus bisa diubah lewat satu lembar asumsi."
+      },
+      {
+        "title": "Analisis skenario",
+        "description": "Bandingkan skenario dasar, pesimis, dan optimis. Tunjukkan asumsi mana yang paling sensitif terhadap saldo kas dan DSCR."
+      },
+      {
+        "title": "Rekomendasi kelayakan",
+        "description": "Tulis memo 1–2 halaman: layak atau tidak, syarat yang perlu dipenuhi, dan langkah mitigasi bila skenario pesimis terjadi."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "model_keuangan",
+        "title": "Model keuangan",
+        "description": "Spreadsheet dengan lembar asumsi, proyeksi, dan skenario. Rumus harus tetap ada (jangan ditempel sebagai nilai).",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "xlsx"
+        ],
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "memo_rekomendasi",
+        "title": "Memo rekomendasi",
+        "description": "Memo 1–2 halaman untuk pemilik klinik.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx"
+        ],
+        "maxSizeMb": 5
+      },
+      {
+        "slotKey": "ringkasan_skenario",
+        "title": "Ringkasan skenario",
+        "description": "Tabel atau grafik perbandingan tiga skenario dalam satu halaman.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf"
+        ],
+        "maxSizeMb": 10
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Ketepatan model",
+        "weight": 35,
+        "description": "Arus kas, angsuran, saldo, dan DSCR dihitung dengan benar dan model mudah ditelusuri.",
+        "levelDescriptions": [
+          "Tidak ada model atau model tidak bisa dibuka.",
+          "Kesalahan mendasar, misalnya angsuran atau timing investasi salah.",
+          "Sebagian besar perhitungan benar dengan beberapa kesalahan.",
+          "Perhitungan benar, termasuk angsuran anuitas, deposit sewa, dan DSCR.",
+          "Model benar, rapi, terhubung ke satu lembar asumsi, dan dilengkapi pengecekan."
+        ]
+      },
+      {
+        "name": "Kewajaran asumsi",
+        "weight": 25,
+        "description": "Asumsi berdasar data cabang yang ada dan konteks lokasi baru.",
+        "levelDescriptions": [
+          "Asumsi tidak ditulis.",
+          "Asumsi tanpa dasar atau sangat optimis.",
+          "Sebagian asumsi berdasar data historis.",
+          "Asumsi utama berdasar data historis dan diberi alasan.",
+          "Asumsi kuat dan disesuaikan dengan perbedaan Cimahi dibanding Bandung."
+        ]
+      },
+      {
+        "name": "Analisis skenario",
+        "weight": 20,
+        "description": "Skenario bermakna dan sensitivitas utama terlihat.",
+        "levelDescriptions": [
+          "Tidak ada skenario.",
+          "Skenario hanya menaikkan atau menurunkan semua angka secara seragam.",
+          "Tiga skenario ada tetapi tidak menunjukkan asumsi yang paling sensitif.",
+          "Skenario bermakna dan asumsi paling sensitif terhadap kas dan DSCR terlihat.",
+          "Analisis tajam, termasuk titik di mana syarat bank mulai dilanggar."
+        ]
+      },
+      {
+        "name": "Kualitas rekomendasi",
+        "weight": 20,
+        "description": "Rekomendasi tegas, berdasar model, dan menyertakan mitigasi.",
+        "levelDescriptions": [
+          "Tidak ada rekomendasi.",
+          "Rekomendasi tanpa dasar angka.",
+          "Rekomendasi berdasar angka tetapi tanpa syarat atau mitigasi.",
+          "Rekomendasi tegas dengan syarat dan mitigasi.",
+          "Rekomendasi meyakinkan, mudah dipahami pemilik klinik, dan menyebut keputusan yang perlu diambil."
+        ]
+      }
+    ],
+    "passingScore": 70,
+    "deadlineDays": 5
+  },
+  {
+    "slug": "rancang-proses-rekrutmen",
+    "title": "Merancang Proses Rekrutmen untuk Startup",
+    "summary": "Rancang alur rekrutmen, kriteria seleksi, dan pertanyaan wawancara untuk tiga posisi awal.",
+    "tier": "ai",
+    "fieldKey": "hr",
+    "level": "beginner",
+    "durationLabel": "3 jam",
+    "price": null,
+    "about": "Startup agritech Tanam baru mendapat pendanaan dan harus merekrut tiga posisi pertama dalam 8 minggu tanpa tim HR. Kamu berperan sebagai HR generalist yang merancang alur rekrutmen, kriteria seleksi, dan pertanyaan wawancara yang adil dan sesuai skala startup.",
+    "activities": [
+      "Memahami kebutuhan tiga posisi dan kondisi startup",
+      "Merancang alur rekrutmen dari sourcing sampai penawaran",
+      "Menyusun kriteria seleksi dan rubrik penilaian kandidat",
+      "Menulis pertanyaan wawancara berbasis perilaku"
+    ],
+    "skills": [
+      "Talent acquisition",
+      "Desain proses",
+      "Penilaian kompetensi"
+    ],
+    "prerequisites": [
+      "Mengenal dasar manajemen SDM"
+    ],
+    "reviewerRole": null,
+    "partner": null,
+    "context": [
+      "Tanam membantu petani hortikultura di Jawa Barat menjual hasil panen langsung ke restoran. Tim saat ini terdiri dari 2 pendiri dan 3 engineer kontrak. Setelah pendanaan awal Rp6 miliar, mereka harus merekrut Operations Lead (mengelola 40 mitra petani dan logistik), Sales Executive (menjual ke restoran di Bandung), dan Customer Support (melayani petani dan restoran lewat WhatsApp) dalam 8 minggu.",
+      "Kondisi: tidak ada staf HR; pendiri hanya bisa meluangkan 6 jam per minggu untuk wawancara; anggaran rekrutmen Rp15 juta di luar gaji. Rekrutmen sebelumnya dilakukan lewat kenalan dan menghasilkan dua orang yang keluar dalam tiga bulan karena ekspektasi pekerjaan tidak sesuai.",
+      "Pendiri ingin proses yang adil: kandidat dinilai dengan kriteria yang sama, tidak berdasarkan almamater atau kedekatan, dan kandidat dari luar Bandung tetap punya kesempatan. Gaji yang ditawarkan sedikit di bawah pasar, tetapi ada opsi saham dan jam kerja fleksibel."
+    ],
+    "tasks": [
+      {
+        "title": "Alur rekrutmen",
+        "description": "Rancang alur dari sourcing sampai penawaran untuk ketiga posisi, lengkap dengan kanal sourcing, tahapan seleksi, penanggung jawab, dan perkiraan waktu. Alur harus muat dalam 8 minggu dan 6 jam pendiri per minggu."
+      },
+      {
+        "title": "Kriteria seleksi",
+        "description": "Tentukan 4–5 kompetensi utama per posisi dan rubrik penilaian dengan skala yang sama untuk semua pewawancara."
+      },
+      {
+        "title": "Pertanyaan wawancara",
+        "description": "Tulis minimal 5 pertanyaan berbasis perilaku (mis. format STAR) per posisi, beserta contoh jawaban yang kuat dan lemah."
+      },
+      {
+        "title": "Mencegah salah rekrut",
+        "description": "Jelaskan cara proses ini mencegah ketidaksesuaian ekspektasi yang terjadi sebelumnya dan menjaga objektivitas penilaian."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "rancangan_proses",
+        "title": "Rancangan proses rekrutmen",
+        "description": "Alur, jadwal 8 minggu, kriteria, rubrik, dan pertanyaan wawancara.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx"
+        ],
+        "maxSizeMb": 10
+      },
+      {
+        "slotKey": "ringkasan_pendiri",
+        "title": "Ringkasan untuk pendiri",
+        "description": "Ringkasan keputusan penting dan alasannya, maksimal satu halaman.",
+        "kind": "text",
+        "isRequired": true,
+        "minLength": 300,
+        "maxLength": 3000
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Kelengkapan alur",
+        "weight": 35,
+        "description": "Alur mencakup semua tahap dan realistis untuk waktu serta anggaran yang tersedia.",
+        "levelDescriptions": [
+          "Tidak ada alur.",
+          "Alur hanya berupa daftar tahap tanpa waktu atau penanggung jawab.",
+          "Alur lengkap tetapi tidak muat dalam 8 minggu atau 6 jam pendiri.",
+          "Alur lengkap, realistis, dan disesuaikan per posisi.",
+          "Alur efisien dengan rencana cadangan bila kandidat tidak cukup."
+        ]
+      },
+      {
+        "name": "Keadilan dan objektivitas",
+        "weight": 35,
+        "description": "Kriteria, rubrik, dan pertanyaan membuat kandidat dinilai dengan standar yang sama.",
+        "levelDescriptions": [
+          "Tidak ada kriteria.",
+          "Kriteria subjektif seperti \"cocok dengan budaya\" tanpa definisi.",
+          "Kriteria jelas tetapi tidak ada rubrik penilaian.",
+          "Kriteria dan rubrik jelas, pertanyaan berbasis perilaku.",
+          "Proses dirancang untuk mengurangi bias, termasuk penilaian terpisah sebelum diskusi."
+        ]
+      },
+      {
+        "name": "Kesesuaian dengan startup",
+        "weight": 30,
+        "description": "Proses sesuai kondisi Tanam dan menjawab masalah rekrutmen sebelumnya.",
+        "levelDescriptions": [
+          "Tidak mempertimbangkan kondisi startup.",
+          "Proses meniru perusahaan besar dan terlalu berat.",
+          "Sebagian disesuaikan dengan kondisi startup.",
+          "Proses ringan, sesuai kondisi, dan menjawab masalah ekspektasi.",
+          "Proses cerdas, misalnya memakai tugas kerja singkat dan penjelasan jujur tentang kompensasi."
+        ]
+      }
+    ],
+    "passingScore": 60,
+    "deadlineDays": null
+  },
+  {
+    "slug": "audit-aksesibilitas-landing-page",
+    "title": "Audit & Perbaikan Aksesibilitas Landing Page",
+    "summary": "Temukan masalah aksesibilitas pada landing page dan perbaiki sesuai standar WCAG AA.",
+    "tier": "ai",
+    "fieldKey": "frontend",
+    "level": "intermediate",
+    "durationLabel": "3-4 jam",
+    "price": null,
+    "about": "Landing page pendaftaran beasiswa Nusa Cerdas menerima keluhan dari pengguna pembaca layar dan pengguna keyboard. Kamu berperan sebagai front-end developer yang mengaudit halaman terhadap WCAG 2.2 AA, memperbaiki kodenya, dan melaporkan hasilnya.",
+    "activities": [
+      "Mengaudit landing page dengan alat otomatis dan pengecekan manual",
+      "Mengelompokkan masalah menurut kriteria WCAG dan tingkat keparahan",
+      "Memperbaiki HTML, CSS, dan JavaScript",
+      "Menulis laporan audit sebelum–sesudah"
+    ],
+    "skills": [
+      "Aksesibilitas web (WCAG)",
+      "HTML semantik",
+      "CSS",
+      "Navigasi keyboard"
+    ],
+    "prerequisites": [
+      "Dasar HTML, CSS, dan JavaScript"
+    ],
+    "reviewerRole": null,
+    "partner": null,
+    "context": [
+      "Nusa Cerdas adalah yayasan yang membuka beasiswa untuk 500 mahasiswa setiap tahun. Tahun lalu 18 pendaftar melapor tidak bisa menyelesaikan formulir: 11 pengguna pembaca layar (NVDA dan TalkBack) dan 7 pengguna yang hanya memakai keyboard. Yayasan ingin halaman pendaftaran memenuhi WCAG 2.2 level AA sebelum pendaftaran dibuka bulan depan.",
+      "Halaman terdiri dari header dengan menu, hero dengan gambar latar dan tombol \"Daftar sekarang\", tiga kartu syarat beasiswa, FAQ akordeon, dan formulir pendaftaran (nama, email, nomor HP, universitas, IPK, unggah KTM, persetujuan). Masalah yang sudah diketahui: tombol dibuat dari <div>, label formulir hanya berupa placeholder, warna teks abu-abu #9CA3AF di atas putih, akordeon tidak bisa dibuka dengan keyboard, gambar tanpa teks alternatif, dan pesan error hanya ditandai warna merah.",
+      "Buat ulang halaman ini dengan HTML, CSS, dan JavaScript murni (atau framework pilihanmu) berdasarkan deskripsi di atas, versi sebelum dan sesudah perbaikan. Simpan keduanya di .zip agar perbedaannya bisa dibandingkan.",
+      "AI Reviewer membaca kode dan laporanmu, tetapi tidak membuka halaman di browser. Karena itu, hasil alat audit (mis. Lighthouse atau axe) dan hasil uji keyboard serta pembaca layar harus ditulis di laporan."
+    ],
+    "tasks": [
+      {
+        "title": "Audit halaman",
+        "description": "Temukan minimal 8 masalah aksesibilitas. Untuk setiap masalah, catat elemen, kriteria WCAG yang dilanggar (mis. 1.4.3 Contrast), dampaknya bagi pengguna, dan tingkat keparahan."
+      },
+      {
+        "title": "Perbaiki kode",
+        "description": "Perbaiki semua masalah tingkat tinggi dan sedang: HTML semantik, label formulir, kontras, fokus yang terlihat, akordeon yang bisa dioperasikan keyboard, teks alternatif, dan pesan error yang terbaca pembaca layar."
+      },
+      {
+        "title": "Uji ulang",
+        "description": "Uji halaman hasil perbaikan dengan alat otomatis, navigasi keyboard penuh, dan satu pembaca layar. Catat hasil sebelum dan sesudah."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "kode_sumber",
+        "title": "Kode sumber (.zip)",
+        "description": "Folder sebelum/ dan sesudah/ berisi halaman, serta README.md yang menjelaskan cara membukanya.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "zip"
+        ],
+        "maxSizeMb": 20
+      },
+      {
+        "slotKey": "laporan_audit",
+        "title": "Laporan audit",
+        "description": "Daftar masalah, kriteria WCAG, perbaikan, dan hasil uji ulang.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx"
+        ],
+        "maxSizeMb": 10
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Ketelitian audit",
+        "weight": 35,
+        "description": "Masalah ditemukan dengan lengkap dan dipetakan ke kriteria WCAG yang tepat.",
+        "levelDescriptions": [
+          "Tidak ada audit.",
+          "Hanya menyalin hasil alat otomatis tanpa pengecekan manual.",
+          "Menemukan sebagian masalah yang diketahui dengan pemetaan WCAG yang kurang tepat.",
+          "Minimal 8 masalah ditemukan, dipetakan tepat, dan diberi tingkat keparahan.",
+          "Audit menyeluruh, termasuk masalah yang tidak terdeteksi alat otomatis seperti urutan fokus."
+        ]
+      },
+      {
+        "name": "Kualitas perbaikan",
+        "weight": 45,
+        "description": "Kode hasil perbaikan memenuhi WCAG AA tanpa merusak tampilan atau fungsi.",
+        "levelDescriptions": [
+          "Tidak ada perbaikan.",
+          "Perbaikan dangkal, misalnya menambah ARIA pada <div> alih-alih memakai elemen semantik.",
+          "Sebagian masalah tingkat tinggi diperbaiki.",
+          "Semua masalah tingkat tinggi dan sedang diperbaiki dengan HTML semantik.",
+          "Perbaikan bersih dan teruji, termasuk pengumuman error dan manajemen fokus yang tepat."
+        ]
+      },
+      {
+        "name": "Kejelasan laporan",
+        "weight": 20,
+        "description": "Laporan menjelaskan masalah, dampak, perbaikan, dan hasil uji dengan runtut.",
+        "levelDescriptions": [
+          "Tidak ada laporan.",
+          "Laporan berupa daftar masalah tanpa dampak atau perbaikan.",
+          "Laporan cukup lengkap tetapi tanpa hasil uji ulang.",
+          "Laporan runtut dengan hasil sebelum–sesudah.",
+          "Laporan jelas bagi pengelola non-teknis dan menyertakan panduan menjaga aksesibilitas ke depan."
+        ]
+      }
+    ],
+    "passingScore": 60,
+    "deadlineDays": null
+  }
+]

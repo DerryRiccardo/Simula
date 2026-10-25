@@ -22,7 +22,7 @@ go run ./scripts/seed             # opsional: akun development, butuh SEED_PASSW
 go run .
 ```
 
-Akun development dari seed (password = `SEED_PASSWORD`): `mahasiswa@simula.test`, `reviewer@simula.test`, `admin@simula.test`. Seed ditolak bila `APP_ENV=production` dan melewati akun yang sudah ada.
+Seed membuat akun development (password = `SEED_PASSWORD`): `mahasiswa@simula.test`, `reviewer@simula.test`, `admin@simula.test`, serta 12 case contoh (7 AI, 5 B2B, beserta mitra, tugas, slot, dan rubrik) dari `scripts/seed/data/cases.json`. Slug-nya sama dengan data tiruan client. Seed ditolak bila `APP_ENV=production` dan melewati akun atau case yang sudah ada. Setelah `cases.json` diubah, jalankan `go run ./scripts/seed -refresh-cases` untuk mengganti isi case contoh yang belum punya enrollment atau order.
 
 Server berjalan di http://localhost:8080. Cek dengan:
 
@@ -64,6 +64,12 @@ Catatan Windows: `go test -race` butuh compiler C (cgo). Bila belum ada, jalanka
 | GET | `/api/auth/google/callback` | Publik | Callback Google, redirect ke front-end |
 | GET | `/api/auth/me` | Login | User yang sedang masuk |
 | PATCH | `/api/users/me/onboarding` | Mahasiswa | Bidang (1–3), status, jurusan |
+| GET | `/api/cases` | Publik (personal bila login) | Katalog: filter tier, bidang, level, pencarian; sort relevance, popular, rating, price_low; pagination |
+| GET | `/api/cases/:slug` | Publik (personal bila login) | Info umum case + status enrollment user |
+| GET | `/api/me/dashboard` | Mahasiswa | Statistik, case yang perlu tindakan, 3 rekomendasi |
+| GET | `/api/me/enrollments` | Mahasiswa | Case Saya (filter tier, status, bidang, pencarian; sort) |
+| POST | `/api/me/enrollments` | Mahasiswa | Mulai AI case gratis (idempoten); B2B ditolak 409 |
+| GET | `/api/me/certificates` | Mahasiswa | Sertifikat Saya |
 
 Kontrak lengkap: [`docs/openapi.yaml`](docs/openapi.yaml).
 

@@ -1,14 +1,19 @@
-// Command seed membuat akun development (mahasiswa, reviewer, admin). Hanya untuk lokal dan
-// staging; ditolak bila APP_ENV=production. Akun yang sudah ada dilewati.
+// Command seed membuat akun development (mahasiswa, reviewer, admin) dan case contoh. Hanya untuk
+// lokal dan staging; ditolak bila APP_ENV=production. Akun dan case yang sudah ada dilewati.
 //
 // Pemakaian (dari folder server, setelah migrasi):
 //
 //	SEED_PASSWORD=<password> go run ./scripts/seed
+//	SEED_PASSWORD=<password> go run ./scripts/seed -refresh-cases
+//
+// -refresh-cases mengganti isi case contoh yang sudah ada dengan isi cases.json terbaru, selama case
+// itu belum punya enrollment atau order.
 package main
 
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"os"
 	"time"
@@ -47,6 +52,9 @@ func main() {
 }
 
 func run() error {
+	refreshCases := flag.Bool("refresh-cases", false, "ganti isi case contoh yang sudah ada dengan isi cases.json")
+	flag.Parse()
+
 	if err := godotenv.Load(); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("failed to load .env: %w", err)
 	}
@@ -86,7 +94,8 @@ func run() error {
 		}
 		fmt.Printf("%-9s %-24s %s\n", account.role, account.email, status)
 	}
-	return nil
+
+	return seedCases(ctx, db, *refreshCases)
 }
 
 func seedUser(ctx context.Context, users coreRepo.UserRepository, account seedAccount, hash string) (bool, error) {

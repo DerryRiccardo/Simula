@@ -2,7 +2,14 @@
 
 Skema awal (migrasi `001_initial_schema.sql`, 24 tabel), diturunkan dari kontrak client (`client/src/types/`), aturan bisnis di `prototype/CONTEXT.md`, dan kebutuhan AI Reviewer di `prototype/AI-CONTEXT.md`.
 
-> Selama `001` belum dijalankan ke database bersama, file ini dan migrasinya masih boleh diubah langsung. Setelah dijalankan, perubahan wajib lewat migrasi baru.
+> `001` sudah dijalankan ke database bersama, jadi perubahan skema selalu lewat migrasi baru.
+
+## Riwayat migrasi
+
+| Migrasi | Isi |
+| --- | --- |
+| `001_initial_schema` | Skema awal (24 tabel) |
+| `002_slot_key_hyphen` | Slot key boleh memakai tanda hubung (`design-doc`), sesuai pembuat case di client. |
 
 ## Konvensi
 
@@ -193,7 +200,7 @@ Aturan yang dicek **use case**: total bobot rubrik 100, kelengkapan case sebelum
 | Timeline status | Disusun lewat query, tanpa tabel event. |
 | Draft submission | Satu tabel dengan submission (`status = 'draft'`), karena kolomnya sama. |
 | Revisi dan draft review | Tabel 1:0..1 terpisah, karena kolomnya hanya berlaku untuk sebagian submission. |
-| Rating case | Tabel `case_ratings`, diisi peserta setelah melihat hasil; katalog memakai rata-rata. |
+| Rating case | Tabel `case_ratings`, diisi peserta setelah melihat hasil; katalog memakai rata-rata. | Rating 0 berarti belum ada penilaian; client menyembunyikannya. |
 | Deliverable di halaman detail | Diambil dari judul dan deskripsi `case_slots`, tidak disimpan terpisah. |
 | Info detail dan logo mitra | Ada di skema; form pembuat case di client perlu ditambah isiannya. |
 | Jenis slot `code` | Ditambahkan untuk zip kode AI case; tipe slot di client perlu ditambah. |

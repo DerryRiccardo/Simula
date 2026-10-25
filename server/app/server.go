@@ -38,6 +38,7 @@ func RunServer(ctx context.Context, cfg *config.Config) error {
 		Health:     newHealthHandler(cfg, db, rdb),
 		Auth:       auth.auth,
 		Onboarding: auth.onboarding,
+		Learning:   newLearningHandler(db),
 	}, auth.middlewares)
 
 	return initializers.RunHTTPServer(ctx, cfg, initializers.NewHTTPServer(cfg, engine))

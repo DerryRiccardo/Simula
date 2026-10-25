@@ -22,6 +22,7 @@ func registerForTest() (*gin.Engine, []Route) {
 			Health:     publicHandler.Health(nil),
 			Auth:       authHandler.Auth(nil, sessioncookie.Config{}, "http://localhost:3000"),
 			Onboarding: studentHandler.Onboarding(nil),
+			Learning:   studentHandler.Learning(nil),
 		},
 		Middlewares{
 			Auth:         noop,
@@ -63,6 +64,12 @@ func TestRegister_AccessGroups(t *testing.T) {
 		{Method: "GET", Path: "/api/auth/google/callback", Access: AccessPublic},
 		{Method: "GET", Path: "/api/auth/me", Access: AccessAuthenticated},
 		{Method: "PATCH", Path: "/api/users/me/onboarding", Access: AccessStudent},
+		{Method: "GET", Path: "/api/cases", Access: AccessOptionalAuth},
+		{Method: "GET", Path: "/api/cases/:slug", Access: AccessOptionalAuth},
+		{Method: "GET", Path: "/api/me/dashboard", Access: AccessStudent},
+		{Method: "GET", Path: "/api/me/enrollments", Access: AccessStudent},
+		{Method: "POST", Path: "/api/me/enrollments", Access: AccessStudent},
+		{Method: "GET", Path: "/api/me/certificates", Access: AccessStudent},
 	}
 	for _, want := range tests {
 		t.Run(want.Method+" "+want.Path, func(t *testing.T) {

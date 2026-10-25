@@ -32,6 +32,7 @@ type Handlers struct {
 	Health     *publicHandler.HealthHandler
 	Auth       *authHandler.AuthHandler
 	Onboarding *studentHandler.OnboardingHandler
+	Learning   *studentHandler.LearningHandler
 }
 
 // Middlewares adalah middleware akses yang dipasang per grup.
@@ -63,11 +64,19 @@ func Register(engine *gin.Engine, h Handlers, mw Middlewares) []Route {
 	public.GET("/auth/google", h.Auth.GoogleStart)
 	public.GET("/auth/google/callback", h.Auth.GoogleCallback)
 
+	optional := r.group(AccessOptionalAuth, mw.OptionalAuth)
+	optional.GET("/cases", h.Learning.ListCases)
+	optional.GET("/cases/:slug", h.Learning.GetCase)
+
 	authenticated := r.group(AccessAuthenticated, mw.Auth)
 	authenticated.GET("/auth/me", h.Auth.Me)
 
 	student := r.group(AccessStudent, mw.Auth, mw.RequireRole(entity.RoleStudent))
 	student.PATCH("/users/me/onboarding", h.Onboarding.Complete)
+	student.GET("/me/dashboard", h.Learning.Dashboard)
+	student.GET("/me/enrollments", h.Learning.ListEnrollments)
+	student.POST("/me/enrollments", h.Learning.StartCase)
+	student.GET("/me/certificates", h.Learning.ListCertificates)
 
 	return r.routes
 }

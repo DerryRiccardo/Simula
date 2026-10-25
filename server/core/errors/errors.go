@@ -11,4 +11,8 @@ var (
 	ErrRefreshTokenRotated   = errors.New("refresh token already rotated")
 	ErrInvalidAccessToken    = errors.New("invalid access token")
 	ErrGoogleIdentityInvalid = errors.New("invalid google identity")
+	ErrCaseNotFound          = errors.New("case not found")
+	ErrEnrollmentNotFound    = errors.New("enrollment not found")
+	ErrEnrollmentExists      = errors.New("enrollment already exists")
+	ErrCandidateNumberTaken  = errors.New("candidate number already used")
 )

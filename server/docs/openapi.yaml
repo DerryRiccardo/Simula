@@ -18,6 +18,8 @@ tags:
     description: Health check
   - name: Auth
     description: Daftar, masuk, sesi, login Google, onboarding
+  - name: Learning
+    description: Katalog, dashboard, Case Saya, Sertifikat Saya
 
 paths:
   /health:
@@ -258,6 +260,189 @@ paths:
         "422":
           $ref: "#/components/responses/ValidationError"
 
+  /cases:
+    get:
+      tags: [Learning]
+      summary: Katalog case terbit (bisa tanpa login)
+      description: |
+        Bila login, urutan `relevance` mendahulukan bidang pilihan user, dan `excludeEnrolled=true`
+        menyembunyikan case yang sudah diambil.
+      operationId: listCases
+      parameters:
+        - { name: tier, in: query, schema: { type: string, enum: [ai, b2b] } }
+        - { name: field, in: query, schema: { type: string } }
+        - { name: level, in: query, schema: { type: string, enum: [beginner, intermediate, advanced] } }
+        - { name: sort, in: query, schema: { type: string, enum: [relevance, popular, rating, price_low], default: relevance } }
+        - { name: search, in: query, schema: { type: string, maxLength: 100 } }
+        - { name: excludeEnrolled, in: query, schema: { type: boolean } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 10 } }
+      responses:
+        "200":
+          description: Satu halaman katalog
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          data:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/CaseSummary"
+                          metadata:
+                            $ref: "#/components/schemas/PaginationMeta"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /cases/{slug}:
+    get:
+      tags: [Learning]
+      summary: Info umum case sebelum mulai atau membayar (tanpa brief lengkap)
+      operationId: getCase
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Detail case; `myEnrollment` terisi bila user login dan sudah mengambil case
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/CaseDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /me/dashboard:
+    get:
+      tags: [Learning]
+      summary: Dashboard mahasiswa
+      operationId: getDashboard
+      security:
+        - accessCookie: []
+      responses:
+        "200":
+          description: Statistik, case yang perlu tindakan, dan rekomendasi
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Dashboard"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /me/enrollments:
+    get:
+      tags: [Learning]
+      summary: Case Saya
+      operationId: listEnrollments
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: tier, in: query, schema: { type: string, enum: [ai, b2b] } }
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending_payment, not_started, in_progress, ai_grading, in_review, revision_requested, passed, failed]
+        - { name: field, in: query, schema: { type: string } }
+        - { name: search, in: query, schema: { type: string, maxLength: 100 } }
+        - { name: sort, in: query, schema: { type: string, enum: [recent, deadline, title], default: recent } }
+      responses:
+        "200":
+          description: Enrollment milik user
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Enrollment"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+    post:
+      tags: [Learning]
+      summary: Mulai AI case gratis (idempoten)
+      description: B2B case ditolak 409 karena harus lewat checkout.
+      operationId: startCase
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [caseId]
+              properties:
+                caseId:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          description: Enrollment baru atau yang sudah ada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Enrollment"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Case B2B harus dibayar lewat checkout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /me/certificates:
+    get:
+      tags: [Learning]
+      summary: Sertifikat Saya
+      operationId: listCertificates
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: tier, in: query, schema: { type: string, enum: [ai, b2b] } }
+      responses:
+        "200":
+          description: Sertifikat milik user, terbaru dulu
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Certificate"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
 components:
   securitySchemes:
     accessCookie:
@@ -278,6 +463,115 @@ components:
         type: string
 
   schemas:
+    CaseSummary:
+      type: object
+      description: ICaseSummary di client
+      properties:
+        id: { type: string, format: uuid }
+        slug: { type: string }
+        title: { type: string }
+        summary: { type: string }
+        tier: { type: string, enum: [ai, b2b] }
+        fieldKey: { type: string }
+        level: { type: string, enum: [beginner, intermediate, advanced] }
+        durationLabel: { type: string }
+        deliverableCount: { type: integer }
+        partnerName: { type: string, nullable: true }
+        price: { type: integer, nullable: true, description: Rupiah; null untuk AI case }
+        participantCount: { type: integer, description: Enrollment selain pending_payment }
+        rating: { type: number, description: Rata-rata case_ratings (1 desimal); 0 bila belum ada }
+
+    CaseDetail:
+      allOf:
+        - $ref: "#/components/schemas/CaseSummary"
+        - type: object
+          properties:
+            about: { type: string }
+            activities: { type: array, items: { type: string } }
+            deliverables:
+              type: array
+              description: Diambil dari judul dan deskripsi slot submission
+              items:
+                type: object
+                properties:
+                  title: { type: string }
+                  description: { type: string }
+            skills: { type: array, items: { type: string } }
+            prerequisites: { type: array, items: { type: string } }
+            criteria:
+              type: array
+              items:
+                type: object
+                properties:
+                  name: { type: string }
+                  weight: { type: integer }
+            reviewerRole: { type: string, nullable: true }
+            partner:
+              type: object
+              nullable: true
+              properties:
+                name: { type: string }
+                industry: { type: string }
+                about: { type: string }
+            myEnrollment:
+              type: object
+              nullable: true
+              properties:
+                status: { type: string }
+
+    Enrollment:
+      type: object
+      description: IEnrollment di client
+      properties:
+        id: { type: string, format: uuid }
+        caseSummary:
+          $ref: "#/components/schemas/CaseSummary"
+        status:
+          type: string
+          enum: [pending_payment, not_started, in_progress, ai_grading, in_review, revision_requested, passed, failed]
+        deadlineAt: { type: string, format: date-time, nullable: true }
+        updatedAt: { type: string, format: date-time }
+        score: { type: integer, nullable: true }
+        certificateId: { type: string, nullable: true, description: public_id sertifikat yang masih berlaku }
+
+    Certificate:
+      type: object
+      description: ICertificate di client
+      properties:
+        id: { type: string, description: public_id untuk URL verifikasi }
+        caseTitle: { type: string }
+        tier: { type: string, enum: [ai, b2b] }
+        fieldKey: { type: string }
+        recipientName: { type: string }
+        partnerName: { type: string, nullable: true }
+        score: { type: integer }
+        issuedAt: { type: string, format: date-time }
+
+    Dashboard:
+      type: object
+      description: IDashboardSummary di client
+      properties:
+        stats:
+          type: object
+          properties:
+            totalCount: { type: integer }
+            statusCounts: { type: object, additionalProperties: { type: integer } }
+            activeCount: { type: integer }
+            inReviewCount: { type: integer }
+            revisionCount: { type: integer }
+            certificateCount: { type: integer }
+        actionItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/Enrollment"
+        recommendations:
+          type: array
+          maxItems: 3
+          items:
+            $ref: "#/components/schemas/CaseSummary"
+        hasPassedAiCase: { type: boolean }
+        hasPassedB2bCase: { type: boolean }
+
     User:
       type: object
       description: IUser di client
