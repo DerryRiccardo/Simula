@@ -61,8 +61,14 @@ export function CaseHeader({ detail }: { detail: ICaseDetail }) {
         <div className="sm:px-5">
           <dt className="text-xs text-ink-subtle">Rating</dt>
           <dd className="mt-1 flex items-center gap-1 font-mono text-sm text-ink tabular-nums">
-            <Star className="size-3.5 fill-ink text-ink" />
-            {detail.rating.toLocaleString('id-ID')}
+            {detail.rating > 0 ? (
+              <>
+                <Star className="size-3.5 fill-ink text-ink" />
+                {detail.rating.toLocaleString('id-ID')}
+              </>
+            ) : (
+              <span className="font-sans text-ink-subtle">Belum ada</span>
+            )}
           </dd>
         </div>
       </dl>

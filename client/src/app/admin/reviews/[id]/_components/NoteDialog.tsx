@@ -37,7 +37,7 @@ interface NoteDialogProps {
   onSubmit: (note: string) => void;
 }
 
-// Dialog konfirmasi yang meminta alasan tertulis: tandai bermasalah dan cabut sertifikat.
+// Dialog konfirmasi yang meminta alasan tertulis, misalnya saat menandai penilaian bermasalah.
 export function NoteDialog({
   isOpen,
   onOpenChange,

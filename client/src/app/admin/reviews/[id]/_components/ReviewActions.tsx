@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { BellRing, Flag, FlagOff, RotateCw, ShieldX, UserRoundCog } from 'lucide-react';
+import { BellRing, Flag, FlagOff, RotateCw, UserRoundCog } from 'lucide-react';
 
 import { ConfirmDialog } from '@/components';
 import { Button } from '@/components/ui';
@@ -10,7 +10,7 @@ import type { IAdminReviewDetail } from '@/types';
 import { NoteDialog } from './NoteDialog';
 import { ReassignDialog } from './ReassignDialog';
 
-type TDialog = 'regrade' | 'flag' | 'unflag' | 'remind' | 'reassign' | 'revoke' | null;
+type TDialog = 'regrade' | 'flag' | 'unflag' | 'remind' | 'reassign' | null;
 
 // Aksi admin per penilaian (CONTEXT.md 4.13). Hanya aksi yang berlaku untuk tier dan status ini
 // yang ditampilkan.
@@ -49,12 +49,6 @@ export function ReviewActions({ detail }: { detail: IAdminReviewDetail }) {
         isDisabled: !detail.canRemind,
         onClick: () => setDialog('remind'),
       },
-    detail.canRevokeCertificate && {
-      id: 'revoke',
-      label: 'Cabut sertifikat',
-      icon: ShieldX,
-      onClick: () => setDialog('revoke'),
-    },
   ].filter((button) => !!button);
 
   if (buttons.length === 0) return null;
@@ -126,19 +120,6 @@ export function ReviewActions({ detail }: { detail: IAdminReviewDetail }) {
         confirmLabel="Tandai"
         isPending={actions.setFlag.isPending}
         onSubmit={(note) => actions.setFlag.mutate({ isFlagged: true, note }, { onSuccess: close })}
-      />
-
-      <NoteDialog
-        isOpen={dialog === 'revoke'}
-        onOpenChange={(isOpen) => !isOpen && close()}
-        title="Cabut sertifikat?"
-        description={`Sertifikat ${item.certificateId ?? ''} hilang dari Sertifikat Saya milik peserta, dan halaman verifikasi publik menampilkan "Dicabut". Tindakan ini tidak bisa dibatalkan.`}
-        label="Alasan pencabutan"
-        placeholder="Misalnya: submission terbukti menyalin pekerjaan peserta lain."
-        hint="Catatan internal, tidak ditampilkan di halaman verifikasi. Minimal 10 karakter."
-        confirmLabel="Cabut sertifikat"
-        isPending={actions.revoke.isPending}
-        onSubmit={(reason) => actions.revoke.mutate({ reason }, { onSuccess: close })}
       />
     </>
   );

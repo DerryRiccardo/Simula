@@ -14,6 +14,4 @@ export interface ICertificateVerification {
   passingScore: number;
   /** true bila sertifikat milik pengguna yang sedang masuk; aksi bagikan hanya untuk pemilik. */
   isOwner: boolean;
-  /** Diisi bila sertifikat dicabut admin; halaman verifikasi menampilkan "Dicabut". */
-  revokedAt: string | null;
 }

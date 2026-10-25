@@ -90,6 +90,8 @@ NEXT_PUBLIC_API_REAL_SERVICES=auth
 - Service memakai `shouldMockService('<layanan>')` dari `src/lib/env.ts`, dan handler MSW layanan itu tidak didaftarkan agar service worker tidak mencegat request ke backend.
 - Pengguna dari backend disalin ke sesi `mockDb` (`syncRealUser`), sehingga layanan tiruan lain (dashboard, katalog) tetap mengenali pengguna yang login lewat backend.
 - Saat auth memakai backend, panel akun demo disembunyikan dan tombol Google menjadi link ke `GET /api/auth/google`.
+- Layanan yang sudah tersedia di backend: `auth` dan `learning` (katalog, detail case, dashboard, Case Saya, Sertifikat Saya, mulai AI case). Isi data dengan `go run ./scripts/seed` di server.
+- Layanan saling bergantung: halaman pengerjaan (`workspace`) masih tiruan, jadi enrollment yang dibuat lewat backend belum bisa dikerjakan sampai `workspace` ikut dipindah.
 - Backend harus mengizinkan origin client lewat `FRONTEND_URL` (CORS dengan credentials). Front-end dan API di `localhost` dengan port berbeda tetap dianggap satu situs, jadi cookie `SameSite=Lax` terkirim. Tipe di `src/types/` menjadi kontrak data dengan backend. Error mock memakai `ApiResponseError` (`src/lib/apiError.ts`) agar pesan dan error per field terbaca sama seperti error dari axios.
 
 Catatan: saat mock aktif, halaman baru dirender setelah service worker MSW siap, sehingga konten tidak ikut di HTML awal. Ini hanya berlaku di mode mock.

@@ -169,9 +169,7 @@ export const learningApi = {
     return session.records
       .flatMap((record) => {
         const caseSummary = findCaseById(record.caseId);
-        // Sertifikat yang dicabut admin tidak lagi tampil di Sertifikat Saya.
         if (!caseSummary || !record.certificateId || record.score === null) return [];
-        if (record.certificateRevocation) return [];
         if (tier && caseSummary.tier !== tier) return [];
         return [
           {

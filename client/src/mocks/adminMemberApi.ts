@@ -88,9 +88,7 @@ function toSummary(
     aiCaseCount: tierCount('ai'),
     b2bCaseCount: tierCount('b2b'),
     activeCaseCount: owned.filter((record) => ACTIVE_STATUSES.includes(record.status)).length,
-    certificateCount: owned.filter(
-      (record) => record.certificateId && !record.certificateRevocation
-    ).length,
+    certificateCount: owned.filter((record) => record.certificateId).length,
     totalSpent: mockDb
       .listAllOrders()
       .filter((order) => order.userId === user.id && order.status === 'paid')
@@ -133,7 +131,6 @@ function toCertificate(
       tier: adminCase.tier,
       score: record.score,
       issuedAt: record.issuedAt ?? record.updatedAt,
-      revokedAt: record.certificateRevocation?.revokedAt ?? null,
     },
   ];
 }

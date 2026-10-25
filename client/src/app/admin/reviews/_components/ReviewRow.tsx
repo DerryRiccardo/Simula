@@ -108,12 +108,7 @@ export function ReviewRow({ item }: { item: IAdminReviewItem }) {
 
       <Cell label="Status">
         <StatusBadge status={item.status} label={status.label} tone={status.tone} />
-        {item.isCertificateRevoked && (
-          <p className="mt-1 text-xs text-ink-subtle">Sertifikat dicabut</p>
-        )}
-        {item.isRecommended && !item.isCertificateRevoked && (
-          <p className="mt-1 text-xs text-ink-subtle">Direkomendasikan</p>
-        )}
+        {item.isRecommended && <p className="mt-1 text-xs text-ink-subtle">Direkomendasikan</p>}
       </Cell>
 
       <Cell label="Skor">

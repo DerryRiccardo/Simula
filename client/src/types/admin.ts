@@ -176,9 +176,8 @@ export interface IAdminReviewItem {
   decidedAt: string | null;
   score: number | null;
   passingScore: number;
-  /** Sertifikat yang terbit (termasuk yang sudah dicabut). */
+  /** Sertifikat yang terbit. */
   certificateId: string | null;
-  isCertificateRevoked: boolean;
   /** Ditandai admin sebagai bermasalah, untuk evaluasi prompt dan rubrik AI. */
   isFlagged: boolean;
   /** B2B: pengingat terakhir yang dikirim ke reviewer. */
@@ -207,11 +206,6 @@ export interface IAdminFlag {
   flaggedAt: string;
 }
 
-export interface IAdminCertificateRevocation {
-  reason: string;
-  revokedAt: string;
-}
-
 export interface IAdminReviewDetail {
   item: IAdminReviewItem;
   caseInfo: ICaseDetail;
@@ -222,12 +216,10 @@ export interface IAdminReviewDetail {
   review: IReviewResult | null;
   events: IStatusEvent[];
   flag: IAdminFlag | null;
-  revocation: IAdminCertificateRevocation | null;
   /** AI: hanya untuk percobaan yang sudah selesai dinilai. */
   canRegrade: boolean;
   /** B2B: hanya saat menunggu review dan belum diingatkan dalam 24 jam terakhir. */
   canRemind: boolean;
-  canRevokeCertificate: boolean;
   /** B2B menunggu review: reviewer lain yang bisa dipilih di Ganti reviewer. */
   reassignOptions: IAdminReassignOption[];
 }
@@ -236,9 +228,4 @@ export interface IAdminFlagPayload {
   isFlagged: boolean;
   /** Wajib bila isFlagged, minimal 10 karakter. */
   note?: string;
-}
-
-export interface IAdminRevokePayload {
-  /** Catatan internal, minimal 10 karakter. Halaman verifikasi publik hanya menampilkan tanggal. */
-  reason: string;
 }

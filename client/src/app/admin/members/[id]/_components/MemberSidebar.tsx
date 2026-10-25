@@ -77,7 +77,7 @@ export function ProfilePanel({ member }: { member: IAdminMemberDetail['member'] 
   );
 }
 
-// Sertifikat member, termasuk yang dicabut; pencabutan dilakukan dari detail penilaian.
+// Sertifikat yang terbit untuk member ini.
 export function CertificatePanel({ items }: { items: IAdminMemberCertificate[] }) {
   return (
     <Panel id="member-certificates" title="Sertifikat">
@@ -89,11 +89,6 @@ export function CertificatePanel({ items }: { items: IAdminMemberCertificate[] }
             <li key={certificate.id} className="px-5 py-3.5">
               <div className="flex flex-wrap items-center gap-2">
                 <TierBadge tier={certificate.tier} />
-                {certificate.revokedAt && (
-                  <span className="rounded-tag bg-surface-soft px-2 py-0.5 text-[0.6875rem] leading-5 font-medium text-ink-muted">
-                    Dicabut {formatDate(certificate.revokedAt)}
-                  </span>
-                )}
               </div>
               <p className="mt-1.5 text-sm leading-snug font-medium text-ink">
                 {certificate.caseTitle}

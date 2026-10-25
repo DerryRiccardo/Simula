@@ -3,7 +3,6 @@ import type {
   IPlatformSettings,
   ISettingsLogEntry,
   IAdminCase,
-  IAdminCertificateRevocation,
   IAdminFlag,
   IOrder,
   IReviewDraft,
@@ -80,8 +79,6 @@ export interface IMockEnrollmentRecord {
   hasRetried?: boolean;
   /** Panel admin: ditandai bermasalah untuk evaluasi penilaian AI. */
   adminFlag?: IAdminFlag | null;
-  /** Panel admin: sertifikat dicabut. ID tetap tersimpan agar verifikasi menampilkan "Dicabut". */
-  certificateRevocation?: IAdminCertificateRevocation | null;
   /** Panel admin: pengingat terakhir ke reviewer (B2B). */
   lastReminderAt?: string | null;
   /** Awal penilaian AI; diisi saat admin menilai ulang (bila kosong: waktu submit). */

@@ -13,7 +13,6 @@ import type {
   IAdminReviewerAssignmentPayload,
   IAdminReviewerInput,
   IAdminReviewerStatusPayload,
-  IAdminRevokePayload,
 } from '@/types';
 
 // Kontrak endpoint panel admin. Backend Go wajib mengikuti path dan bentuk respons ini.
@@ -72,13 +71,6 @@ export const adminHandlers = [
   http.post(apiPath('/admin/reviews/:id/remind'), async ({ params }) => {
     await networkDelay();
     return run(() => adminApi.remindReviewer(String(params.id)));
-  }),
-
-  // Body: IAdminRevokePayload ({ reason }). Sertifikat tetap tercatat sebagai "Dicabut".
-  http.post(apiPath('/admin/reviews/:id/revoke-certificate'), async ({ params, request }) => {
-    await networkDelay();
-    const payload = (await request.json()) as IAdminRevokePayload;
-    return run(() => adminApi.revokeCertificate(String(params.id), payload));
   }),
 
   // B2B: pindahkan submission ke reviewer aktif lain dari mitra yang sama.

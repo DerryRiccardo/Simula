@@ -25,7 +25,6 @@ import type {
   IAdminReviewerInput,
   IAdminReviewerStatusPayload,
   IAdminReviewList,
-  IAdminRevokePayload,
   IApiResponse,
   IPartner,
 } from '@/types';
@@ -177,15 +176,6 @@ export const adminService = {
   remindReviewer: async (id: string) => {
     if (env.isApiMocking) return (await loadMockApi()).remindReviewer(id);
     return (await api.post<IApiResponse<IAdminReviewDetail>>(`${reviewPath(id)}/remind`)).data.data;
-  },
-  revokeCertificate: async ({ id, payload }: { id: string; payload: IAdminRevokePayload }) => {
-    if (env.isApiMocking) return (await loadMockApi()).revokeCertificate(id, payload);
-    return (
-      await api.post<IApiResponse<IAdminReviewDetail>>(
-        `${reviewPath(id)}/revoke-certificate`,
-        payload
-      )
-    ).data.data;
   },
   listCases: async () => {
     if (env.isApiMocking) return (await loadMockApi()).listCases();

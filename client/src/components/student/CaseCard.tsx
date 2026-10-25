@@ -64,13 +64,16 @@ export function CaseCard({ item, isRecommended = false }: CaseCardProps) {
             <dt className="sr-only">Durasi</dt>
             <dd>{item.durationLabel}</dd>
           </div>
-          <div>
-            <dt className="sr-only">Rating</dt>
-            <dd className="flex items-center gap-1">
-              <Star className="size-3 fill-ink-subtle text-ink-subtle" />
-              {item.rating.toLocaleString('id-ID')}
-            </dd>
-          </div>
+          {/* Rating 0 berarti belum ada peserta yang menilai; disembunyikan agar tidak terbaca jelek. */}
+          {item.rating > 0 && (
+            <div>
+              <dt className="sr-only">Rating</dt>
+              <dd className="flex items-center gap-1">
+                <Star className="size-3 fill-ink-subtle text-ink-subtle" />
+                {item.rating.toLocaleString('id-ID')}
+              </dd>
+            </div>
+          )}
           <div>
             <dt className="sr-only">Peserta</dt>
             <dd>{formatNumber(item.participantCount)} peserta</dd>

@@ -20,7 +20,7 @@ export interface IAdminMemberSummary {
   b2bCaseCount: number;
   /** Case yang sedang berjalan: dikerjakan, dinilai, menunggu review, atau perlu revisi. */
   activeCaseCount: number;
-  /** Sertifikat yang masih berlaku (tidak dicabut). */
+  /** Jumlah sertifikat yang terbit. */
   certificateCount: number;
   /** Total order berhasil (rupiah). */
   totalSpent: number;
@@ -46,7 +46,6 @@ export interface IAdminMemberCertificate {
   tier: TTier;
   score: number;
   issuedAt: string;
-  revokedAt: string | null;
 }
 
 export interface IAdminMemberDetail {

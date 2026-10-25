@@ -20,7 +20,6 @@ import type {
   IAdminReviewDetail,
   IAdminReviewItem,
   IAdminReviewList,
-  IAdminRevokePayload,
   TAdminReviewStatus,
   TEnrollmentStatus,
 } from '@/types';
@@ -92,7 +91,6 @@ export function toReviewItem(record: IMockEnrollmentRecord): IAdminReviewItem | 
     score: record.score,
     passingScore: brief.passingScore,
     certificateId: record.certificateId,
-    isCertificateRevoked: !!record.certificateRevocation,
     isFlagged: !!record.adminFlag,
     lastReminderAt: record.lastReminderAt ?? null,
     isRecommended: review?.isRecommended ?? false,
@@ -172,11 +170,8 @@ function toDetail(record: IMockEnrollmentRecord): IAdminReviewDetail {
     review: resolveReview(record, context.detail),
     events: record.events ?? [],
     flag: record.adminFlag ?? null,
-    revocation: record.certificateRevocation ?? null,
     canRegrade: item.tier === 'ai' && (item.status === 'passed' || item.status === 'failed'),
     canRemind: isPendingB2b && !!item.reviewerId && hoursSinceReminder >= REMINDER_COOLDOWN_HOURS,
-    canRevokeCertificate:
-      item.status === 'passed' && !!item.certificateId && !item.isCertificateRevoked,
     reassignOptions: isPendingB2b ? getReassignOptions(record) : [],
   };
 }
@@ -231,7 +226,6 @@ export const adminReviewApi = {
         review: null,
         certificateId: null,
         issuedAt: null,
-        certificateRevocation: null,
       },
       { isTouch: false }
     );
@@ -288,24 +282,6 @@ export const adminReviewApi = {
     const updated = mockDb.updateEnrollment(
       record.id,
       { assignedReviewerId: reviewerId, reviewDraft: null, lastReminderAt: null },
-      { isTouch: false }
-    );
-    return toDetail(updated ?? record);
-  },
-
-  /** Cabut sertifikat: verifikasi publik menampilkan "Dicabut" beserta tanggalnya. */
-  revokeCertificate: (id: string, { reason }: IAdminRevokePayload): IAdminReviewDetail => {
-    const record = getRecord(id);
-    if (!toDetail(record).canRevokeCertificate) {
-      throw new ApiResponseError(409, 'Tidak ada sertifikat aktif untuk dicabut.');
-    }
-    const certificateRevocation = {
-      reason: requireNote(reason, 'reason', 'Tulis alasan pencabutan.'),
-      revokedAt: new Date().toISOString(),
-    };
-    const updated = mockDb.updateEnrollment(
-      record.id,
-      { certificateRevocation },
       { isTouch: false }
     );
     return toDetail(updated ?? record);

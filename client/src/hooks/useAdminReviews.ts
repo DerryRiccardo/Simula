@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 
 import { handleApiError } from '@/lib/apiError';
 import { adminService } from '@/services/admin';
-import type { IAdminFlagPayload, IAdminReviewDetail, IAdminRevokePayload } from '@/types';
+import type { IAdminFlagPayload, IAdminReviewDetail } from '@/types';
 import { adminKeys } from './useAdmin';
 
 /** Penilaian AI tiruan selesai dalam hitungan detik; periksa ulang selama masih berjalan. */
@@ -63,12 +63,5 @@ export function useAdminReviewActions(id: string) {
     onError: (error) => handleApiError(error, 'Pengingat gagal dikirim. Coba lagi.'),
   });
 
-  const revoke = useMutation({
-    mutationFn: (payload: IAdminRevokePayload) => adminService.revokeCertificate({ id, payload }),
-    onSuccess: (detail) =>
-      handleSuccess(detail, 'Sertifikat dicabut', 'Halaman verifikasi kini menampilkan "Dicabut".'),
-    onError: (error) => handleApiError(error, 'Sertifikat gagal dicabut. Coba lagi.'),
-  });
-
-  return { regrade, setFlag, remind, revoke };
+  return { regrade, setFlag, remind };
 }
