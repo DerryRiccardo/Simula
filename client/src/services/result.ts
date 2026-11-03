@@ -1,16 +1,17 @@
 import axios from 'axios';
 
 import api from './api';
-import { env } from '@/lib/env';
+import { shouldMockService } from '@/lib/env';
 import type { IApiResponse, ICaseResult, IEnrollment, TShareConsent } from '@/types';
 
 // Mode mock: data dibaca langsung dari browser, sama seperti services/reviewStatus.ts.
 const loadMockApi = async () => (await import('@/mocks/resultApi')).resultApi;
+const isMocked = () => shouldMockService('result');
 
 export const resultService = {
   /** null jika case tidak ditemukan (404). */
   get: async (slug: string): Promise<ICaseResult | null> => {
-    if (env.isApiMocking) return (await loadMockApi()).getResult(slug);
+    if (isMocked()) return (await loadMockApi()).getResult(slug);
     try {
       return (await api.get<IApiResponse<ICaseResult>>(`/cases/${encodeURIComponent(slug)}/result`))
         .data.data;
@@ -20,7 +21,7 @@ export const resultService = {
     }
   },
   setShareConsent: async ({ enrollmentId, isGranted }: IShareConsentPayload) => {
-    if (env.isApiMocking) return (await loadMockApi()).setShareConsent(enrollmentId, isGranted);
+    if (isMocked()) return (await loadMockApi()).setShareConsent(enrollmentId, isGranted);
     return (
       await api.post<IApiResponse<TShareConsent>>(`/me/enrollments/${enrollmentId}/share-consent`, {
         isGranted,
@@ -28,7 +29,7 @@ export const resultService = {
     ).data.data;
   },
   retry: async (enrollmentId: string) => {
-    if (env.isApiMocking) return (await loadMockApi()).retry(enrollmentId);
+    if (isMocked()) return (await loadMockApi()).retry(enrollmentId);
     return (await api.post<IApiResponse<IEnrollment>>(`/me/enrollments/${enrollmentId}/retry`)).data
       .data;
   },

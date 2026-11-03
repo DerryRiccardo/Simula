@@ -138,15 +138,9 @@ export function AiGradingProgress({ status, progress }: AiGradingProgressProps) 
         />
       </dl>
 
-      <div className="relative mt-6 overflow-hidden rounded-card border border-line bg-white">
-        <div className="absolute inset-x-0 top-0 h-0.5" aria-hidden="true">
-          <div
-            className="h-full origin-left bg-ai transition-transform duration-700 ease-out"
-            style={{ transform: `scaleX(${(progress.checkedCriteria + 0.5) / totalSteps})` }}
-          />
-        </div>
-
-        <div className="flex items-baseline justify-between gap-3 border-b border-line px-5 py-4">
+      <div className="mt-6 overflow-hidden rounded-card border border-line bg-white">
+        {/* Bar progres menggantikan garis bawah header, jadi tidak menempel di sudut kartu. */}
+        <div className="relative flex items-baseline justify-between gap-3 px-5 py-4">
           <h3 className="text-[0.9375rem] md:text-[0.9375rem]">Pemeriksaan rubrik</h3>
           <span
             className="font-mono text-xs text-ink-subtle tabular-nums"
@@ -155,6 +149,12 @@ export function AiGradingProgress({ status, progress }: AiGradingProgressProps) 
           >
             {Math.min(progress.checkedCriteria, rubric.length)} dari {rubric.length} kriteria
           </span>
+          <div className="absolute inset-x-0 bottom-0 h-0.5 bg-line" aria-hidden="true">
+            <div
+              className="h-full origin-left bg-ai transition-transform duration-700 ease-out"
+              style={{ transform: `scaleX(${(progress.checkedCriteria + 0.5) / totalSteps})` }}
+            />
+          </div>
         </div>
 
         <ol className="divide-y divide-line">

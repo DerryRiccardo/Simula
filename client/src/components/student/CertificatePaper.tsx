@@ -118,7 +118,10 @@ export function CertificatePaper({
     >
       <div className="absolute inset-0 bg-grid mask-fade-radial opacity-40" aria-hidden="true" />
 
-      <div className={cn('relative flex flex-col border border-line/80', classes.frame)}>
+      <div
+        data-print-frame={isFull ? '' : undefined}
+        className={cn('relative flex flex-col border border-line/80', classes.frame)}
+      >
         <div className="flex items-start justify-between gap-3">
           <BrandLogo className={classes.logo} />
           {certificate.partnerName ? (

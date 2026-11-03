@@ -160,25 +160,55 @@
   mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
 }
 
-/* Cetak sertifikat ("Unduh PDF"): hanya elemen [data-print-area] yang tampil, satu halaman landscape. */
+/* Cetak sertifikat ("Unduh PDF"): hanya [data-print-area] yang tampil, tepat satu halaman A4
+   landscape. Elemen lain di-display:none (bukan visibility) agar tidak menyisakan ruang yang
+   membuat halaman kedua kosong; margin @page 0 juga menghilangkan header/footer bawaan browser. */
 @media print {
   @page {
     size: A4 landscape;
-    margin: 12mm;
+    margin: 0;
   }
-  body * {
-    visibility: hidden;
+  body:has([data-print-area]) {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
   }
-  [data-print-area],
-  [data-print-area] * {
-    visibility: visible;
+  body:has([data-print-area])
+    *:not([data-print-area]):not([data-print-area] *):not(:has([data-print-area])) {
+    display: none !important;
+  }
+  /* Pembungkus sertifikat (container, grid, animasi reveal) diratakan supaya tidak menggeser kertas. */
+  body *:has([data-print-area]) {
+    display: block !important;
+    position: static !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    transform: none !important;
+    opacity: 1 !important;
   }
   [data-print-area] {
-    position: absolute;
-    inset: 0;
-    box-shadow: none;
+    box-sizing: border-box;
+    display: flex !important;
+    flex-direction: column;
+    width: 297mm;
+    height: 210mm;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: hidden;
+    break-inside: avoid;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
+  }
+  [data-print-frame] {
+    flex: 1;
+    aspect-ratio: auto !important;
+    margin: 10mm !important;
+    padding: 14mm 18mm !important;
   }
 }
 
