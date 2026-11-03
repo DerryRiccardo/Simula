@@ -163,6 +163,23 @@ func (r *enrollmentRepo) Retry(ctx context.Context, enrollmentID string, deadlin
 	return nil
 }
 
+func (r *enrollmentRepo) ActivatePaid(ctx context.Context, enrollmentID string, startBy, now time.Time) error {
+	result := r.db.WithContext(ctx).Model(&entity.Enrollment{}).
+		Where("id = ? AND status = ?", enrollmentID, entity.EnrollmentPendingPayment).
+		Updates(map[string]any{
+			"status":      entity.EnrollmentNotStarted,
+			"deadline_at": startBy,
+			"updated_at":  now,
+		})
+	if result.Error != nil {
+		return fmt.Errorf("failed to activate enrollment %s: %w", enrollmentID, result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return coreErrors.ErrStatusConflict
+	}
+	return nil
+}
+
 func (r *enrollmentRepo) Start(ctx context.Context, enrollmentID string, startedAt time.Time, deadlineAt *time.Time) error {
 	result := r.db.WithContext(ctx).Model(&entity.Enrollment{}).
 		Where("id = ? AND status = ?", enrollmentID, entity.EnrollmentNotStarted).

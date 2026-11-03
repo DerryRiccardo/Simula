@@ -80,7 +80,16 @@ type Config struct {
 	// dinilai). "fake" memakai penilai palsu yang deterministik, hanya untuk development.
 	LLMProvider  string        `envconfig:"LLM_PROVIDER"`
 	FakeLLMDelay time.Duration `envconfig:"FAKE_LLM_DELAY" default:"2s"`
+
+	// Payment gateway checkout B2B. Kosong = checkout nonaktif. "fake" memakai gateway palsu yang
+	// meniru Midtrans (simulasi lewat panel demo), hanya untuk development.
+	PaymentProvider string `envconfig:"PAYMENT_PROVIDER"`
 }
+
+// Penyedia payment gateway yang didukung PAYMENT_PROVIDER.
+const (
+	PaymentProviderFake = "fake"
+)
 
 // Penyedia LLM yang didukung LLM_PROVIDER.
 const (
@@ -163,6 +172,14 @@ func (c *Config) validate() error {
 	}
 	if c.IsProduction() && c.LLMProvider == LLMProviderFake {
 		return fmt.Errorf("LLM_PROVIDER=fake is not allowed in production")
+	}
+	switch c.PaymentProvider {
+	case "", PaymentProviderFake:
+	default:
+		return fmt.Errorf("invalid PAYMENT_PROVIDER %q: must be empty or fake", c.PaymentProvider)
+	}
+	if c.IsProduction() && c.PaymentProvider == PaymentProviderFake {
+		return fmt.Errorf("PAYMENT_PROVIDER=fake is not allowed in production")
 	}
 	if c.FakeLLMDelay < 0 {
 		return fmt.Errorf("FAKE_LLM_DELAY must not be negative")

@@ -79,6 +79,11 @@ Catatan Windows: `go test -race` butuh compiler C (cgo). Bila belum ada, jalanka
 | GET | `/api/cases/:slug/result` | Mahasiswa | Halaman hasil: skor per kriteria, feedback, sertifikat, boleh coba lagi |
 | POST | `/api/me/enrollments/:id/retry` | Mahasiswa | Coba lagi setelah tidak lulus (AI tanpa batas, B2B sekali dengan tenggat 3 hari) |
 | GET | `/api/certificates/:id` | Publik (isOwner bila login) | Verifikasi sertifikat untuk recruiter |
+| GET | `/api/cases/:slug/checkout` | Mahasiswa | Halaman checkout: case, enrollment, order terakhir yang belum lunas |
+| POST | `/api/orders` | Mahasiswa | Buat order B2B (VA menunggu 24 jam, QRIS/GoPay langsung) |
+| POST | `/api/orders/:id/cancel` | Mahasiswa | Batalkan order yang menunggu (ganti metode) |
+| POST | `/api/orders/:id/simulate` | Mahasiswa | Simulasi hasil bayar, hanya dengan `PAYMENT_PROVIDER=fake` |
+| POST | `/api/webhooks/midtrans` | Webhook (signature) | HTTP notification Midtrans |
 
 Kontrak lengkap: [`docs/openapi.yaml`](docs/openapi.yaml).
 
@@ -97,6 +102,14 @@ Kontrak lengkap: [`docs/openapi.yaml`](docs/openapi.yaml).
 - Alur: submit membuat run di `ai_grading_runs`, lalu worker menilai satu kriteria per task (`grading:evaluate_criterion`), menyusun feedback (`grading:compose_feedback`), dan memfinalkan lewat `hook.OnReviewed`: skor total dihitung server, status menjadi `passed`/`failed`, dan sertifikat terbit bila lulus.
 - Setiap langkah diulang hingga 3 kali. Bila tetap gagal, run ditandai gagal, submission kembali menjadi draft, dan peserta bisa submit ulang tanpa dihitung sebagai percobaan. Task `grading:resume_stalled` (saat worker menyala lalu setiap 5 menit) melanjutkan run yang macet lebih dari 10 menit dan membuatkan run untuk submission yang belum punya.
 - Server API dan worker harus memakai `LLM_PROVIDER` yang sama.
+
+## Checkout B2B
+
+- `PAYMENT_PROVIDER=fake` memakai gateway palsu yang meniru Midtrans Core API: nomor VA, status transaksi, dan signature notifikasi dengan format yang sama. Ditolak saat `APP_ENV=production`. Kosong: checkout ditolak. Midtrans asli menyusul.
+- Alur: `POST /api/orders` membuat order (harga dari server) dan menjadwalkan `order:expire` di batas bayar (24 jam). VA langsung masuk Case Saya sebagai "Menunggu pembayaran".
+- Status pembayaran hanya berubah lewat notifikasi webhook: dicatat di `payment_notifications`, signature diperiksa, lalu status dikonfirmasi ke gateway. Panel demo di halaman checkout (`POST /api/orders/:id/simulate`) membuat notifikasi bertanda tangan seperti simulator sandbox Midtrans dan memprosesnya lewat jalur yang sama.
+- Lunas: `hook.OnOrderPaid` memindahkan case ke "Belum dimulai" dengan batas mulai 30 hari. Gagal, kedaluwarsa, atau dibatalkan: enrollment "Menunggu pembayaran" dilepas dan peserta bisa bayar ulang.
+- Gateway palsu menyimpan status transaksi di memori proses server, jadi status simulasi hilang saat server restart (order yang tidak dikenal dianggap masih menunggu).
 
 ## Auth
 

@@ -133,12 +133,16 @@ func (uc *workspaceUseCase) StartWork(ctx context.Context, enrollmentID string) 
 	if !enrollment.CanStart() {
 		return entity.Enrollment{}, apperror.Conflict(msgAlreadyStarted)
 	}
+	now := uc.Now()
+	// Untuk not_started, deadline_at adalah batas mulai (30 hari sejak lunas).
+	if enrollment.IsPastDeadline(now) {
+		return entity.Enrollment{}, apperror.Conflict(msgStartWindowExpired)
+	}
 
 	c, err := uc.Cases.GetByID(ctx, enrollment.CaseID)
 	if err != nil {
 		return entity.Enrollment{}, apperror.Internal(err)
 	}
-	now := uc.Now()
 	err = uc.Enrollments.Start(ctx, enrollment.ID, now, entity.WorkDeadline(now, c.DeadlineDays))
 	if errors.Is(err, coreErrors.ErrStatusConflict) {
 		return entity.Enrollment{}, apperror.Conflict(msgAlreadyStarted)

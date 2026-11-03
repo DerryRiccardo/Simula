@@ -10,6 +10,7 @@ import (
 	authHandler "github.com/DerryRiccardo/Simula/server/handler/auth"
 	publicHandler "github.com/DerryRiccardo/Simula/server/handler/public"
 	studentHandler "github.com/DerryRiccardo/Simula/server/handler/student"
+	webhookHandler "github.com/DerryRiccardo/Simula/server/handler/webhook"
 	"github.com/DerryRiccardo/Simula/server/pkg/sessioncookie"
 )
 
@@ -27,6 +28,8 @@ func registerForTest() (*gin.Engine, []Route) {
 			Upload:      studentHandler.Upload(nil),
 			Result:      studentHandler.Result(nil),
 			Certificate: publicHandler.Certificate(nil),
+			Checkout:    studentHandler.Checkout(nil),
+			Midtrans:    webhookHandler.Midtrans(nil),
 		},
 		Middlewares{
 			Auth:         noop,
@@ -83,6 +86,11 @@ func TestRegister_AccessGroups(t *testing.T) {
 		{Method: "GET", Path: "/api/cases/:slug/result", Access: AccessStudent},
 		{Method: "POST", Path: "/api/me/enrollments/:id/retry", Access: AccessStudent},
 		{Method: "GET", Path: "/api/certificates/:id", Access: AccessOptionalAuth},
+		{Method: "GET", Path: "/api/cases/:slug/checkout", Access: AccessStudent},
+		{Method: "POST", Path: "/api/orders", Access: AccessStudent},
+		{Method: "POST", Path: "/api/orders/:id/cancel", Access: AccessStudent},
+		{Method: "POST", Path: "/api/orders/:id/simulate", Access: AccessStudent},
+		{Method: "POST", Path: "/api/webhooks/midtrans", Access: AccessWebhook},
 	}
 	for _, want := range tests {
 		t.Run(want.Method+" "+want.Path, func(t *testing.T) {

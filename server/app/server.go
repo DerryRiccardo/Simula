@@ -12,6 +12,7 @@ import (
 	"github.com/DerryRiccardo/Simula/server/config"
 	coreRepo "github.com/DerryRiccardo/Simula/server/core/repository"
 	studentHandler "github.com/DerryRiccardo/Simula/server/handler/student"
+	webhookHandler "github.com/DerryRiccardo/Simula/server/handler/webhook"
 	"github.com/DerryRiccardo/Simula/server/initializers"
 	"github.com/DerryRiccardo/Simula/server/middleware"
 	"github.com/DerryRiccardo/Simula/server/router"
@@ -39,12 +40,14 @@ func RunServer(ctx context.Context, cfg *config.Config) error {
 	auth := newAuthComponents(cfg, newAuthUseCase(cfg, db, rdb))
 	store := newStorage(cfg)
 
+	client := initializers.NewAsynqClient(cfg)
+	defer initializers.CloseAsynqClient(client)
+	payments := newPayments(cfg, db)
+
 	// Tanpa penilai AI, queue tetap nil sehingga submit tidak membuat run penilaian.
 	var gradingQueue coreRepo.GradingQueue
 	gradingModel := ""
 	if model := newLLM(cfg); model != nil {
-		client := initializers.NewAsynqClient(cfg)
-		defer initializers.CloseAsynqClient(client)
 		gradingQueue = task.NewGradingQueue(client, cfg.QueueName)
 		gradingModel = model.Model()
 	}
@@ -58,6 +61,8 @@ func RunServer(ctx context.Context, cfg *config.Config) error {
 		Upload:      studentHandler.Upload(newUploadUseCase(cfg, db, store)),
 		Result:      newResultHandler(db),
 		Certificate: newCertificateHandler(db),
+		Checkout:    newCheckoutHandler(cfg, db, payments, client),
+		Midtrans:    webhookHandler.Midtrans(payments.service),
 	}, auth.middlewares)
 
 	return initializers.RunHTTPServer(ctx, cfg, initializers.NewHTTPServer(cfg, engine))

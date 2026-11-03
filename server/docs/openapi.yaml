@@ -26,6 +26,10 @@ tags:
     description: Halaman hasil dan coba lagi
   - name: Certificate
     description: Verifikasi sertifikat publik
+  - name: Checkout
+    description: Order B2B dan pembayaran
+  - name: Webhook
+    description: Notifikasi layanan eksternal
 
 paths:
   /health:
@@ -729,6 +733,174 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /cases/{slug}/checkout:
+    get:
+      tags: [Checkout]
+      summary: Halaman checkout B2B
+      description: >-
+        order berisi order terakhir yang belum lunas (menunggu, gagal, atau kedaluwarsa); order
+        yang lewat batas bayar sudah kedaluwarsa saat dibaca. Order lunas dan yang dibatalkan
+        tidak ditampilkan.
+      operationId: getCheckout
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Ringkasan checkout
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/CheckoutSummary"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /orders:
+    post:
+      tags: [Checkout]
+      summary: Buat order B2B
+      description: >-
+        Harga dan biaya admin dihitung server. Order lama yang masih menunggu untuk case yang sama
+        dibatalkan. VA: case masuk Case Saya sebagai pending_payment dengan batas bayar 24 jam.
+        QRIS/GoPay: case baru masuk setelah lunas.
+      operationId: createOrder
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [caseId, method]
+              properties:
+                caseId: { type: string, format: uuid }
+                method: { type: string, enum: [va_bca, va_mandiri, va_bni, qris, gopay] }
+      responses:
+        "201":
+          description: Order dibuat
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Order"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /orders/{id}/cancel:
+    post:
+      tags: [Checkout]
+      summary: Batalkan order yang masih menunggu (ganti metode pembayaran)
+      operationId: cancelOrder
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Order berstatus cancelled
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Order"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /orders/{id}/simulate:
+    post:
+      tags: [Checkout]
+      summary: Simulasi hasil pembayaran (development, PAYMENT_PROVIDER=fake)
+      description: >-
+        Hanya aktif dengan gateway palsu; selain itu 404. Gateway palsu membuat notifikasi
+        bertanda tangan seperti simulator sandbox Midtrans, lalu notifikasi diproses lewat jalur
+        webhook yang sama (dicatat, signature diperiksa, status dikonfirmasi ke gateway).
+      operationId: simulatePayment
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [outcome]
+              properties:
+                outcome: { type: string, enum: [paid, failed, expired] }
+      responses:
+        "200":
+          description: Order setelah notifikasi diproses
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Order"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /webhooks/midtrans:
+    post:
+      tags: [Webhook]
+      summary: HTTP notification Midtrans
+      description: >-
+        Tanpa auth. signature_key = SHA512(order_id + status_code + gross_amount + server key).
+        Setiap notifikasi dicatat di payment_notifications; yang signature-nya tidak valid tidak
+        diproses. Status dikonfirmasi ke API gateway sebelum order diubah, dan notifikasi ganda
+        aman. Lunas: enrollment menjadi not_started dengan batas mulai 30 hari.
+      operationId: midtransNotification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order_id: { type: string }
+                transaction_id: { type: string }
+                transaction_status: { type: string }
+                fraud_status: { type: string }
+                status_code: { type: string }
+                gross_amount: { type: string }
+                payment_type: { type: string }
+                signature_key: { type: string }
+      responses:
+        "200":
+          description: Notifikasi tercatat
+        "400":
+          description: Body bukan notifikasi yang valid
+
 components:
   securitySchemes:
     accessCookie:
@@ -1231,6 +1403,33 @@ components:
             about: { type: string }
         passingScore: { type: integer }
         isOwner: { type: boolean }
+    Order:
+      type: object
+      description: IOrder di client
+      properties:
+        id: { type: string, format: uuid }
+        invoiceNumber: { type: string, example: INV/2026/11/0412 }
+        caseId: { type: string, format: uuid }
+        method: { type: string, enum: [va_bca, va_mandiri, va_bni, qris, gopay] }
+        status: { type: string, enum: [awaiting_payment, paid, failed, expired, cancelled] }
+        subtotal: { type: integer }
+        adminFee: { type: integer }
+        total: { type: integer }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        vaNumber: { type: string, nullable: true, description: Hanya VA, dikelompokkan per 4 digit }
+        paidAt: { type: string, format: date-time, nullable: true }
+    CheckoutSummary:
+      type: object
+      description: ICheckoutSummary di client
+      properties:
+        caseInfo: { $ref: "#/components/schemas/CaseDetail" }
+        enrollment:
+          allOf: [{ $ref: "#/components/schemas/Enrollment" }]
+          nullable: true
+        order:
+          allOf: [{ $ref: "#/components/schemas/Order" }]
+          nullable: true
   responses:
     Conflict:
       description: Status tidak mengizinkan aksi ini (mis. sudah terkirim atau tenggat lewat)

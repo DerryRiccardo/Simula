@@ -80,6 +80,9 @@ type EnrollmentRepository interface {
 	// last_retried_at, menghapus skor, dan memasang tenggat baru. Mengembalikan
 	// coreErrors.ErrStatusConflict bila status sudah bukan failed.
 	Retry(ctx context.Context, enrollmentID string, deadlineAt *time.Time, now time.Time) error
+	// ActivatePaid mengubah pending_payment menjadi not_started dengan batas mulai startBy.
+	// Mengembalikan coreErrors.ErrStatusConflict bila status sudah bukan pending_payment.
+	ActivatePaid(ctx context.Context, enrollmentID string, startBy, now time.Time) error
 	// Start mengubah not_started menjadi in_progress beserta waktu mulai dan tenggat. Mengembalikan
 	// coreErrors.ErrStatusConflict bila status sudah bukan not_started.
 	Start(ctx context.Context, enrollmentID string, startedAt time.Time, deadlineAt *time.Time) error

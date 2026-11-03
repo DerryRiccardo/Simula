@@ -22,4 +22,7 @@ var (
 	ErrGradingRunNotFound  = errors.New("grading run not found")
 	ErrReviewNotFound      = errors.New("review not found")
 	ErrCertificateNotFound = errors.New("certificate not found")
+	ErrOrderNotFound       = errors.New("order not found")
+	ErrOrderAwaitingExists = errors.New("order awaiting payment already exists")
+	ErrPaymentDisabled     = errors.New("payment gateway is not configured")
 )

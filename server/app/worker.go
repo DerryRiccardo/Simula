@@ -33,13 +33,15 @@ func RunWorker(ctx context.Context, cfg *config.Config) error {
 	authUC := newAuthUseCase(cfg, db, rdb)
 	uploadUC := newUploadUseCase(cfg, db, newStorage(cfg))
 
+	client := initializers.NewAsynqClient(cfg)
+	defer initializers.CloseAsynqClient(client)
+
 	entries := taskEntries(authUC, uploadUC)
+	entries = append(entries, task.Entry{Type: task.TypeOrderExpire, Handler: task.NewOrderExpireHandler(newPayments(cfg, db).service)})
 	periodic := periodicTasks()
 	// Task penilaian hanya didaftarkan bila penilai AI dikonfigurasi. Run yang tertinggal
 	// dilanjutkan ResumeStalled begitu worker kembali berjalan dengan penilai aktif.
 	if model := newLLM(cfg); model != nil {
-		client := initializers.NewAsynqClient(cfg)
-		defer initializers.CloseAsynqClient(client)
 		entries = append(entries, gradingTaskEntries(newGradingService(cfg, db, client, model))...)
 		periodic = append(periodic, periodicTask{cron: task.GradingResumeStalledSchedule, task: task.NewGradingResumeStalledTask()})
 		// Langsung lanjutkan penilaian yang tertinggal saat worker baru menyala, tanpa menunggu jadwal.

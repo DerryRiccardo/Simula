@@ -9,6 +9,7 @@ import (
 	authHandler "github.com/DerryRiccardo/Simula/server/handler/auth"
 	publicHandler "github.com/DerryRiccardo/Simula/server/handler/public"
 	studentHandler "github.com/DerryRiccardo/Simula/server/handler/student"
+	webhookHandler "github.com/DerryRiccardo/Simula/server/handler/webhook"
 )
 
 // BasePath adalah prefix semua endpoint API (tanpa versi).
@@ -37,6 +38,8 @@ type Handlers struct {
 	Upload      *studentHandler.UploadHandler
 	Result      *studentHandler.ResultHandler
 	Certificate *publicHandler.CertificateHandler
+	Checkout    *studentHandler.CheckoutHandler
+	Midtrans    *webhookHandler.MidtransHandler
 }
 
 // Middlewares adalah middleware akses yang dipasang per grup.
@@ -91,6 +94,15 @@ func Register(engine *gin.Engine, h Handlers, mw Middlewares) []Route {
 	student.POST("/uploads", h.Upload.Create)
 	student.GET("/cases/:slug/result", h.Result.GetResult)
 	student.POST("/me/enrollments/:id/retry", h.Result.Retry)
+	student.GET("/cases/:slug/checkout", h.Checkout.GetCheckout)
+	student.POST("/orders", h.Checkout.CreateOrder)
+	student.POST("/orders/:id/cancel", h.Checkout.CancelOrder)
+	// Hanya aktif dengan PAYMENT_PROVIDER=fake (selain itu 404); hasilnya tetap diproses lewat
+	// jalur webhook yang sama dengan Midtrans.
+	student.POST("/orders/:id/simulate", h.Checkout.SimulatePayment)
+
+	webhook := r.group(AccessWebhook)
+	webhook.POST("/webhooks/midtrans", h.Midtrans.Notify)
 
 	return r.routes
 }

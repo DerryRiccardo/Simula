@@ -267,3 +267,7 @@ func (m *mockGradingRepo) CreateRun(ctx context.Context, run *entity.AIGradingRu
 	args := m.Called(ctx, run)
 	return args.Bool(0), args.Error(1)
 }
+
+func (m *mockEnrollmentRepo) ActivatePaid(ctx context.Context, enrollmentID string, startBy, now time.Time) error {
+	return m.Called(ctx, enrollmentID, startBy, now).Error(0)
+}
