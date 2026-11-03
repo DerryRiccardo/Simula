@@ -25,4 +25,5 @@ var (
 	ErrOrderNotFound       = errors.New("order not found")
 	ErrOrderAwaitingExists = errors.New("order awaiting payment already exists")
 	ErrPaymentDisabled     = errors.New("payment gateway is not configured")
+	ErrReviewDraftNotFound = errors.New("review draft not found")
 )

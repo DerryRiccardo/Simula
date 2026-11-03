@@ -49,4 +49,6 @@ type Storage interface {
 	HeadObject(ctx context.Context, key string) (entity.StoredObject, error)
 	// DeleteObject tidak mengembalikan error bila object sudah tidak ada.
 	DeleteObject(ctx context.Context, key string) error
+	// PresignDownload membuat URL GET sementara; browser mengunduhnya dengan nama fileName.
+	PresignDownload(ctx context.Context, key, fileName string, ttl time.Duration) (string, error)
 }

@@ -15,6 +15,7 @@ import (
 const (
 	msgRetryUnavailable = "Kesempatan mencoba lagi untuk case ini sudah habis."
 	msgNotFailed        = "Case ini belum bisa dicoba lagi."
+	msgNoRecommendation = "Tidak ada rekomendasi interview untuk case ini."
 )
 
 // CaseResult adalah isi halaman hasil (ICaseResult di client). Review, submission, dan slot hanya
@@ -33,6 +34,8 @@ type ResultUseCase interface {
 	GetResult(ctx context.Context, slug string) (CaseResult, error)
 	// Retry membuka percobaan baru setelah belum lulus: AI tanpa batas, B2B satu kali.
 	Retry(ctx context.Context, enrollmentID string) (entity.Enrollment, error)
+	// SetShareConsent mengembalikan nilai share_consent baru.
+	SetShareConsent(ctx context.Context, enrollmentID string, isGranted bool) (string, error)
 }
 
 // ResultDeps adalah dependency use case hasil.
@@ -90,6 +93,34 @@ func (uc *resultUseCase) GetResult(ctx context.Context, slug string) (CaseResult
 	}
 	result.Submission = latest
 	return result, nil
+}
+
+// SetShareConsent menyimpan persetujuan peserta untuk membagikan profilnya ke mitra setelah
+// direkomendasikan reviewer. Profil baru diteruskan admin setelah peserta setuju.
+func (uc *resultUseCase) SetShareConsent(ctx context.Context, enrollmentID string, isGranted bool) (string, error) {
+	current, ok := authctx.UserFrom(ctx)
+	if !ok {
+		return "", apperror.Unauthenticated("")
+	}
+	enrollment, err := getOwnedEnrollment(ctx, uc.Enrollments, current.ID, enrollmentID)
+	if err != nil {
+		return "", err
+	}
+	if enrollment.ShareConsent == nil || enrollment.Status != entity.EnrollmentPassed {
+		return "", apperror.Conflict(msgNoRecommendation)
+	}
+	consent := entity.ShareConsentDeclined
+	if isGranted {
+		consent = entity.ShareConsentGranted
+	}
+	err = uc.Enrollments.SetShareConsent(ctx, enrollment.ID, consent, uc.Now())
+	if errors.Is(err, coreErrors.ErrStatusConflict) {
+		return "", apperror.Conflict(msgNoRecommendation)
+	}
+	if err != nil {
+		return "", apperror.Internal(err)
+	}
+	return consent, nil
 }
 
 func (uc *resultUseCase) Retry(ctx context.Context, enrollmentID string) (entity.Enrollment, error) {

@@ -180,6 +180,19 @@ func (r *enrollmentRepo) ActivatePaid(ctx context.Context, enrollmentID string, 
 	return nil
 }
 
+func (r *enrollmentRepo) SetShareConsent(ctx context.Context, enrollmentID, consent string, now time.Time) error {
+	result := r.db.WithContext(ctx).Model(&entity.Enrollment{}).
+		Where("id = ? AND status = ? AND share_consent IS NOT NULL", enrollmentID, entity.EnrollmentPassed).
+		Updates(map[string]any{"share_consent": consent, "updated_at": now})
+	if result.Error != nil {
+		return fmt.Errorf("failed to set share consent of %s: %w", enrollmentID, result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return coreErrors.ErrStatusConflict
+	}
+	return nil
+}
+
 func (r *enrollmentRepo) Start(ctx context.Context, enrollmentID string, startedAt time.Time, deadlineAt *time.Time) error {
 	result := r.db.WithContext(ctx).Model(&entity.Enrollment{}).
 		Where("id = ? AND status = ?", enrollmentID, entity.EnrollmentNotStarted).

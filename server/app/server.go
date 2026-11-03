@@ -63,6 +63,7 @@ func RunServer(ctx context.Context, cfg *config.Config) error {
 		Certificate: newCertificateHandler(db),
 		Checkout:    newCheckoutHandler(cfg, db, payments, client),
 		Midtrans:    webhookHandler.Midtrans(payments.service),
+		Review:      newReviewerHandler(db, store),
 	}, auth.middlewares)
 
 	return initializers.RunHTTPServer(ctx, cfg, initializers.NewHTTPServer(cfg, engine))

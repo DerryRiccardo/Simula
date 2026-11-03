@@ -5,6 +5,7 @@ import (
 
 	studentModule "github.com/DerryRiccardo/Simula/server/core/module/student"
 	studentDto "github.com/DerryRiccardo/Simula/server/handler/dto/student"
+	"github.com/DerryRiccardo/Simula/server/pkg/bind"
 	"github.com/DerryRiccardo/Simula/server/pkg/response"
 )
 
@@ -26,6 +27,21 @@ func (h *ResultHandler) GetResult(c *gin.Context) {
 		return
 	}
 	response.OK(c, studentDto.MapCaseResultToResponse(result))
+}
+
+// SetShareConsent: POST /api/me/enrollments/:id/share-consent. Mengembalikan TShareConsent.
+func (h *ResultHandler) SetShareConsent(c *gin.Context) {
+	var req studentDto.ShareConsentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		_ = c.Error(bind.Error(err))
+		return
+	}
+	consent, err := h.uc.SetShareConsent(c.Request.Context(), c.Param("id"), req.IsGranted)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	response.OK(c, consent)
 }
 
 // Retry: POST /api/me/enrollments/:id/retry. Tanpa body.

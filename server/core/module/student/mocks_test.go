@@ -271,3 +271,12 @@ func (m *mockGradingRepo) CreateRun(ctx context.Context, run *entity.AIGradingRu
 func (m *mockEnrollmentRepo) ActivatePaid(ctx context.Context, enrollmentID string, startBy, now time.Time) error {
 	return m.Called(ctx, enrollmentID, startBy, now).Error(0)
 }
+
+func (m *mockStorage) PresignDownload(ctx context.Context, key, fileName string, ttl time.Duration) (string, error) {
+	args := m.Called(ctx, key, fileName, ttl)
+	return args.String(0), args.Error(1)
+}
+
+func (m *mockEnrollmentRepo) SetShareConsent(ctx context.Context, enrollmentID, consent string, now time.Time) error {
+	return m.Called(ctx, enrollmentID, consent, now).Error(0)
+}

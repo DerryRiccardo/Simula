@@ -26,9 +26,20 @@ func (r *reviewRepo) Finalize(ctx context.Context, f entity.ReviewFinalization) 
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Status enrollment diubah lebih dulu: bila sudah dinilai oleh task lain, transaksi berhenti
 		// sebelum menulis review kedua.
-		result := tx.Model(&entity.Enrollment{}).
-			Where("id = ? AND status IN ?", f.EnrollmentID, f.From).
-			Updates(map[string]any{"status": f.To, "score": f.Review.TotalScore, "updated_at": f.At})
+		updates := map[string]any{
+			"status":        f.To,
+			"score":         f.Review.TotalScore,
+			"deadline_at":   nil,
+			"review_due_at": nil,
+			"share_consent": f.ShareConsent,
+			"updated_at":    f.At,
+		}
+		query := tx.Model(&entity.Enrollment{}).Where("id = ? AND status IN ?", f.EnrollmentID, f.From)
+		if f.ReviewerID != nil {
+			query = query.Where(claimSQL, *f.ReviewerID)
+			updates["assigned_reviewer_id"] = *f.ReviewerID
+		}
+		result := query.Updates(updates)
 		if result.Error != nil {
 			return result.Error
 		}
@@ -42,6 +53,9 @@ func (r *reviewRepo) Finalize(ctx context.Context, f entity.ReviewFinalization) 
 			Where("id = ? AND status = ?", f.Review.SubmissionID, entity.SubmissionSubmitted).
 			Updates(map[string]any{"status": entity.SubmissionReviewed, "updated_at": f.At}).Error
 		if err != nil {
+			return err
+		}
+		if err := tx.Where("submission_id = ?", f.Review.SubmissionID).Delete(&entity.ReviewDraft{}).Error; err != nil {
 			return err
 		}
 		if f.Certificate != nil {

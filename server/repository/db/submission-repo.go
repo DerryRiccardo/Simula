@@ -198,14 +198,33 @@ func saveSubmitted(tx *gorm.DB, submission *entity.Submission) error {
 	return err
 }
 
+// assignReviewerSQL memilih reviewer pemegang submission B2B (CONTEXT.md 4.13). Submit ulang
+// setelah revisi kembali ke pemegang lama selama ia masih aktif dan masih ditugaskan ke case; selain
+// itu dipilih reviewer aktif yang ditugaskan ke case dengan antrean in_review paling sedikit (seri:
+// yang ditugaskan paling awal). NULL bila case belum punya reviewer aktif; submission tetap masuk
+// antrean semua reviewer case sampai ada yang mengambilnya.
+const assignReviewerSQL = `COALESCE(
+	(SELECT ra.reviewer_id FROM reviewer_assignments ra JOIN users u ON u.id = ra.reviewer_id
+	 WHERE ra.case_id = enrollments.case_id AND ra.reviewer_id = enrollments.assigned_reviewer_id
+	   AND u.role = 'reviewer' AND u.is_active),
+	(SELECT ra.reviewer_id FROM reviewer_assignments ra JOIN users u ON u.id = ra.reviewer_id
+	 WHERE ra.case_id = enrollments.case_id AND u.role = 'reviewer' AND u.is_active
+	 ORDER BY (SELECT count(*) FROM enrollments q
+	           WHERE q.assigned_reviewer_id = ra.reviewer_id AND q.status = 'in_review'), ra.created_at
+	 LIMIT 1))`
+
 func changeEnrollmentStatus(tx *gorm.DB, change entity.EnrollmentStatusChange) error {
+	updates := map[string]any{
+		"status":        change.To,
+		"review_due_at": change.ReviewDueAt,
+		"updated_at":    change.ChangedAt,
+	}
+	if change.AssignReviewer {
+		updates["assigned_reviewer_id"] = gorm.Expr(assignReviewerSQL)
+	}
 	result := tx.Model(&entity.Enrollment{}).
 		Where("id = ? AND status IN ?", change.EnrollmentID, change.From).
-		Updates(map[string]any{
-			"status":        change.To,
-			"review_due_at": change.ReviewDueAt,
-			"updated_at":    change.ChangedAt,
-		})
+		Updates(updates)
 	if result.Error != nil {
 		return result.Error
 	}

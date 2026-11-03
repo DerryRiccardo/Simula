@@ -80,15 +80,25 @@ func (h *ReviewHook) OnReviewed(ctx context.Context, outcome entity.ReviewOutcom
 		From:         []entity.EnrollmentStatus{entity.StatusAfterSubmit(c.Tier)},
 		To:           entity.EnrollmentFailed,
 		GradingRunID: outcome.GradingRunID,
+		ReviewerID:   outcome.ReviewerID,
 		At:           now,
 	}
 	if passed {
 		finalization.To = entity.EnrollmentPassed
-		certificate, err := h.newCertificate(ctx, enrollment, total, now)
+		user, err := h.Users.GetByID(ctx, enrollment.UserID)
+		if err != nil {
+			return fmt.Errorf("failed to load recipient %s: %w", enrollment.UserID, err)
+		}
+		certificate, err := h.newCertificate(enrollment, user, total, now)
 		if err != nil {
 			return err
 		}
 		finalization.Certificate = &certificate
+		if review.IsRecommended {
+			// Profil baru dibagikan ke mitra setelah peserta setuju (CONTEXT.md 4.8).
+			consent := entity.InitialShareConsent(user.ShareDefault)
+			finalization.ShareConsent = &consent
+		}
 	}
 
 	err = h.Reviews.Finalize(ctx, finalization)
@@ -104,11 +114,7 @@ func (h *ReviewHook) OnReviewed(ctx context.Context, outcome entity.ReviewOutcom
 	return nil
 }
 
-func (h *ReviewHook) newCertificate(ctx context.Context, enrollment entity.Enrollment, score int, now time.Time) (entity.Certificate, error) {
-	user, err := h.Users.GetByID(ctx, enrollment.UserID)
-	if err != nil {
-		return entity.Certificate{}, fmt.Errorf("failed to load recipient %s: %w", enrollment.UserID, err)
-	}
+func (h *ReviewHook) newCertificate(enrollment entity.Enrollment, user entity.User, score int, now time.Time) (entity.Certificate, error) {
 	random, err := h.RandomBytes(entity.CertificatePublicIDLength)
 	if err != nil {
 		return entity.Certificate{}, err

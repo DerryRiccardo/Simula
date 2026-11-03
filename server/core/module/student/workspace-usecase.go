@@ -246,6 +246,7 @@ func (uc *workspaceUseCase) Submit(ctx context.Context, enrollmentID string, con
 	if change.To == entity.EnrollmentInReview {
 		dueAt := entity.AddBusinessDays(now, entity.ReviewSLABusinessDays)
 		change.ReviewDueAt = &dueAt
+		change.AssignReviewer = true
 	}
 	run, err := uc.newGradingRun(ctx, c, now)
 	if err != nil {

@@ -6,14 +6,12 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/DerryRiccardo/Simula/server/config"
-	hookModule "github.com/DerryRiccardo/Simula/server/core/module/hook"
 	sharedModule "github.com/DerryRiccardo/Simula/server/core/module/shared"
 	studentModule "github.com/DerryRiccardo/Simula/server/core/module/student"
 	coreRepo "github.com/DerryRiccardo/Simula/server/core/repository"
 	publicHandler "github.com/DerryRiccardo/Simula/server/handler/public"
 	studentHandler "github.com/DerryRiccardo/Simula/server/handler/student"
 	"github.com/DerryRiccardo/Simula/server/pkg/llm"
-	"github.com/DerryRiccardo/Simula/server/pkg/secure"
 	dbRepo "github.com/DerryRiccardo/Simula/server/repository/db"
 	"github.com/DerryRiccardo/Simula/server/task"
 )
@@ -31,12 +29,7 @@ func newLLM(cfg *config.Config) coreRepo.LLM {
 
 // newGradingService dipakai worker: menilai per kriteria lalu memfinalkan lewat hook.OnReviewed.
 func newGradingService(cfg *config.Config, db *gorm.DB, client *asynq.Client, model coreRepo.LLM) *sharedModule.GradingService {
-	hook := hookModule.NewReviewHook(hookModule.ReviewHookDeps{
-		Enrollments: dbRepo.InitEnrollmentRepo(db),
-		Users:       dbRepo.InitUserRepo(db),
-		Reviews:     dbRepo.InitReviewRepo(db),
-		RandomBytes: secure.RandomBytes,
-	})
+	hook := newReviewHook(db)
 	return sharedModule.NewGradingService(sharedModule.GradingDeps{
 		Grading:    dbRepo.InitGradingRepo(db),
 		Cases:      dbRepo.InitCaseRepo(db),

@@ -10,6 +10,7 @@ Skema awal (migrasi `001_initial_schema.sql`, 24 tabel), diturunkan dari kontrak
 | --- | --- |
 | `001_initial_schema` | Skema awal (24 tabel) |
 | `002_slot_key_hyphen` | Slot key boleh memakai tanda hubung (`design-doc`), sesuai pembuat case di client. |
+| `003_enrollment_assigned_reviewer` | `enrollments.assigned_reviewer_id`: reviewer pemegang submission B2B. |
 
 ## Konvensi
 
@@ -146,13 +147,13 @@ erDiagram
 | `case_materials` | Nama dan keterangan materi pendukung + `file_id` | Format dan ukuran diambil dari `files`. |
 | `case_slots` | Slot deliverable: `slot_key`, `kind`, wajib/opsional, format, ukuran, batas panjang teks | `kind`: `text`, `file`, `link`, `code` (zip). AI memakai `text`/`file`/`code`; B2B `file`/`link`. |
 | `rubric_criteria` | Kriteria, bobot, deskripsi, `level_descriptions` (5 teks) | Total bobot 100 dicek use case. |
-| `reviewer_assignments` | Reviewer yang ditugaskan per case B2B | Reviewer hanya bisa mengakses submission dari case di sini. |
+| `reviewer_assignments` | Reviewer yang ditugaskan per case B2B | Satu case boleh punya beberapa reviewer dari mitra yang sama. Reviewer hanya bisa mengakses submission dari case di sini. |
 
 ### Pengerjaan dan penilaian
 
 | Tabel | Isi | Catatan |
 | --- | --- | --- |
-| `enrollments` | Satu baris per user per case. Status, tenggat, `review_due_at`, `last_retried_at`, skor, `candidate_number`, `share_consent`, `retry_count`, `revision_count` | Coba lagi memakai baris yang sama. Order B2B gagal/kedaluwarsa menghapus enrollment `pending_payment`. |
+| `enrollments` | Satu baris per user per case. Status, tenggat, `review_due_at`, `last_retried_at`, skor, `candidate_number`, `share_consent`, `retry_count`, `revision_count` | Coba lagi memakai baris yang sama. Order B2B gagal/kedaluwarsa menghapus enrollment `pending_payment`. `assigned_reviewer_id` (`003`) adalah reviewer pemegang: diisi saat submit dengan reviewer aktif case yang antreannya paling sedikit, dipakai lagi saat submit ulang setelah revisi, dan terkunci saat reviewer memutuskan. |
 | `submissions` | Satu baris = satu attempt, dari draft sampai diputuskan | Status `draft` → `submitted` → `revision_requested` atau `reviewed`. Maksimal satu `draft` dan satu `submitted` per enrollment (partial unique index). Selain draft, `submitted_at` dan centang "pekerjaan sendiri" wajib. |
 | `revision_requests` | Keputusan reviewer mengembalikan submission: alasan, catatan, reviewer | PK = `submission_id`, jadi satu submission paling banyak dikembalikan sekali. |
 | `review_drafts` | Isian form reviewer yang tersimpan otomatis (`decision`, `grade`, `revision`) | PK = `submission_id`. Dihapus di transaksi yang sama saat keputusan dikirim. |

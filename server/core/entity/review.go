@@ -92,6 +92,11 @@ type ReviewFinalization struct {
 	// Certificate diisi bila lulus.
 	Certificate  *Certificate
 	GradingRunID *string
+	// ReviewerID diisi untuk penilaian reviewer: submission dikunci ke reviewer itu, dan ditolak bila
+	// sudah dipegang reviewer lain.
+	ReviewerID *string
+	// ShareConsent diisi bila direkomendasikan ke daftar prioritas interview.
+	ShareConsent *string
 	At           time.Time
 }
 

@@ -67,20 +67,33 @@ type UploadRequest struct {
 	SizeBytes    int64  `json:"sizeBytes"`
 }
 
+// FileRefResponse adalah IFileMeta. downloadUrl hanya diisi untuk reviewer (link R2 sementara).
+type FileRefResponse struct {
+	FileID      string  `json:"fileId"`
+	FileName    string  `json:"fileName"`
+	SizeBytes   int64   `json:"sizeBytes"`
+	DownloadURL *string `json:"downloadUrl"`
+}
+
 // SlotValueResponse mengirim TSlotValue: string, objek berkas, atau null.
 type SlotValueResponse struct {
-	value entity.SlotValue
+	value       entity.SlotValue
+	downloadURL string
 }
 
 // MarshalJSON mengimplementasikan json.Marshaler.
 func (v SlotValueResponse) MarshalJSON() ([]byte, error) {
 	switch {
 	case v.value.File != nil:
-		return json.Marshal(FileRefRequest{
+		ref := FileRefResponse{
 			FileID:    v.value.File.FileID,
 			FileName:  v.value.File.FileName,
 			SizeBytes: v.value.File.SizeBytes,
-		})
+		}
+		if v.downloadURL != "" {
+			ref.DownloadURL = &v.downloadURL
+		}
+		return json.Marshal(ref)
 	case v.value.Text != "":
 		return json.Marshal(v.value.Text)
 	default:
@@ -329,6 +342,21 @@ func MapUploadTicketToResponse(ticket studentModule.UploadTicket) UploadTicketRe
 	}
 }
 
+// MapCaseInfo memetakan info umum case (dipakai juga portal reviewer).
+func MapCaseInfo(c entity.Case, enrollment *entity.Enrollment) CaseDetailResponse {
+	return mapCaseInfo(c, enrollment)
+}
+
+// MapBrief memetakan brief lengkap case (dipakai juga portal reviewer).
+func MapBrief(c entity.Case) CaseBriefResponse {
+	return mapBrief(c)
+}
+
+// MapRevision memetakan permintaan revisi.
+func MapRevision(r entity.RevisionRequest, reviewerRole string) RevisionResponse {
+	return RevisionResponse{Reason: r.Reason, Note: r.Note, ReviewerRole: reviewerRole, RequestedAt: r.CreatedAt.UTC()}
+}
+
 func mapCaseInfo(c entity.Case, enrollment *entity.Enrollment) CaseDetailResponse {
 	result := studentModule.CaseDetailResult{Detail: c}
 	if enrollment != nil {
@@ -394,11 +422,24 @@ func mapRubric(criteria []entity.RubricCriterion) []RubricCriterionResponse {
 }
 
 func mapSubmissionRecord(s *entity.Submission) *SubmissionRecordResponse {
+	return MapSubmissionRecord(s, nil)
+}
+
+// MapSubmissionRecord memetakan submission terkirim. downloadURLs (per fileId) hanya diisi untuk
+// portal reviewer.
+func MapSubmissionRecord(s *entity.Submission, downloadURLs map[string]string) *SubmissionRecordResponse {
 	if s == nil || s.SubmittedAt == nil {
 		return nil
 	}
+	values := mapSlotValues(s.SlotValues)
+	for key, value := range values {
+		if value.value.File != nil {
+			value.downloadURL = downloadURLs[value.value.File.FileID]
+			values[key] = value
+		}
+	}
 	return &SubmissionRecordResponse{
-		Values:       mapSlotValues(s.SlotValues),
+		Values:       values,
 		Note:         s.Note,
 		IsLinkPublic: s.IsLinkPublic,
 		IsOwnWork:    s.IsOwnWork,

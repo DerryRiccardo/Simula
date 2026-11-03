@@ -30,6 +30,8 @@ tags:
     description: Order B2B dan pembayaran
   - name: Webhook
     description: Notifikasi layanan eksternal
+  - name: Reviewer
+    description: Portal reviewer mitra (kandidat anonim)
 
 paths:
   /health:
@@ -901,6 +903,237 @@ paths:
         "400":
           description: Body bukan notifikasi yang valid
 
+  /me/enrollments/{id}/share-consent:
+    post:
+      tags: [Result]
+      summary: Persetujuan membagikan profil ke mitra setelah direkomendasikan
+      description: Hanya untuk case lulus yang direkomendasikan reviewer. Mengembalikan TShareConsent.
+      operationId: setShareConsent
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [isGranted]
+              properties:
+                isGranted: { type: boolean }
+      responses:
+        "200":
+          description: Nilai share_consent baru
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data: { type: string, enum: [granted, declined] }
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /reviewer/queue:
+    get:
+      tags: [Reviewer]
+      summary: Antrean dan riwayat reviewer
+      description: >-
+        Submission yang dipegang reviewer, ditambah submission menunggu tanpa pemegang dari case
+        yang ditugaskan kepadanya. Kandidat anonim (Kandidat #nomor).
+      operationId: getReviewerQueue
+      security:
+        - accessCookie: []
+      responses:
+        "200":
+          description: Antrean (urut tenggat) dan riwayat (urut keputusan terbaru)
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          pending: { type: array, items: { $ref: "#/components/schemas/ReviewQueueItem" } }
+                          history: { type: array, items: { $ref: "#/components/schemas/ReviewQueueItem" } }
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /reviewer/submissions/{id}:
+    get:
+      tags: [Reviewer]
+      summary: Halaman review satu submission (id = enrollment)
+      description: >-
+        Brief, rubrik, isi submission (berkas dengan downloadUrl R2 sementara 10 menit), revisi
+        terakhir, draft milik reviewer ini, dan hasil review bila sudah dinilai.
+      operationId: getReviewSubmission
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Detail submission
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ReviewSubmissionDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /reviewer/submissions/{id}/draft:
+    put:
+      tags: [Reviewer]
+      summary: Simpan draft penilaian (otomatis)
+      description: >-
+        Simpan sebagian: bagian yang dikirim menimpa bagian yang sama; null mengosongkannya.
+        Menyimpan draft mengambil submission bila belum ada pemegangnya.
+      operationId: saveReviewDraft
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                decision: { type: string, enum: [grade, revision] }
+                grade: { type: object, nullable: true }
+                revision: { type: object, nullable: true }
+      responses:
+        "200":
+          description: Draft tersimpan
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ReviewDraft"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /reviewer/submissions/{id}/grade:
+    post:
+      tags: [Reviewer]
+      summary: Nilai submission
+      description: >-
+        Level 1-5 dan alasan (minimal 20 karakter) untuk setiap kriteria rubrik, dicocokkan lewat
+        nama; feedback 3 bagian masing-masing 1-10 poin. Skor total dihitung server lewat
+        hook.OnReviewed; lulus menerbitkan sertifikat berlogo mitra. Rekomendasi hanya berlaku bila
+        lulus, dan meminta persetujuan berbagi profil sesuai pengaturan peserta. Field error:
+        criteria.N.level, criteria.N.reason, feedback.strengths, feedback.improvements,
+        feedback.nextSteps.
+      operationId: gradeSubmission
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                criteria:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name: { type: string }
+                      level: { type: integer, minimum: 1, maximum: 5 }
+                      reason: { type: string }
+                feedback:
+                  type: object
+                  properties:
+                    strengths: { type: array, items: { type: string } }
+                    improvements: { type: array, items: { type: string } }
+                    nextSteps: { type: array, items: { type: string } }
+                isRecommended: { type: boolean }
+      responses:
+        "200":
+          description: Submission setelah dinilai
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ReviewQueueItem"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /reviewer/submissions/{id}/revision:
+    post:
+      tags: [Reviewer]
+      summary: Kembalikan untuk revisi
+      description: >-
+        Submission belum dinilai dan skor tidak berkurang. Maksimal 2 kali per enrollment; tenggat
+        peserta menjadi 3 hari kalender sejak dikembalikan. Submit ulang kembali ke reviewer yang
+        sama. Field error: reason, note (minimal 20 karakter).
+      operationId: requestRevision
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  enum: [Deliverable belum lengkap, Tautan tidak bisa dibuka, Berkas tidak bisa dibuka, Deliverable belum sesuai brief]
+                note: { type: string }
+      responses:
+        "200":
+          description: Submission berstatus revision_requested
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/ReviewQueueItem"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
 components:
   securitySchemes:
     accessCookie:
@@ -1430,6 +1663,76 @@ components:
         order:
           allOf: [{ $ref: "#/components/schemas/Order" }]
           nullable: true
+    ReviewQueueItem:
+      type: object
+      description: IReviewQueueItem di client (id = enrollment)
+      properties:
+        id: { type: string, format: uuid }
+        candidateLabel: { type: string, example: "Kandidat #1024" }
+        caseSummary: { $ref: "#/components/schemas/CaseSummary" }
+        status: { type: string, enum: [in_review, revision_requested, passed, failed] }
+        attempt: { type: integer }
+        submittedAt: { type: string, format: date-time }
+        reviewDueAt: { type: string, format: date-time }
+        revisionCount: { type: integer }
+        decidedAt: { type: string, format: date-time, nullable: true }
+        score: { type: integer, nullable: true }
+        isRecommended: { type: boolean }
+    ReviewDraft:
+      type: object
+      description: IReviewDraft di client
+      properties:
+        decision: { type: string, enum: [grade, revision] }
+        grade:
+          type: object
+          nullable: true
+          properties:
+            criteria:
+              type: array
+              items:
+                type: object
+                properties:
+                  name: { type: string }
+                  level: { type: integer }
+                  reason: { type: string }
+            strengths: { type: string }
+            improvements: { type: string }
+            nextSteps: { type: string }
+            isRecommended: { type: boolean }
+        revision:
+          type: object
+          nullable: true
+          properties:
+            reason: { type: string }
+            note: { type: string }
+        savedAt: { type: string, format: date-time }
+    ReviewSubmissionDetail:
+      type: object
+      description: IReviewSubmissionDetail di client
+      properties:
+        item: { $ref: "#/components/schemas/ReviewQueueItem" }
+        caseInfo: { $ref: "#/components/schemas/CaseDetail" }
+        brief: { $ref: "#/components/schemas/CaseBrief" }
+        submission:
+          allOf: [{ $ref: "#/components/schemas/SubmissionRecord" }]
+          nullable: true
+        lastRevision:
+          type: object
+          nullable: true
+          properties:
+            reason: { type: string }
+            note: { type: string }
+            reviewerRole: { type: string }
+            requestedAt: { type: string, format: date-time }
+        draft:
+          allOf: [{ $ref: "#/components/schemas/ReviewDraft" }]
+          nullable: true
+        review:
+          allOf: [{ $ref: "#/components/schemas/ReviewResult" }]
+          nullable: true
+        maxRevisions: { type: integer }
+        canRequestRevision: { type: boolean }
+        recommendationThreshold: { type: integer }
   responses:
     Conflict:
       description: Status tidak mengizinkan aksi ini (mis. sudah terkirim atau tenggat lewat)

@@ -83,6 +83,9 @@ type EnrollmentRepository interface {
 	// ActivatePaid mengubah pending_payment menjadi not_started dengan batas mulai startBy.
 	// Mengembalikan coreErrors.ErrStatusConflict bila status sudah bukan pending_payment.
 	ActivatePaid(ctx context.Context, enrollmentID string, startBy, now time.Time) error
+	// SetShareConsent menyimpan persetujuan berbagi profil untuk enrollment yang direkomendasikan
+	// (share_consent tidak null). Mengembalikan coreErrors.ErrStatusConflict bila tidak ada rekomendasi.
+	SetShareConsent(ctx context.Context, enrollmentID, consent string, now time.Time) error
 	// Start mengubah not_started menjadi in_progress beserta waktu mulai dan tenggat. Mengembalikan
 	// coreErrors.ErrStatusConflict bila status sudah bukan not_started.
 	Start(ctx context.Context, enrollmentID string, startedAt time.Time, deadlineAt *time.Time) error

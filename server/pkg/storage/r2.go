@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"mime"
 	"net/http"
 	"strings"
 	"time"
@@ -67,6 +68,20 @@ func (s *R2) PresignUpload(ctx context.Context, key, contentType string, sizeByt
 	}, nil
 }
 
+// PresignDownload membuat URL GET sementara untuk bucket private. Content-Disposition attachment
+// membuat browser mengunduh dengan nama asli, bukan membuka konten unggahan di origin R2.
+func (s *R2) PresignDownload(ctx context.Context, key, fileName string, ttl time.Duration) (string, error) {
+	request, err := s.presign.PresignGetObject(ctx, &s3.GetObjectInput{
+		Bucket:                     aws.String(s.bucket),
+		Key:                        aws.String(key),
+		ResponseContentDisposition: aws.String(mime.FormatMediaType("attachment", map[string]string{"filename": fileName})),
+	}, s3.WithPresignExpires(ttl))
+	if err != nil {
+		return "", fmt.Errorf("failed to presign download: %w", err)
+	}
+	return request.URL, nil
+}
+
 // HeadObject membaca ukuran dan content type object.
 func (s *R2) HeadObject(ctx context.Context, key string) (entity.StoredObject, error) {
 	output, err := s.client.HeadObject(ctx, &s3.HeadObjectInput{Bucket: aws.String(s.bucket), Key: aws.String(key)})
@@ -125,4 +140,9 @@ func (Disabled) HeadObject(context.Context, string) (entity.StoredObject, error)
 // DeleteObject mengimplementasikan coreRepo.Storage.
 func (Disabled) DeleteObject(context.Context, string) error {
 	return coreErrors.ErrStorageDisabled
+}
+
+// PresignDownload mengimplementasikan coreRepo.Storage.
+func (Disabled) PresignDownload(context.Context, string, string, time.Duration) (string, error) {
+	return "", coreErrors.ErrStorageDisabled
 }

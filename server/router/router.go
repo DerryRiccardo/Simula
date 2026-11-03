@@ -8,6 +8,7 @@ import (
 	"github.com/DerryRiccardo/Simula/server/core/entity"
 	authHandler "github.com/DerryRiccardo/Simula/server/handler/auth"
 	publicHandler "github.com/DerryRiccardo/Simula/server/handler/public"
+	reviewerHandler "github.com/DerryRiccardo/Simula/server/handler/reviewer"
 	studentHandler "github.com/DerryRiccardo/Simula/server/handler/student"
 	webhookHandler "github.com/DerryRiccardo/Simula/server/handler/webhook"
 )
@@ -40,6 +41,7 @@ type Handlers struct {
 	Certificate *publicHandler.CertificateHandler
 	Checkout    *studentHandler.CheckoutHandler
 	Midtrans    *webhookHandler.MidtransHandler
+	Review      *reviewerHandler.ReviewHandler
 }
 
 // Middlewares adalah middleware akses yang dipasang per grup.
@@ -94,12 +96,21 @@ func Register(engine *gin.Engine, h Handlers, mw Middlewares) []Route {
 	student.POST("/uploads", h.Upload.Create)
 	student.GET("/cases/:slug/result", h.Result.GetResult)
 	student.POST("/me/enrollments/:id/retry", h.Result.Retry)
+	student.POST("/me/enrollments/:id/share-consent", h.Result.SetShareConsent)
 	student.GET("/cases/:slug/checkout", h.Checkout.GetCheckout)
 	student.POST("/orders", h.Checkout.CreateOrder)
 	student.POST("/orders/:id/cancel", h.Checkout.CancelOrder)
 	// Hanya aktif dengan PAYMENT_PROVIDER=fake (selain itu 404); hasilnya tetap diproses lewat
 	// jalur webhook yang sama dengan Midtrans.
 	student.POST("/orders/:id/simulate", h.Checkout.SimulatePayment)
+
+	// Portal reviewer: kandidat anonim; reviewer hanya melihat submission yang dipegangnya.
+	reviewer := r.group(AccessReviewer, mw.Auth, mw.RequireRole(entity.RoleReviewer))
+	reviewer.GET("/reviewer/queue", h.Review.GetQueue)
+	reviewer.GET("/reviewer/submissions/:id", h.Review.GetSubmission)
+	reviewer.PUT("/reviewer/submissions/:id/draft", h.Review.SaveDraft)
+	reviewer.POST("/reviewer/submissions/:id/grade", h.Review.Grade)
+	reviewer.POST("/reviewer/submissions/:id/revision", h.Review.RequestRevision)
 
 	webhook := r.group(AccessWebhook)
 	webhook.POST("/webhooks/midtrans", h.Midtrans.Notify)

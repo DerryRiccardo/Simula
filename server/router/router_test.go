@@ -9,6 +9,7 @@ import (
 	"github.com/DerryRiccardo/Simula/server/core/entity"
 	authHandler "github.com/DerryRiccardo/Simula/server/handler/auth"
 	publicHandler "github.com/DerryRiccardo/Simula/server/handler/public"
+	reviewerHandler "github.com/DerryRiccardo/Simula/server/handler/reviewer"
 	studentHandler "github.com/DerryRiccardo/Simula/server/handler/student"
 	webhookHandler "github.com/DerryRiccardo/Simula/server/handler/webhook"
 	"github.com/DerryRiccardo/Simula/server/pkg/sessioncookie"
@@ -30,6 +31,7 @@ func registerForTest() (*gin.Engine, []Route) {
 			Certificate: publicHandler.Certificate(nil),
 			Checkout:    studentHandler.Checkout(nil),
 			Midtrans:    webhookHandler.Midtrans(nil),
+			Review:      reviewerHandler.Review(nil),
 		},
 		Middlewares{
 			Auth:         noop,
@@ -91,6 +93,12 @@ func TestRegister_AccessGroups(t *testing.T) {
 		{Method: "POST", Path: "/api/orders/:id/cancel", Access: AccessStudent},
 		{Method: "POST", Path: "/api/orders/:id/simulate", Access: AccessStudent},
 		{Method: "POST", Path: "/api/webhooks/midtrans", Access: AccessWebhook},
+		{Method: "POST", Path: "/api/me/enrollments/:id/share-consent", Access: AccessStudent},
+		{Method: "GET", Path: "/api/reviewer/queue", Access: AccessReviewer},
+		{Method: "GET", Path: "/api/reviewer/submissions/:id", Access: AccessReviewer},
+		{Method: "PUT", Path: "/api/reviewer/submissions/:id/draft", Access: AccessReviewer},
+		{Method: "POST", Path: "/api/reviewer/submissions/:id/grade", Access: AccessReviewer},
+		{Method: "POST", Path: "/api/reviewer/submissions/:id/revision", Access: AccessReviewer},
 	}
 	for _, want := range tests {
 		t.Run(want.Method+" "+want.Path, func(t *testing.T) {

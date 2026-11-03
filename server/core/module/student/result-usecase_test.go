@@ -233,3 +233,44 @@ func TestVerifyCertificate(t *testing.T) {
 		requireKind(t, err, apperror.KindNotFound)
 	})
 }
+
+func TestSetShareConsent(t *testing.T) {
+	pending := entity.ShareConsentPending
+
+	t.Run("grants consent after a recommendation", func(t *testing.T) {
+		env := newResultEnv()
+		enrollment := enrollmentWith(b2bBrief(), entity.EnrollmentPassed)
+		enrollment.ShareConsent = &pending
+		env.enrollments.On("GetByIDForUser", mock.Anything, studentID, enrollmentID).Return(enrollment, nil)
+		env.enrollments.On("SetShareConsent", mock.Anything, enrollmentID, entity.ShareConsentGranted, testNow).Return(nil)
+
+		consent, err := env.uc.SetShareConsent(asStudent(), enrollmentID, true)
+
+		require.NoError(t, err)
+		assert.Equal(t, entity.ShareConsentGranted, consent)
+	})
+
+	t.Run("declines", func(t *testing.T) {
+		env := newResultEnv()
+		enrollment := enrollmentWith(b2bBrief(), entity.EnrollmentPassed)
+		enrollment.ShareConsent = &pending
+		env.enrollments.On("GetByIDForUser", mock.Anything, studentID, enrollmentID).Return(enrollment, nil)
+		env.enrollments.On("SetShareConsent", mock.Anything, enrollmentID, entity.ShareConsentDeclined, testNow).Return(nil)
+
+		consent, err := env.uc.SetShareConsent(asStudent(), enrollmentID, false)
+
+		require.NoError(t, err)
+		assert.Equal(t, entity.ShareConsentDeclined, consent)
+	})
+
+	t.Run("no recommendation", func(t *testing.T) {
+		env := newResultEnv()
+		env.enrollments.On("GetByIDForUser", mock.Anything, studentID, enrollmentID).
+			Return(enrollmentWith(b2bBrief(), entity.EnrollmentPassed), nil)
+
+		_, err := env.uc.SetShareConsent(asStudent(), enrollmentID, true)
+
+		requireKind(t, err, apperror.KindConflict)
+		env.enrollments.AssertNotCalled(t, "SetShareConsent", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+	})
+}

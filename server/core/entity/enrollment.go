@@ -80,8 +80,10 @@ type Enrollment struct {
 	RevisionCount   int
 	RetryCount      int
 	ShareConsent    *string
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	// AssignedReviewerID adalah reviewer pemegang submission B2B (nil sebelum submit pertama).
+	AssignedReviewerID *string
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
 
 	Case        *Case        `gorm:"foreignKey:CaseID"`
 	Certificate *Certificate `gorm:"foreignKey:EnrollmentID"`
@@ -180,7 +182,9 @@ type EnrollmentStatusChange struct {
 	From         []EnrollmentStatus
 	To           EnrollmentStatus
 	ReviewDueAt  *time.Time
-	ChangedAt    time.Time
+	// AssignReviewer memilih reviewer pemegang saat submit B2B (lihat AssignReviewerSQL di repo).
+	AssignReviewer bool
+	ChangedAt      time.Time
 }
 
 // jakarta adalah zona waktu hari kerja. WIB tidak mengenal DST, jadi offset tetap cukup dan tidak

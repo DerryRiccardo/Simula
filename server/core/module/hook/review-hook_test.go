@@ -162,3 +162,46 @@ func TestOnReviewed_B2BWaitsForInReview(t *testing.T) {
 	require.NotNil(t, got.Certificate.PartnerName)
 	assert.Equal(t, partner, *got.Certificate.PartnerName)
 }
+
+func TestOnReviewed_HumanReviewLocksReviewerAndAsksConsent(t *testing.T) {
+	env := newHookEnv()
+	enrollment := aiEnrollment()
+	enrollment.Case.Tier = entity.TierB2B
+	enrollment.Case.Partner = &entity.Partner{Name: "PT Mitra"}
+	env.enrollments.On("GetByIDWithCase", mock.Anything, "enrollment-1").Return(enrollment, nil)
+	env.users.On("GetByID", mock.Anything, "user-1").
+		Return(entity.User{ID: "user-1", Name: "Rani", ShareDefault: entity.ShareDefaultAsk}, nil)
+	var got entity.ReviewFinalization
+	env.reviews.On("Finalize", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+		got = args.Get(1).(entity.ReviewFinalization)
+	}).Return(nil)
+	review := outcome(5, 4)
+	reviewerID := "reviewer-1"
+	review.ReviewerType = entity.ReviewerHuman
+	review.ReviewerID = &reviewerID
+	review.GradingRunID = nil
+
+	require.NoError(t, env.hook.OnReviewed(context.Background(), review))
+
+	require.NotNil(t, got.ReviewerID)
+	assert.Equal(t, reviewerID, *got.ReviewerID)
+	require.NotNil(t, got.ShareConsent)
+	assert.Equal(t, entity.ShareConsentPending, *got.ShareConsent)
+	assert.Nil(t, got.GradingRunID)
+}
+
+func TestOnReviewed_NotRecommendedHasNoConsent(t *testing.T) {
+	env := newHookEnv()
+	env.enrollments.On("GetByIDWithCase", mock.Anything, "enrollment-1").Return(aiEnrollment(), nil)
+	env.users.On("GetByID", mock.Anything, "user-1").Return(entity.User{ID: "user-1", Name: "Rani"}, nil)
+	var got entity.ReviewFinalization
+	env.reviews.On("Finalize", mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
+		got = args.Get(1).(entity.ReviewFinalization)
+	}).Return(nil)
+	review := outcome(5, 5)
+	review.IsRecommended = false
+
+	require.NoError(t, env.hook.OnReviewed(context.Background(), review))
+
+	assert.Nil(t, got.ShareConsent)
+}

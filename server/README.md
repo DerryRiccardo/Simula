@@ -84,6 +84,12 @@ Catatan Windows: `go test -race` butuh compiler C (cgo). Bila belum ada, jalanka
 | POST | `/api/orders/:id/cancel` | Mahasiswa | Batalkan order yang menunggu (ganti metode) |
 | POST | `/api/orders/:id/simulate` | Mahasiswa | Simulasi hasil bayar, hanya dengan `PAYMENT_PROVIDER=fake` |
 | POST | `/api/webhooks/midtrans` | Webhook (signature) | HTTP notification Midtrans |
+| POST | `/api/me/enrollments/:id/share-consent` | Mahasiswa | Setuju atau tolak berbagi profil ke mitra setelah direkomendasikan |
+| GET | `/api/reviewer/queue` | Reviewer | Antrean (urut tenggat SLA) dan riwayat keputusan |
+| GET | `/api/reviewer/submissions/:id` | Reviewer | Halaman review: brief, rubrik, submission (link unduh R2), draft |
+| PUT | `/api/reviewer/submissions/:id/draft` | Reviewer | Simpan draft penilaian otomatis |
+| POST | `/api/reviewer/submissions/:id/grade` | Reviewer | Nilai per kriteria, feedback, rekomendasi interview |
+| POST | `/api/reviewer/submissions/:id/revision` | Reviewer | Kembalikan untuk revisi (maksimal 2 kali, tenggat +3 hari) |
 
 Kontrak lengkap: [`docs/openapi.yaml`](docs/openapi.yaml).
 
@@ -110,6 +116,15 @@ Kontrak lengkap: [`docs/openapi.yaml`](docs/openapi.yaml).
 - Status pembayaran hanya berubah lewat notifikasi webhook: dicatat di `payment_notifications`, signature diperiksa, lalu status dikonfirmasi ke gateway. Panel demo di halaman checkout (`POST /api/orders/:id/simulate`) membuat notifikasi bertanda tangan seperti simulator sandbox Midtrans dan memprosesnya lewat jalur yang sama.
 - Lunas: `hook.OnOrderPaid` memindahkan case ke "Belum dimulai" dengan batas mulai 30 hari. Gagal, kedaluwarsa, atau dibatalkan: enrollment "Menunggu pembayaran" dilepas dan peserta bisa bayar ulang.
 - Gateway palsu menyimpan status transaksi di memori proses server, jadi status simulasi hilang saat server restart (order yang tidak dikenal dianggap masih menunggu).
+
+## Portal reviewer
+
+- Satu case B2B boleh punya beberapa reviewer dari mitra yang sama (`reviewer_assignments`), tetapi setiap submission dipegang satu reviewer (`enrollments.assigned_reviewer_id`, migrasi `003`).
+- Saat submit, pemegang dipilih otomatis: reviewer aktif case dengan antrean `in_review` paling sedikit. Submit ulang setelah revisi kembali ke pemegang lama selama ia masih aktif dan ditugaskan. Bila case belum punya reviewer aktif, submission tampil di antrean semua reviewer case sampai ada yang menyimpan draft atau memutuskan.
+- Kandidat anonim: reviewer hanya melihat "Kandidat #nomor", tanpa nama atau email.
+- Berkas dibuka lewat link unduh R2 sementara (10 menit) karena bucket private.
+- Nilai: skor dihitung server lewat `hook.OnReviewed` (sama dengan penilaian AI), sertifikat berlogo mitra terbit bila lulus. Bila direkomendasikan, `share_consent` diisi sesuai pengaturan peserta (`ask` → menunggu persetujuan di halaman hasil).
+- Seed membuat satu reviewer per mitra contoh (`reviewer@`, `reviewer2@` untuk Sagara Commerce, `reviewer.samudra@`, `reviewer.kirana@`, `reviewer.bentala@` di `simula.test`) dan menugaskannya ke case mitranya.
 
 ## Auth
 

@@ -9,6 +9,11 @@ import (
 
 // Kontrak halaman hasil: client/src/types/result.ts.
 
+// ShareConsentRequest adalah body persetujuan berbagi profil.
+type ShareConsentRequest struct {
+	IsGranted bool `json:"isGranted"`
+}
+
 // CriterionScoreResponse adalah ICriterionScore.
 type CriterionScoreResponse struct {
 	Name   string `json:"name"`

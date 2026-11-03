@@ -42,6 +42,10 @@ type seedAccount struct {
 var accounts = []seedAccount{
 	{name: "Rahma Aulia", email: "mahasiswa@simula.test", role: entity.RoleStudent, fields: []string{"backend", "data"}, major: "Sistem Informasi"},
 	{name: "Andika Pratama", email: "reviewer@simula.test", role: entity.RoleReviewer},
+	{name: "Sinta Maharani", email: "reviewer2@simula.test", role: entity.RoleReviewer},
+	{name: "Bayu Nugroho", email: "reviewer.samudra@simula.test", role: entity.RoleReviewer},
+	{name: "Laras Wulandari", email: "reviewer.kirana@simula.test", role: entity.RoleReviewer},
+	{name: "Hendra Wijaya", email: "reviewer.bentala@simula.test", role: entity.RoleReviewer},
 	{name: "Admin Simula", email: "admin@simula.test", role: entity.RoleAdmin},
 }
 
@@ -97,6 +101,9 @@ func run() error {
 	}
 
 	if err := seedCases(ctx, db, *refreshCases); err != nil {
+		return err
+	}
+	if err := seedReviewerAssignments(ctx, db); err != nil {
 		return err
 	}
 	return seedDemoEnrollment(ctx, db, accounts[0].email)
