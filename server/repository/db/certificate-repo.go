@@ -2,11 +2,13 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"gorm.io/gorm"
 
 	"github.com/DerryRiccardo/Simula/server/core/entity"
+	coreErrors "github.com/DerryRiccardo/Simula/server/core/errors"
 	coreRepo "github.com/DerryRiccardo/Simula/server/core/repository"
 )
 
@@ -29,4 +31,16 @@ func (r *certificateRepo) ListByUser(ctx context.Context, userID string, tier en
 		return nil, fmt.Errorf("failed to list certificates: %w", err)
 	}
 	return certificates, nil
+}
+
+func (r *certificateRepo) GetByPublicID(ctx context.Context, publicID string) (entity.Certificate, error) {
+	var certificate entity.Certificate
+	err := r.db.WithContext(ctx).Where("public_id = ?", publicID).Take(&certificate).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return entity.Certificate{}, coreErrors.ErrCertificateNotFound
+	}
+	if err != nil {
+		return entity.Certificate{}, fmt.Errorf("failed to get certificate %s: %w", publicID, err)
+	}
+	return certificate, nil
 }

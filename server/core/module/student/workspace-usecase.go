@@ -10,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 
 	"github.com/DerryRiccardo/Simula/server/core/entity"
 	coreErrors "github.com/DerryRiccardo/Simula/server/core/errors"
@@ -68,7 +69,13 @@ type WorkspaceDeps struct {
 	Submissions coreRepo.SubmissionRepository
 	Files       coreRepo.FileRepository
 	Storage     coreRepo.Storage
-	Now         func() time.Time
+	Grading     coreRepo.GradingRepository
+	// GradingQueue nil berarti penilaian AI nonaktif: submit AI tetap berhasil dan berhenti di
+	// ai_grading sampai penilai tersedia.
+	GradingQueue coreRepo.GradingQueue
+	// GradingModel dicatat di run penilaian.
+	GradingModel string
+	Now          func() time.Time
 }
 
 type workspaceUseCase struct {
@@ -236,15 +243,46 @@ func (uc *workspaceUseCase) Submit(ctx context.Context, enrollmentID string, con
 		dueAt := entity.AddBusinessDays(now, entity.ReviewSLABusinessDays)
 		change.ReviewDueAt = &dueAt
 	}
+	run, err := uc.newGradingRun(ctx, c, now)
+	if err != nil {
+		return entity.Enrollment{}, err
+	}
 
-	err = uc.Submissions.Submit(ctx, &submission, pendingFileIDs(files), change)
+	err = uc.Submissions.Submit(ctx, &submission, pendingFileIDs(files), change, run)
 	if errors.Is(err, coreErrors.ErrStatusConflict) {
 		return entity.Enrollment{}, apperror.Conflict(msgNotEditable)
 	}
 	if err != nil {
 		return entity.Enrollment{}, apperror.Internal(err)
 	}
+	if run != nil {
+		// Submission sudah tersimpan; bila enqueue gagal, task grading:resume_stalled melanjutkannya.
+		if err := uc.GradingQueue.EnqueueCriterion(ctx, run.ID, 1); err != nil {
+			log.Warn().Err(err).Str("run_id", run.ID).Msg("failed to enqueue grading")
+		}
+	}
 	return reloadEnrollment(ctx, uc.Enrollments, current.ID, enrollment.ID)
+}
+
+// newGradingRun menyiapkan run penilaian untuk AI case, atau nil untuk B2B dan saat penilaian AI
+// nonaktif.
+func (uc *workspaceUseCase) newGradingRun(ctx context.Context, c entity.Case, now time.Time) (*entity.AIGradingRun, error) {
+	if c.Tier != entity.TierAI || uc.GradingQueue == nil {
+		return nil, nil
+	}
+	count, err := uc.Cases.CountRubricCriteria(ctx, c.ID)
+	if err != nil {
+		return nil, apperror.Internal(err)
+	}
+	if count == 0 {
+		return nil, apperror.Internal(fmt.Errorf("case %s has no rubric criteria", c.ID))
+	}
+	criterionIDs := make([]string, 0, count)
+	for range count {
+		criterionIDs = append(criterionIDs, uuid.NewString())
+	}
+	run := entity.NewAIGradingRun(uuid.NewString(), "", uc.GradingModel, criterionIDs, now)
+	return &run, nil
 }
 
 func (uc *workspaceUseCase) GetStatus(ctx context.Context, slug string) (CaseStatus, error) {
@@ -270,10 +308,28 @@ func (uc *workspaceUseCase) GetStatus(ctx context.Context, slug string) (CaseSta
 	status.Submission = latest
 	status.Events = entity.BuildStatusEvents(*enrollment, submissions)
 	if enrollment.Status == entity.EnrollmentAIGrading && latest != nil && latest.SubmittedAt != nil {
-		progress := entity.EstimateAIGrading(*latest.SubmittedAt, len(c.Rubric))
+		progress, err := uc.aiGradingProgress(ctx, *latest, len(c.Rubric))
+		if err != nil {
+			return CaseStatus{}, err
+		}
 		status.AIGrading = &progress
 	}
 	return status, nil
+}
+
+// aiGradingProgress memakai progres run penilaian bila ada, atau perkiraan dari waktu submit saat
+// penilaian AI nonaktif.
+func (uc *workspaceUseCase) aiGradingProgress(ctx context.Context, submission entity.Submission, criteriaCount int) (entity.AIGradingProgress, error) {
+	if uc.Grading != nil {
+		run, err := uc.Grading.GetRunBySubmission(ctx, submission.ID)
+		if err == nil {
+			return run.Progress(), nil
+		}
+		if !errors.Is(err, coreErrors.ErrGradingRunNotFound) {
+			return entity.AIGradingProgress{}, apperror.Internal(err)
+		}
+	}
+	return entity.EstimateAIGrading(*submission.SubmittedAt, criteriaCount), nil
 }
 
 // resolveFiles memastikan setiap berkas yang dipilih milik user dan diunggah untuk slot yang sama,

@@ -28,6 +28,8 @@ type workspaceEnv struct {
 	submissions *mockSubmissionRepo
 	files       *mockFileRepo
 	storage     *mockStorage
+	grading     *mockGradingRepo
+	queue       *mockGradingQueue
 }
 
 func newWorkspaceEnv() *workspaceEnv {
@@ -37,11 +39,14 @@ func newWorkspaceEnv() *workspaceEnv {
 		submissions: &mockSubmissionRepo{},
 		files:       &mockFileRepo{},
 		storage:     &mockStorage{},
+		grading:     &mockGradingRepo{},
+		queue:       &mockGradingQueue{},
 	}
 	now := func() time.Time { return testNow }
 	env.uc = InitWorkspaceUseCase(WorkspaceDeps{
 		Cases: env.cases, Enrollments: env.enrollments, Submissions: env.submissions,
-		Files: env.files, Storage: env.storage, Now: now,
+		Files: env.files, Storage: env.storage, Grading: env.grading, GradingQueue: env.queue,
+		GradingModel: "fake-v1", Now: now,
 	})
 	env.upload = InitUploadUseCase(UploadDeps{
 		Cases: env.cases, Enrollments: env.enrollments, Submissions: env.submissions,
@@ -57,6 +62,8 @@ func (env *workspaceEnv) assertExpectations(t *testing.T) {
 	env.submissions.AssertExpectations(t)
 	env.files.AssertExpectations(t)
 	env.storage.AssertExpectations(t)
+	env.grading.AssertExpectations(t)
+	env.queue.AssertExpectations(t)
 }
 
 func intPtr(v int) *int { return &v }
@@ -358,6 +365,7 @@ func TestSubmit(t *testing.T) {
 			mock.MatchedBy(func(change entity.EnrollmentStatusChange) bool {
 				return change.To == entity.EnrollmentInReview && change.ReviewDueAt != nil && change.ReviewDueAt.Equal(wantDue)
 			}),
+			(*entity.AIGradingRun)(nil), // B2B dinilai reviewer, bukan AI
 		).Return(nil)
 		env.enrollments.On("GetForUser", mock.Anything, studentID, enrollmentID).
 			Return(enrollmentWith(b2bBrief(), entity.EnrollmentInReview), nil)
@@ -369,15 +377,25 @@ func TestSubmit(t *testing.T) {
 		env.assertExpectations(t)
 	})
 
-	t.Run("AI goes to grading without an SLA", func(t *testing.T) {
+	t.Run("AI goes to grading without an SLA and queues the first criterion", func(t *testing.T) {
 		env := newWorkspaceEnv()
 		env.expectEditable(aiBrief(), entity.EnrollmentInProgress)
 		env.files.On("ListByIDs", mock.Anything, studentID, []string{}).Return([]entity.File{}, nil)
+		env.cases.On("CountRubricCriteria", mock.Anything, aiCaseID).Return(3, nil)
+		var runID string
 		env.submissions.On("Submit", mock.Anything, mock.Anything, []string{},
 			mock.MatchedBy(func(change entity.EnrollmentStatusChange) bool {
 				return change.To == entity.EnrollmentAIGrading && change.ReviewDueAt == nil
 			}),
+			mock.MatchedBy(func(run *entity.AIGradingRun) bool {
+				if run == nil || run.Status != entity.AIGradingQueued || run.Model != "fake-v1" || len(run.Criteria) != 3 {
+					return false
+				}
+				runID = run.ID
+				return true
+			}),
 		).Return(nil)
+		env.queue.On("EnqueueCriterion", mock.Anything, mock.MatchedBy(func(id string) bool { return id == runID }), 1).Return(nil)
 		env.enrollments.On("GetForUser", mock.Anything, studentID, enrollmentID).
 			Return(enrollmentWith(aiBrief(), entity.EnrollmentAIGrading), nil)
 
@@ -414,7 +432,7 @@ func TestSubmit(t *testing.T) {
 
 		appErr := requireKind(t, err, apperror.KindValidation)
 		assert.Equal(t, []string{"values.design_doc"}, fieldNames(appErr))
-		env.submissions.AssertNotCalled(t, "Submit", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+		env.submissions.AssertNotCalled(t, "Submit", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 	})
 
 	t.Run("object with a different content type", func(t *testing.T) {
@@ -435,7 +453,8 @@ func TestSubmit(t *testing.T) {
 		env := newWorkspaceEnv()
 		env.expectEditable(aiBrief(), entity.EnrollmentInProgress)
 		env.files.On("ListByIDs", mock.Anything, studentID, []string{}).Return([]entity.File{}, nil)
-		env.submissions.On("Submit", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(coreErrors.ErrStatusConflict)
+		env.cases.On("CountRubricCriteria", mock.Anything, aiCaseID).Return(3, nil)
+		env.submissions.On("Submit", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(coreErrors.ErrStatusConflict)
 
 		_, err := env.uc.Submit(asStudent(), enrollmentID, entity.SubmissionContent{
 			SlotValues: entity.SlotValues{"analisis": {Text: "Akar masalahnya N+1 query."}},
@@ -458,6 +477,7 @@ func TestGetStatus(t *testing.T) {
 	env.submissions.On("ListByEnrollment", mock.Anything, enrollmentID).Return([]entity.Submission{
 		{ID: "sub-1", Attempt: 1, Status: entity.SubmissionSubmitted, SubmittedAt: &submittedAt},
 	}, nil)
+	env.grading.On("GetRunBySubmission", mock.Anything, "sub-1").Return(entity.AIGradingRun{}, coreErrors.ErrGradingRunNotFound)
 
 	status, err := env.uc.GetStatus(asStudent(), "optimasi-api")
 

@@ -20,6 +20,12 @@ tags:
     description: Daftar, masuk, sesi, login Google, onboarding
   - name: Learning
     description: Katalog, dashboard, Case Saya, Sertifikat Saya
+  - name: Workspace
+    description: Pengerjaan, draft, submit, unggah berkas, halaman status
+  - name: Result
+    description: Halaman hasil dan coba lagi
+  - name: Certificate
+    description: Verifikasi sertifikat publik
 
 paths:
   /health:
@@ -642,6 +648,87 @@ paths:
         "422":
           $ref: "#/components/responses/ValidationError"
 
+  /cases/{slug}/result:
+    get:
+      tags: [Result]
+      summary: Halaman hasil (skor per kriteria, feedback, sertifikat)
+      description: >-
+        review berisi percobaan terakhir yang sudah dinilai; null selama masih dinilai. canRetry
+        true bila gagal dan masih boleh mencoba lagi (AI tanpa batas, B2B satu kali).
+      operationId: getCaseResult
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: slug, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Hasil case
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/CaseResult"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /me/enrollments/{id}/retry:
+    post:
+      tags: [Result]
+      summary: Coba lagi setelah tidak lulus
+      description: >-
+        Tanpa body. failed menjadi in_progress untuk percobaan baru. AI tanpa tenggat; B2B
+        mendapat tenggat baru 3 hari kalender dan hanya bisa sekali.
+      operationId: retryEnrollment
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Enrollment berstatus in_progress
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Enrollment"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /certificates/{id}:
+    get:
+      tags: [Certificate]
+      summary: Verifikasi sertifikat untuk recruiter (tanpa login)
+      description: id adalah public_id, misalnya SIM-7K2Q9X4M (tidak peka huruf besar/kecil). Bila login, isOwner menandai pemilik.
+      operationId: verifyCertificate
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Sertifikat terverifikasi
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/CertificateVerification"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
 components:
   securitySchemes:
     accessCookie:
@@ -1082,6 +1169,68 @@ components:
           description: Header yang wajib dikirim bersama PUT (mis. Content-Type)
           additionalProperties: { type: string }
         expiresAt: { type: string, format: date-time }
+    ReviewResult:
+      type: object
+      description: IReviewResult di client
+      properties:
+        totalScore: { type: integer }
+        passingScore: { type: integer }
+        isPassed: { type: boolean }
+        criteria:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              weight: { type: integer }
+              level: { type: integer, minimum: 1, maximum: 5 }
+              reason: { type: string }
+        feedback:
+          type: object
+          properties:
+            strengths: { type: array, items: { type: string } }
+            improvements: { type: array, items: { type: string } }
+            nextSteps: { type: array, items: { type: string } }
+        reviewerRole: { type: string }
+        reviewedAt: { type: string, format: date-time }
+        isRecommended: { type: boolean }
+    CaseResult:
+      type: object
+      description: ICaseResult di client
+      properties:
+        caseInfo: { $ref: "#/components/schemas/CaseDetail" }
+        enrollment:
+          allOf: [{ $ref: "#/components/schemas/Enrollment" }]
+          nullable: true
+        review:
+          allOf: [{ $ref: "#/components/schemas/ReviewResult" }]
+          nullable: true
+        certificate:
+          allOf: [{ $ref: "#/components/schemas/Certificate" }]
+          nullable: true
+        submission:
+          allOf: [{ $ref: "#/components/schemas/SubmissionRecord" }]
+          nullable: true
+        slots: { type: array, items: { $ref: "#/components/schemas/SubmissionSlot" } }
+        shareConsent: { type: string, nullable: true }
+        canRetry: { type: boolean }
+    CertificateVerification:
+      type: object
+      description: ICertificateVerification di client
+      properties:
+        certificate: { $ref: "#/components/schemas/Certificate" }
+        caseSlug: { type: string }
+        skills: { type: array, items: { type: string } }
+        reviewerRole: { type: string }
+        partner:
+          type: object
+          nullable: true
+          properties:
+            name: { type: string }
+            industry: { type: string }
+            about: { type: string }
+        passingScore: { type: integer }
+        isOwner: { type: boolean }
   responses:
     Conflict:
       description: Status tidak mengizinkan aksi ini (mis. sudah terkirim atau tenggat lewat)

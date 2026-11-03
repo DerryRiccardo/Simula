@@ -36,6 +36,10 @@ type CaseRepository interface {
 	// mengambil case tetap boleh mengerjakannya. Mengembalikan coreErrors.ErrCaseNotFound bila tidak
 	// ada.
 	GetWithBriefBySlug(ctx context.Context, slug string) (entity.Case, error)
+	// GetWithBriefByID sama dengan GetWithBriefBySlug, dicari lewat ID.
+	GetWithBriefByID(ctx context.Context, id string) (entity.Case, error)
+	// CountRubricCriteria menghitung kriteria rubrik case, untuk menyiapkan run penilaian AI.
+	CountRubricCriteria(ctx context.Context, caseID string) (int, error)
 	// GetWithSlotsByID hanya mengisi ID, Tier, Status, DeadlineDays, dan Slots. Dipakai jalur tulis
 	// (draft, submit, unggah) yang hanya butuh aturan slot. Mengembalikan coreErrors.ErrCaseNotFound
 	// bila tidak ada.
@@ -69,6 +73,13 @@ type EnrollmentRepository interface {
 	// Create mengembalikan coreErrors.ErrEnrollmentExists bila user sudah mengambil case ini, atau
 	// coreErrors.ErrCandidateNumberTaken bila nomor kandidat bentrok (coba lagi dengan nomor lain).
 	Create(ctx context.Context, enrollment *entity.Enrollment) error
+	// GetByIDWithCase memuat enrollment beserta ringkasan Case (dengan Partner) tanpa memeriksa pemilik.
+	// Hanya untuk proses internal (worker, hook). Mengembalikan coreErrors.ErrEnrollmentNotFound.
+	GetByIDWithCase(ctx context.Context, enrollmentID string) (entity.Enrollment, error)
+	// Retry mengubah failed menjadi in_progress untuk percobaan baru: menambah retry_count, mencatat
+	// last_retried_at, menghapus skor, dan memasang tenggat baru. Mengembalikan
+	// coreErrors.ErrStatusConflict bila status sudah bukan failed.
+	Retry(ctx context.Context, enrollmentID string, deadlineAt *time.Time, now time.Time) error
 	// Start mengubah not_started menjadi in_progress beserta waktu mulai dan tenggat. Mengembalikan
 	// coreErrors.ErrStatusConflict bila status sudah bukan not_started.
 	Start(ctx context.Context, enrollmentID string, startedAt time.Time, deadlineAt *time.Time) error
@@ -78,4 +89,6 @@ type EnrollmentRepository interface {
 type CertificateRepository interface {
 	// ListByUser mengembalikan sertifikat milik user, terbaru dulu. tier kosong = semua.
 	ListByUser(ctx context.Context, userID string, tier entity.Tier) ([]entity.Certificate, error)
+	// GetByPublicID mengembalikan coreErrors.ErrCertificateNotFound bila ID verifikasi tidak terdaftar.
+	GetByPublicID(ctx context.Context, publicID string) (entity.Certificate, error)
 }

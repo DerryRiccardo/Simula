@@ -91,6 +91,18 @@ func (r *caseRepo) GetWithBriefBySlug(ctx context.Context, slug string) (entity.
 	return r.getWithBrief(ctx, "cases.slug = ?", slug)
 }
 
+func (r *caseRepo) GetWithBriefByID(ctx context.Context, id string) (entity.Case, error) {
+	return r.getWithBrief(ctx, "cases.id = ?", id)
+}
+
+func (r *caseRepo) CountRubricCriteria(ctx context.Context, caseID string) (int, error) {
+	var count int64
+	if err := r.db.WithContext(ctx).Model(&entity.RubricCriterion{}).Where("case_id = ?", caseID).Count(&count).Error; err != nil {
+		return 0, fmt.Errorf("failed to count rubric of %s: %w", caseID, err)
+	}
+	return int(count), nil
+}
+
 func (r *caseRepo) GetWithSlotsByID(ctx context.Context, id string) (entity.Case, error) {
 	var c entity.Case
 	err := r.db.WithContext(ctx).

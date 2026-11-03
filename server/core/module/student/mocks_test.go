@@ -137,8 +137,8 @@ func (m *mockSubmissionRepo) SaveDraft(ctx context.Context, draft *entity.Submis
 	return m.Called(ctx, draft, attachFileIDs).Error(0)
 }
 
-func (m *mockSubmissionRepo) Submit(ctx context.Context, submission *entity.Submission, attachFileIDs []string, change entity.EnrollmentStatusChange) error {
-	return m.Called(ctx, submission, attachFileIDs, change).Error(0)
+func (m *mockSubmissionRepo) Submit(ctx context.Context, submission *entity.Submission, attachFileIDs []string, change entity.EnrollmentStatusChange, run *entity.AIGradingRun) error {
+	return m.Called(ctx, submission, attachFileIDs, change, run).Error(0)
 }
 
 type mockFileRepo struct {
@@ -180,4 +180,90 @@ func (m *mockStorage) HeadObject(ctx context.Context, key string) (entity.Stored
 
 func (m *mockStorage) DeleteObject(ctx context.Context, key string) error {
 	return m.Called(ctx, key).Error(0)
+}
+
+func (m *mockCaseRepo) GetWithBriefByID(ctx context.Context, id string) (entity.Case, error) {
+	args := m.Called(ctx, id)
+	return args.Get(0).(entity.Case), args.Error(1)
+}
+
+func (m *mockCaseRepo) CountRubricCriteria(ctx context.Context, caseID string) (int, error) {
+	args := m.Called(ctx, caseID)
+	return args.Int(0), args.Error(1)
+}
+
+func (m *mockEnrollmentRepo) GetByIDWithCase(ctx context.Context, enrollmentID string) (entity.Enrollment, error) {
+	args := m.Called(ctx, enrollmentID)
+	return args.Get(0).(entity.Enrollment), args.Error(1)
+}
+
+func (m *mockEnrollmentRepo) Retry(ctx context.Context, enrollmentID string, deadlineAt *time.Time, now time.Time) error {
+	return m.Called(ctx, enrollmentID, deadlineAt, now).Error(0)
+}
+
+func (m *mockCertificateRepo) GetByPublicID(ctx context.Context, publicID string) (entity.Certificate, error) {
+	args := m.Called(ctx, publicID)
+	return args.Get(0).(entity.Certificate), args.Error(1)
+}
+
+type mockGradingRepo struct {
+	mock.Mock
+}
+
+func (m *mockGradingRepo) LoadJob(ctx context.Context, runID string) (entity.GradingJob, error) {
+	args := m.Called(ctx, runID)
+	return args.Get(0).(entity.GradingJob), args.Error(1)
+}
+
+func (m *mockGradingRepo) GetRunBySubmission(ctx context.Context, submissionID string) (entity.AIGradingRun, error) {
+	args := m.Called(ctx, submissionID)
+	return args.Get(0).(entity.AIGradingRun), args.Error(1)
+}
+
+func (m *mockGradingRepo) SaveCriterionResult(ctx context.Context, criterionID string, verdict entity.CriterionVerdict, now time.Time) error {
+	return m.Called(ctx, criterionID, verdict, now).Error(0)
+}
+
+func (m *mockGradingRepo) ListStalled(ctx context.Context, before time.Time, limit int) ([]entity.AIGradingRun, error) {
+	args := m.Called(ctx, before, limit)
+	return args.Get(0).([]entity.AIGradingRun), args.Error(1)
+}
+
+func (m *mockGradingRepo) Fail(ctx context.Context, runID, message string, now time.Time) error {
+	return m.Called(ctx, runID, message, now).Error(0)
+}
+
+type mockGradingQueue struct {
+	mock.Mock
+}
+
+func (m *mockGradingQueue) EnqueueCriterion(ctx context.Context, runID string, position int) error {
+	return m.Called(ctx, runID, position).Error(0)
+}
+
+func (m *mockGradingQueue) EnqueueFeedback(ctx context.Context, runID string) error {
+	return m.Called(ctx, runID).Error(0)
+}
+
+type mockReviewRepo struct {
+	mock.Mock
+}
+
+func (m *mockReviewRepo) Finalize(ctx context.Context, finalization entity.ReviewFinalization) error {
+	return m.Called(ctx, finalization).Error(0)
+}
+
+func (m *mockReviewRepo) GetBySubmission(ctx context.Context, submissionID string) (entity.Review, error) {
+	args := m.Called(ctx, submissionID)
+	return args.Get(0).(entity.Review), args.Error(1)
+}
+
+func (m *mockGradingRepo) ListUngraded(ctx context.Context, limit int) ([]entity.UngradedSubmission, error) {
+	args := m.Called(ctx, limit)
+	return args.Get(0).([]entity.UngradedSubmission), args.Error(1)
+}
+
+func (m *mockGradingRepo) CreateRun(ctx context.Context, run *entity.AIGradingRun) (bool, error) {
+	args := m.Called(ctx, run)
+	return args.Bool(0), args.Error(1)
 }

@@ -243,18 +243,23 @@ func MapEnrollment(e *entity.Enrollment) EnrollmentResponse {
 func MapCertificates(certificates []entity.Certificate) []CertificateResponse {
 	result := make([]CertificateResponse, 0, len(certificates))
 	for _, c := range certificates {
-		result = append(result, CertificateResponse{
-			ID:            c.PublicID,
-			CaseTitle:     c.CaseTitle,
-			Tier:          string(c.Tier),
-			FieldKey:      c.FieldKey,
-			RecipientName: c.RecipientName,
-			PartnerName:   c.PartnerName,
-			Score:         c.Score,
-			IssuedAt:      c.IssuedAt.UTC(),
-		})
+		result = append(result, MapCertificate(c))
 	}
 	return result
+}
+
+// MapCertificate memetakan satu sertifikat. ID yang dikirim adalah public_id.
+func MapCertificate(c entity.Certificate) CertificateResponse {
+	return CertificateResponse{
+		ID:            c.PublicID,
+		CaseTitle:     c.CaseTitle,
+		Tier:          string(c.Tier),
+		FieldKey:      c.FieldKey,
+		RecipientName: c.RecipientName,
+		PartnerName:   c.PartnerName,
+		Score:         c.Score,
+		IssuedAt:      c.IssuedAt.UTC(),
+	}
 }
 
 // MapDashboardToResponse memetakan dashboard.

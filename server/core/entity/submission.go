@@ -154,6 +154,7 @@ type Submission struct {
 	UpdatedAt   time.Time
 
 	RevisionRequest *RevisionRequest `gorm:"foreignKey:SubmissionID"`
+	Review          *Review          `gorm:"foreignKey:SubmissionID"`
 }
 
 // RevisionRequest adalah keputusan reviewer mengembalikan submission untuk diperbaiki.
@@ -287,6 +288,9 @@ func BuildStatusEvents(enrollment Enrollment, submissions []Submission) []Status
 		events = append(events, StatusEvent{Type: StatusEventSubmitted, At: *item.SubmittedAt, Attempt: &attempt})
 		if item.RevisionRequest != nil {
 			events = append(events, StatusEvent{Type: StatusEventRevisionRequested, At: item.RevisionRequest.CreatedAt})
+		}
+		if item.Review != nil {
+			events = append(events, StatusEvent{Type: StatusEventReviewed, At: item.Review.ReviewedAt})
 		}
 	}
 	if enrollment.LastRetriedAt != nil {

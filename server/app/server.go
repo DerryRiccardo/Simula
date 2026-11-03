@@ -10,10 +10,12 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/DerryRiccardo/Simula/server/config"
+	coreRepo "github.com/DerryRiccardo/Simula/server/core/repository"
 	studentHandler "github.com/DerryRiccardo/Simula/server/handler/student"
 	"github.com/DerryRiccardo/Simula/server/initializers"
 	"github.com/DerryRiccardo/Simula/server/middleware"
 	"github.com/DerryRiccardo/Simula/server/router"
+	"github.com/DerryRiccardo/Simula/server/task"
 )
 
 // RunServer menjalankan API HTTP sampai ctx selesai.
@@ -36,13 +38,26 @@ func RunServer(ctx context.Context, cfg *config.Config) error {
 	}
 	auth := newAuthComponents(cfg, newAuthUseCase(cfg, db, rdb))
 	store := newStorage(cfg)
+
+	// Tanpa penilai AI, queue tetap nil sehingga submit tidak membuat run penilaian.
+	var gradingQueue coreRepo.GradingQueue
+	gradingModel := ""
+	if model := newLLM(cfg); model != nil {
+		client := initializers.NewAsynqClient(cfg)
+		defer initializers.CloseAsynqClient(client)
+		gradingQueue = task.NewGradingQueue(client, cfg.QueueName)
+		gradingModel = model.Model()
+	}
+
 	router.Register(engine, router.Handlers{
-		Health:     newHealthHandler(cfg, db, rdb),
-		Auth:       auth.auth,
-		Onboarding: auth.onboarding,
-		Learning:   newLearningHandler(db),
-		Workspace:  newWorkspaceHandler(db, store),
-		Upload:     studentHandler.Upload(newUploadUseCase(cfg, db, store)),
+		Health:      newHealthHandler(cfg, db, rdb),
+		Auth:        auth.auth,
+		Onboarding:  auth.onboarding,
+		Learning:    newLearningHandler(db),
+		Workspace:   newWorkspaceHandler(db, store, gradingQueue, gradingModel),
+		Upload:      studentHandler.Upload(newUploadUseCase(cfg, db, store)),
+		Result:      newResultHandler(db),
+		Certificate: newCertificateHandler(db),
 	}, auth.middlewares)
 
 	return initializers.RunHTTPServer(ctx, cfg, initializers.NewHTTPServer(cfg, engine))

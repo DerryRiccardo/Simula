@@ -126,6 +126,43 @@ func (r *enrollmentRepo) Create(ctx context.Context, enrollment *entity.Enrollme
 	return coreErrors.ErrCandidateNumberTaken
 }
 
+func (r *enrollmentRepo) GetByIDWithCase(ctx context.Context, enrollmentID string) (entity.Enrollment, error) {
+	var enrollment entity.Enrollment
+	err := r.db.WithContext(ctx).
+		Preload("Case", func(tx *gorm.DB) *gorm.DB { return tx.Select(caseSummaryColumns) }).
+		Preload("Case.Partner").
+		Where("id = ?", enrollmentID).
+		Take(&enrollment).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return entity.Enrollment{}, coreErrors.ErrEnrollmentNotFound
+	}
+	if err != nil {
+		return entity.Enrollment{}, fmt.Errorf("failed to get enrollment %s: %w", enrollmentID, err)
+	}
+	return enrollment, nil
+}
+
+func (r *enrollmentRepo) Retry(ctx context.Context, enrollmentID string, deadlineAt *time.Time, now time.Time) error {
+	result := r.db.WithContext(ctx).Model(&entity.Enrollment{}).
+		Where("id = ? AND status = ?", enrollmentID, entity.EnrollmentFailed).
+		Updates(map[string]any{
+			"status":          entity.EnrollmentInProgress,
+			"retry_count":     gorm.Expr("retry_count + 1"),
+			"last_retried_at": now,
+			"score":           nil,
+			"review_due_at":   nil,
+			"deadline_at":     deadlineAt,
+			"updated_at":      now,
+		})
+	if result.Error != nil {
+		return fmt.Errorf("failed to retry enrollment %s: %w", enrollmentID, result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return coreErrors.ErrStatusConflict
+	}
+	return nil
+}
+
 func (r *enrollmentRepo) Start(ctx context.Context, enrollmentID string, startedAt time.Time, deadlineAt *time.Time) error {
 	result := r.db.WithContext(ctx).Model(&entity.Enrollment{}).
 		Where("id = ? AND status = ?", enrollmentID, entity.EnrollmentNotStarted).

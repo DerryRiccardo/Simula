@@ -29,12 +29,14 @@ const (
 
 // Handlers berisi semua handler yang didaftarkan. Dikonstruksi di app/server.go.
 type Handlers struct {
-	Health     *publicHandler.HealthHandler
-	Auth       *authHandler.AuthHandler
-	Onboarding *studentHandler.OnboardingHandler
-	Learning   *studentHandler.LearningHandler
-	Workspace  *studentHandler.WorkspaceHandler
-	Upload     *studentHandler.UploadHandler
+	Health      *publicHandler.HealthHandler
+	Auth        *authHandler.AuthHandler
+	Onboarding  *studentHandler.OnboardingHandler
+	Learning    *studentHandler.LearningHandler
+	Workspace   *studentHandler.WorkspaceHandler
+	Upload      *studentHandler.UploadHandler
+	Result      *studentHandler.ResultHandler
+	Certificate *publicHandler.CertificateHandler
 }
 
 // Middlewares adalah middleware akses yang dipasang per grup.
@@ -69,6 +71,8 @@ func Register(engine *gin.Engine, h Handlers, mw Middlewares) []Route {
 	optional := r.group(AccessOptionalAuth, mw.OptionalAuth)
 	optional.GET("/cases", h.Learning.ListCases)
 	optional.GET("/cases/:slug", h.Learning.GetCase)
+	// Verifikasi sertifikat untuk recruiter; bila login, pemiliknya ditandai isOwner.
+	optional.GET("/certificates/:id", h.Certificate.Verify)
 
 	authenticated := r.group(AccessAuthenticated, mw.Auth)
 	authenticated.GET("/auth/me", h.Auth.Me)
@@ -85,6 +89,8 @@ func Register(engine *gin.Engine, h Handlers, mw Middlewares) []Route {
 	student.PUT("/me/enrollments/:id/draft", h.Workspace.SaveDraft)
 	student.POST("/me/enrollments/:id/submit", h.Workspace.Submit)
 	student.POST("/uploads", h.Upload.Create)
+	student.GET("/cases/:slug/result", h.Result.GetResult)
+	student.POST("/me/enrollments/:id/retry", h.Result.Retry)
 
 	return r.routes
 }

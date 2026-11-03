@@ -4,7 +4,7 @@ Backend REST untuk Simula (Go + Gin).
 
 ## Stack
 
-Go · Gin · GORM + Supabase PostgreSQL · Asynq + Redis · Cloudflare R2 · Midtrans · Resend · Claude API · zerolog · envconfig · testify
+Go · Gin · GORM + Supabase PostgreSQL · Asynq + Redis · Cloudflare R2 · Midtrans · Resend · Gemini API · zerolog · envconfig · testify
 
 ## Prasyarat
 
@@ -76,6 +76,9 @@ Catatan Windows: `go test -race` butuh compiler C (cgo). Bila belum ada, jalanka
 | PUT | `/api/me/enrollments/:id/draft` | Mahasiswa | Simpan draft |
 | POST | `/api/me/enrollments/:id/submit` | Mahasiswa | Kirim submission (AI → dinilai AI, B2B → menunggu review, SLA 5 hari kerja); ditolak setelah tenggat |
 | POST | `/api/uploads` | Mahasiswa | URL unggah berkas langsung ke R2 |
+| GET | `/api/cases/:slug/result` | Mahasiswa | Halaman hasil: skor per kriteria, feedback, sertifikat, boleh coba lagi |
+| POST | `/api/me/enrollments/:id/retry` | Mahasiswa | Coba lagi setelah tidak lulus (AI tanpa batas, B2B sekali dengan tenggat 3 hari) |
+| GET | `/api/certificates/:id` | Publik (isOwner bila login) | Verifikasi sertifikat untuk recruiter |
 
 Kontrak lengkap: [`docs/openapi.yaml`](docs/openapi.yaml).
 
@@ -86,6 +89,14 @@ Kontrak lengkap: [`docs/openapi.yaml`](docs/openapi.yaml).
 - Alur: client meminta URL ke `POST /api/uploads`, mengunggah langsung ke R2 dengan `PUT`, lalu menyimpan `fileId` di isian slot. Saat submit, server memeriksa setiap berkas di R2 (ada dan ukurannya sama).
 - Key object: `submissions/{enrollmentId}/{attempt}/{slotId}/{fileId}.{ext}`. Nama berkas asli hanya disimpan di database.
 - Berkas yang tidak pernah dipakai di draft atau submission dihapus task worker setiap jam setelah 24 jam.
+
+## Penilaian AI
+
+- `LLM_PROVIDER=fake` memakai penilai palsu yang deterministik (isi yang sama selalu mendapat skor yang sama) dengan jeda `FAKE_LLM_DELAY` per langkah agar progres di halaman status terlihat. Ditolak saat `APP_ENV=production`. Integrasi Gemini menyusul.
+- `LLM_PROVIDER` kosong: penilaian AI nonaktif. Submit AI tetap tersimpan dan berhenti di status `ai_grading`; begitu worker menyala dengan penilai aktif, submission itu dinilai otomatis.
+- Alur: submit membuat run di `ai_grading_runs`, lalu worker menilai satu kriteria per task (`grading:evaluate_criterion`), menyusun feedback (`grading:compose_feedback`), dan memfinalkan lewat `hook.OnReviewed`: skor total dihitung server, status menjadi `passed`/`failed`, dan sertifikat terbit bila lulus.
+- Setiap langkah diulang hingga 3 kali. Bila tetap gagal, run ditandai gagal, submission kembali menjadi draft, dan peserta bisa submit ulang tanpa dihitung sebagai percobaan. Task `grading:resume_stalled` (saat worker menyala lalu setiap 5 menit) melanjutkan run yang macet lebih dari 10 menit dan membuatkan run untuk submission yang belum punya.
+- Server API dan worker harus memakai `LLM_PROVIDER` yang sama.
 
 ## Auth
 

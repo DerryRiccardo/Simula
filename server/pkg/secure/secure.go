@@ -22,6 +22,15 @@ func RandomToken() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(buf), nil
 }
 
+// RandomBytes mengembalikan n byte acak dari crypto/rand.
+func RandomBytes(n int) ([]byte, error) {
+	buf := make([]byte, n)
+	if _, err := rand.Read(buf); err != nil {
+		return nil, fmt.Errorf("failed to read random bytes: %w", err)
+	}
+	return buf, nil
+}
+
 // HashToken menghasilkan SHA-256 heksadesimal. Token acak 256 bit tidak perlu salt atau bcrypt.
 func HashToken(token string) string {
 	sum := sha256.Sum256([]byte(token))

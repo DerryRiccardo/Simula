@@ -28,6 +28,18 @@ func NewAsynqServer(cfg *config.Config) *asynq.Server {
 	})
 }
 
+// NewAsynqClient membuat producer Asynq untuk mengantrekan task dari server API.
+func NewAsynqClient(cfg *config.Config) *asynq.Client {
+	return asynq.NewClient(AsynqRedisOpt(cfg))
+}
+
+// CloseAsynqClient menutup koneksi producer Asynq.
+func CloseAsynqClient(client *asynq.Client) {
+	if err := client.Close(); err != nil {
+		log.Error().Err(err).Msg("failed to close asynq client")
+	}
+}
+
 // NewAsynqScheduler membuat scheduler untuk task periodik.
 func NewAsynqScheduler(cfg *config.Config) (*asynq.Scheduler, error) {
 	loc, err := time.LoadLocation(ScheduleLocation)

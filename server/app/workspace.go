@@ -27,13 +27,17 @@ func newStorage(cfg *config.Config) coreRepo.Storage {
 	})
 }
 
-func newWorkspaceHandler(db *gorm.DB, store coreRepo.Storage) *studentHandler.WorkspaceHandler {
+// newWorkspaceHandler: queue nil berarti submit AI tersimpan tanpa dinilai (LLM_PROVIDER kosong).
+func newWorkspaceHandler(db *gorm.DB, store coreRepo.Storage, queue coreRepo.GradingQueue, gradingModel string) *studentHandler.WorkspaceHandler {
 	uc := studentModule.InitWorkspaceUseCase(studentModule.WorkspaceDeps{
-		Cases:       dbRepo.InitCaseRepo(db),
-		Enrollments: dbRepo.InitEnrollmentRepo(db),
-		Submissions: dbRepo.InitSubmissionRepo(db),
-		Files:       dbRepo.InitFileRepo(db),
-		Storage:     store,
+		Cases:        dbRepo.InitCaseRepo(db),
+		Enrollments:  dbRepo.InitEnrollmentRepo(db),
+		Submissions:  dbRepo.InitSubmissionRepo(db),
+		Files:        dbRepo.InitFileRepo(db),
+		Storage:      store,
+		Grading:      dbRepo.InitGradingRepo(db),
+		GradingQueue: queue,
+		GradingModel: gradingModel,
 	})
 	return studentHandler.Workspace(uc)
 }

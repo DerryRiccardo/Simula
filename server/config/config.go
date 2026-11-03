@@ -75,7 +75,17 @@ type Config struct {
 	R2SecretAccessKey string        `envconfig:"R2_SECRET_ACCESS_KEY"`
 	R2Bucket          string        `envconfig:"R2_BUCKET"`
 	R2UploadURLTTL    time.Duration `envconfig:"R2_UPLOAD_URL_TTL" default:"15m"`
+
+	// Penilai AI. Kosong = penilaian AI nonaktif (submission AI tetap tersimpan tetapi tidak
+	// dinilai). "fake" memakai penilai palsu yang deterministik, hanya untuk development.
+	LLMProvider  string        `envconfig:"LLM_PROVIDER"`
+	FakeLLMDelay time.Duration `envconfig:"FAKE_LLM_DELAY" default:"2s"`
 }
+
+// Penyedia LLM yang didukung LLM_PROVIDER.
+const (
+	LLMProviderFake = "fake"
+)
 
 const minJWTSecretLength = 32
 
@@ -87,6 +97,11 @@ func (c *Config) IsGoogleLoginEnabled() bool {
 // IsStorageEnabled bernilai true bila kredensial dan bucket R2 diisi.
 func (c *Config) IsStorageEnabled() bool {
 	return c.R2AccountID != "" && c.R2AccessKeyID != "" && c.R2SecretAccessKey != "" && c.R2Bucket != ""
+}
+
+// IsGradingEnabled bernilai true bila penilai AI dikonfigurasi.
+func (c *Config) IsGradingEnabled() bool {
+	return c.LLMProvider != ""
 }
 
 // Load membaca environment variable ke Config lalu memvalidasi nilainya.
@@ -140,6 +155,17 @@ func (c *Config) validate() error {
 	}
 	if c.R2UploadURLTTL <= 0 {
 		return fmt.Errorf("R2_UPLOAD_URL_TTL must be positive")
+	}
+	switch c.LLMProvider {
+	case "", LLMProviderFake:
+	default:
+		return fmt.Errorf("invalid LLM_PROVIDER %q: must be empty or fake", c.LLMProvider)
+	}
+	if c.IsProduction() && c.LLMProvider == LLMProviderFake {
+		return fmt.Errorf("LLM_PROVIDER=fake is not allowed in production")
+	}
+	if c.FakeLLMDelay < 0 {
+		return fmt.Errorf("FAKE_LLM_DELAY must not be negative")
 	}
 	if c.IsProduction() && !c.CookieSecure {
 		return fmt.Errorf("COOKIE_SECURE must be true in production")

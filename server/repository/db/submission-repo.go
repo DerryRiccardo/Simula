@@ -33,6 +33,7 @@ func (r *submissionRepo) ListByEnrollment(ctx context.Context, enrollmentID stri
 	submissions := make([]entity.Submission, 0)
 	err := r.db.WithContext(ctx).
 		Preload("RevisionRequest").
+		Preload("Review").
 		Where("enrollment_id = ?", enrollmentID).
 		Order("attempt").
 		Limit(entity.UnpaginatedListLimit).
@@ -147,7 +148,7 @@ func nextAttempt(db *gorm.DB, enrollmentID string) (int, error) {
 	return attempt, err
 }
 
-func (r *submissionRepo) Submit(ctx context.Context, submission *entity.Submission, attachFileIDs []string, change entity.EnrollmentStatusChange) error {
+func (r *submissionRepo) Submit(ctx context.Context, submission *entity.Submission, attachFileIDs []string, change entity.EnrollmentStatusChange, run *entity.AIGradingRun) error {
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := saveSubmitted(tx, submission); err != nil {
 			return err
@@ -155,7 +156,22 @@ func (r *submissionRepo) Submit(ctx context.Context, submission *entity.Submissi
 		if err := attachFiles(tx, attachFileIDs); err != nil {
 			return err
 		}
-		return changeEnrollmentStatus(tx, change)
+		if err := changeEnrollmentStatus(tx, change); err != nil {
+			return err
+		}
+		if run == nil {
+			return nil
+		}
+		// ID submission baru diketahui setelah draft diubah (RETURNING), jadi run disambungkan di sini.
+		run.SubmissionID = submission.ID
+		// Submission yang pernah gagal dinilai dipakai ulang (percobaannya tidak dihitung); run lama
+		// dihapus karena satu submission hanya punya satu run.
+		err := tx.Where("submission_id = ? AND status = ?", submission.ID, entity.AIGradingFailed).
+			Delete(&entity.AIGradingRun{}).Error
+		if err != nil {
+			return err
+		}
+		return tx.Create(run).Error
 	})
 	if errors.Is(err, coreErrors.ErrStatusConflict) {
 		return err

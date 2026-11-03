@@ -22,9 +22,10 @@ type SubmissionRepository interface {
 	SaveDraft(ctx context.Context, draft *entity.Submission, attachFileIDs []string) error
 	// Submit mengubah draft enrollment menjadi terkirim (atau membuat submission baru dengan ID dari
 	// parameter bila belum ada draft), menandai berkas attached, dan mengubah status enrollment
-	// dalam satu transaksi. Mengembalikan coreErrors.ErrStatusConflict bila status enrollment sudah
+	// dalam satu transaksi. Bila run diisi (AI case), run penilaian dan baris kriterianya dibuat di
+	// transaksi yang sama. Mengembalikan coreErrors.ErrStatusConflict bila status enrollment sudah
 	// tidak sesuai change.From.
-	Submit(ctx context.Context, submission *entity.Submission, attachFileIDs []string, change entity.EnrollmentStatusChange) error
+	Submit(ctx context.Context, submission *entity.Submission, attachFileIDs []string, change entity.EnrollmentStatusChange, run *entity.AIGradingRun) error
 }
 
 // FileRepository menyimpan metadata berkas di R2.

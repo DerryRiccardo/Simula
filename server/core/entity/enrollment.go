@@ -110,6 +110,13 @@ var EditableStatuses = []EnrollmentStatus{EnrollmentInProgress, EnrollmentRevisi
 // ReviewSLABusinessDays adalah batas reviewer mitra menilai sejak submit terakhir (CONTEXT.md 4.10).
 const ReviewSLABusinessDays = 5
 
+// Aturan "Coba lagi" setelah belum lulus (CONTEXT.md §7): AI tanpa batas, B2B satu kali dengan
+// tenggat baru dalam hari kalender.
+const (
+	B2BMaxRetries        = 1
+	B2BRetryDeadlineDays = 3
+)
+
 // CanStart bernilai true bila case B2B yang sudah dibayar boleh mulai dikerjakan.
 func (e *Enrollment) CanStart() bool {
 	return e.Status == EnrollmentNotStarted
@@ -118,6 +125,23 @@ func (e *Enrollment) CanStart() bool {
 // CanViewBrief bernilai true bila brief lengkap boleh dibuka: AI sudah dimulai, B2B sudah dibayar.
 func (e *Enrollment) CanViewBrief() bool {
 	return e.Status != EnrollmentPendingPayment
+}
+
+// CanRetry bernilai true bila peserta yang belum lulus boleh mencoba lagi.
+func (e *Enrollment) CanRetry(tier Tier) bool {
+	if e.Status != EnrollmentFailed {
+		return false
+	}
+	return tier == TierAI || e.RetryCount < B2BMaxRetries
+}
+
+// RetryDeadline menghitung tenggat percobaan ulang: B2B mendapat tenggat baru, AI tidak.
+func RetryDeadline(tier Tier, now time.Time) *time.Time {
+	if tier == TierAI {
+		return nil
+	}
+	days := B2BRetryDeadlineDays
+	return WorkDeadline(now, &days)
 }
 
 // IsEditable bernilai true bila draft dan submission masih bisa diubah.

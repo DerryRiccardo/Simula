@@ -19,12 +19,14 @@ func registerForTest() (*gin.Engine, []Route) {
 	noop := func(c *gin.Context) { c.Next() }
 	routes := Register(engine,
 		Handlers{
-			Health:     publicHandler.Health(nil),
-			Auth:       authHandler.Auth(nil, sessioncookie.Config{}, "http://localhost:3000"),
-			Onboarding: studentHandler.Onboarding(nil),
-			Learning:   studentHandler.Learning(nil),
-			Workspace:  studentHandler.Workspace(nil),
-			Upload:     studentHandler.Upload(nil),
+			Health:      publicHandler.Health(nil),
+			Auth:        authHandler.Auth(nil, sessioncookie.Config{}, "http://localhost:3000"),
+			Onboarding:  studentHandler.Onboarding(nil),
+			Learning:    studentHandler.Learning(nil),
+			Workspace:   studentHandler.Workspace(nil),
+			Upload:      studentHandler.Upload(nil),
+			Result:      studentHandler.Result(nil),
+			Certificate: publicHandler.Certificate(nil),
 		},
 		Middlewares{
 			Auth:         noop,
@@ -78,6 +80,9 @@ func TestRegister_AccessGroups(t *testing.T) {
 		{Method: "PUT", Path: "/api/me/enrollments/:id/draft", Access: AccessStudent},
 		{Method: "POST", Path: "/api/me/enrollments/:id/submit", Access: AccessStudent},
 		{Method: "POST", Path: "/api/uploads", Access: AccessStudent},
+		{Method: "GET", Path: "/api/cases/:slug/result", Access: AccessStudent},
+		{Method: "POST", Path: "/api/me/enrollments/:id/retry", Access: AccessStudent},
+		{Method: "GET", Path: "/api/certificates/:id", Access: AccessOptionalAuth},
 	}
 	for _, want := range tests {
 		t.Run(want.Method+" "+want.Path, func(t *testing.T) {
