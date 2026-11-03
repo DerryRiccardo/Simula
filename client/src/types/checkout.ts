@@ -5,7 +5,8 @@ import type { ICaseDetail, IEnrollment } from './case';
 /** va_* = transfer virtual account (menunggu pembayaran); qris/gopay = bayar instan. */
 export type TPaymentMethod = 'va_bca' | 'va_mandiri' | 'va_bni' | 'qris' | 'gopay';
 
-export type TOrderStatus = 'awaiting_payment' | 'paid' | 'failed' | 'expired';
+/** cancelled = dibatalkan peserta saat mengganti metode pembayaran. */
+export type TOrderStatus = 'awaiting_payment' | 'paid' | 'failed' | 'expired' | 'cancelled';
 
 export interface IOrder {
   id: string;

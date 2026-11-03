@@ -6,6 +6,7 @@ const STATUS: Record<TOrderStatus, { label: string; className: string }> = {
   awaiting_payment: { label: 'Menunggu', className: 'bg-brand-soft text-brand' },
   failed: { label: 'Gagal', className: 'bg-surface-soft text-ink-muted' },
   expired: { label: 'Kedaluwarsa', className: 'bg-surface-soft text-ink-muted' },
+  cancelled: { label: 'Dibatalkan', className: 'bg-surface-soft text-ink-muted' },
 };
 
 // Tag status order (menu Order dan detail member). Palet sama dengan tag status lain.

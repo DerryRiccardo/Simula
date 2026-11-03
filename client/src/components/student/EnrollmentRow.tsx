@@ -10,15 +10,17 @@ import { StatusBadge } from './Badges';
 
 const TIER_LABEL = { ai: 'AI Case Study', b2b: 'B2B Case Study' } as const;
 const URGENT_STATUSES: TEnrollmentStatus[] = ['revision_requested', 'pending_payment'];
+// B2B yang sudah lunas tetapi belum dimulai: tenggatnya adalah batas mulai (30 hari sejak lunas).
+const DEADLINE_LABEL: Partial<Record<TEnrollmentStatus, string>> = {
+  pending_payment: 'Batas bayar',
+  not_started: 'Batas mulai',
+};
 
 /** Kolom kanan: tenggat bila ada, skor bila sudah dinilai, selain itu waktu pembaruan. */
 function getTimeline({ status, deadlineAt, score, updatedAt }: IEnrollment) {
   if (score !== null) return { label: 'Skor', value: String(score) };
   if (deadlineAt) {
-    return {
-      label: status === 'pending_payment' ? 'Batas bayar' : 'Tenggat',
-      value: formatDeadline(deadlineAt),
-    };
+    return { label: DEADLINE_LABEL[status] ?? 'Tenggat', value: formatDeadline(deadlineAt) };
   }
   return { label: 'Diperbarui', value: formatRelative(updatedAt) };
 }

@@ -18,6 +18,7 @@ export const ORDER_STATUS_TABS: { value: TOrderTab; label: string }[] = [
   { value: 'awaiting_payment', label: 'Menunggu' },
   { value: 'failed', label: 'Gagal' },
   { value: 'expired', label: 'Kedaluwarsa' },
+  { value: 'cancelled', label: 'Dibatalkan' },
 ];
 
 export const ORDER_PERIOD_OPTIONS: { value: TOrderPeriod; label: string }[] = [

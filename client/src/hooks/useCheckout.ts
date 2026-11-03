@@ -9,10 +9,16 @@ import { handleApiError } from '@/lib/apiError';
 import { checkoutService } from '@/services/checkout';
 import { learningKeys } from './useLearning';
 
+// Selama VA menunggu transfer, status diperbarui webhook di backend; halaman memuat ulang berkala
+// supaya pembayaran yang masuk langsung terlihat.
+const AWAITING_REFETCH_MS = 10_000;
+
 export function useCheckout(slug: string) {
   return useQuery({
     queryKey: learningKeys.checkout(slug),
     queryFn: () => checkoutService.get(slug),
+    refetchInterval: (query) =>
+      query.state.data?.order?.status === 'awaiting_payment' ? AWAITING_REFETCH_MS : false,
   });
 }
 
