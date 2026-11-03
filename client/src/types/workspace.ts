@@ -63,6 +63,8 @@ export interface IFileMeta {
   fileId: string;
   fileName: string;
   sizeBytes: number;
+  /** Link unduh R2 sementara; hanya diisi di portal reviewer (bucket private). */
+  downloadUrl?: string | null;
 }
 
 /** Nilai per slot: metadata berkas, URL, atau teks. Kosong = null atau string kosong. */

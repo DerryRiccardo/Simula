@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ExternalLink, FileText } from 'lucide-react';
+import { Download, ExternalLink, FileText } from 'lucide-react';
 
 import { formatDate, formatFileSize, formatTime } from '@/lib/formatters';
 import { isFileMeta } from '@/lib/submission';
@@ -43,7 +43,19 @@ export function SubmittedSummary({ submission, slots, notice }: SubmittedSummary
                     {isFileMeta(value) ? (
                       <p className="mt-1 flex items-center gap-2 text-sm text-ink">
                         <FileText className="size-4 shrink-0 text-ink-subtle" strokeWidth={1.75} />
-                        <span className="truncate">{value.fileName}</span>
+                        {value.downloadUrl ? (
+                          <a
+                            href={value.downloadUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex min-w-0 items-center gap-1.5 text-brand hover:underline"
+                          >
+                            <span className="truncate">{value.fileName}</span>
+                            <Download className="size-3.5 shrink-0" />
+                          </a>
+                        ) : (
+                          <span className="truncate">{value.fileName}</span>
+                        )}
                         <span className="shrink-0 font-mono text-xs text-ink-subtle">
                           {formatFileSize(value.sizeBytes)}
                         </span>
