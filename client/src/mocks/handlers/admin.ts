@@ -38,90 +38,6 @@ export const adminHandlers = [
     return run(() => adminApi.getOverview());
   }),
 
-  // Penilaian AI dan B2B: daftar semua submission yang sudah sampai tahap penilaian.
-  http.get(apiPath('/admin/reviews'), async () => {
-    await networkDelay();
-    return run(() => adminApi.listReviews());
-  }),
-
-  http.get(apiPath('/admin/reviews/:id'), async ({ params }) => {
-    await networkDelay();
-    try {
-      const detail = adminApi.getReview(String(params.id));
-      return detail ? ok(detail) : fail(404, 'Penilaian tidak ditemukan.');
-    } catch (error) {
-      return toFailure(error);
-    }
-  }),
-
-  // AI case: jalankan ulang penilaian. 409 bila belum selesai dinilai.
-  http.post(apiPath('/admin/reviews/:id/regrade'), async ({ params }) => {
-    await networkDelay();
-    return run(() => adminApi.regrade(String(params.id)));
-  }),
-
-  // Body: IAdminFlagPayload ({ isFlagged, note }). Catatan internal admin.
-  http.put(apiPath('/admin/reviews/:id/flag'), async ({ params, request }) => {
-    await networkDelay();
-    const payload = (await request.json()) as IAdminFlagPayload;
-    return run(() => adminApi.setFlag(String(params.id), payload));
-  }),
-
-  // B2B: pengingat ke reviewer. 409 bila sudah dikirim dalam 24 jam terakhir.
-  http.post(apiPath('/admin/reviews/:id/remind'), async ({ params }) => {
-    await networkDelay();
-    return run(() => adminApi.remindReviewer(String(params.id)));
-  }),
-
-  // B2B: pindahkan submission ke reviewer aktif lain dari mitra yang sama.
-  // Body: IAdminReassignPayload ({ reviewerId }).
-  http.post(apiPath('/admin/reviews/:id/reassign'), async ({ params, request }) => {
-    await networkDelay();
-    const payload = (await request.json()) as IAdminReassignPayload;
-    return run(() => adminApi.reassignReviewer(String(params.id), payload));
-  }),
-
-  // Reviewer & Mitra: mitra, reviewer, dan B2B case sebagai pilihan penugasan.
-  http.get(apiPath('/admin/partners'), async () => {
-    await networkDelay();
-    return run(() => adminApi.getDirectory());
-  }),
-
-  // Body: IAdminPartnerInput ({ name, industry, about }).
-  http.post(apiPath('/admin/partners'), async ({ request }) => {
-    await networkDelay();
-    const payload = (await request.json()) as IAdminPartnerInput;
-    return run(() => adminApi.createPartner(payload));
-  }),
-
-  // Body: IAdminPartnerInput. Nama dikunci (409) bila mitra sudah punya case.
-  http.put(apiPath('/admin/partners/:id'), async ({ params, request }) => {
-    await networkDelay();
-    const payload = (await request.json()) as IAdminPartnerInput;
-    return run(() => adminApi.updatePartner(String(params.id), payload));
-  }),
-
-  // Body: IAdminReviewerInput. Backend membuat akun dan mengirim email undangan.
-  http.post(apiPath('/admin/reviewers'), async ({ request }) => {
-    await networkDelay();
-    const payload = (await request.json()) as IAdminReviewerInput;
-    return run(() => adminApi.createReviewer(payload));
-  }),
-
-  // Body: IAdminReviewerAssignmentPayload ({ caseIds }), daftar lengkap pengganti yang lama.
-  http.put(apiPath('/admin/reviewers/:id/assignments'), async ({ params, request }) => {
-    await networkDelay();
-    const payload = (await request.json()) as IAdminReviewerAssignmentPayload;
-    return run(() => adminApi.setReviewerCases(String(params.id), payload));
-  }),
-
-  // Body: IAdminReviewerStatusPayload ({ isActive }). 409 bila masih ada antrean.
-  http.put(apiPath('/admin/reviewers/:id/status'), async ({ params, request }) => {
-    await networkDelay();
-    const payload = (await request.json()) as IAdminReviewerStatusPayload;
-    return run(() => adminApi.setReviewerStatus(String(params.id), payload));
-  }),
-
   // Member: mahasiswa terdaftar beserta ringkasan aktivitasnya.
   http.get(apiPath('/admin/members'), async () => {
     await networkDelay();
@@ -200,7 +116,10 @@ export const adminHandlers = [
     const payload = (await request.json()) as IPlatformSettings;
     return run(() => adminApi.saveSettings(payload));
   }),
+];
 
+// Pembuat case: dipisah agar mode campuran bisa memakai backend untuk menu ini saja.
+export const adminCaseHandlers = [
   http.get(apiPath('/admin/cases'), async () => {
     await networkDelay();
     return run(() => adminApi.listCases());
@@ -228,5 +147,105 @@ export const adminHandlers = [
     await networkDelay();
     const payload = (await request.json()) as IAdminCaseSavePayload;
     return run(() => adminApi.saveCase(String(params.id), payload));
+  }),
+
+  // Body: { fileName, sizeBytes }. Mode mock tidak mengunggah berkas sungguhan.
+  http.post(apiPath('/admin/uploads'), async ({ request }) => {
+    await networkDelay();
+    const { fileName, sizeBytes } = (await request.json()) as {
+      fileName: string;
+      sizeBytes: number;
+    };
+    return run(() => adminApi.createMaterialUpload(fileName, sizeBytes));
+  }),
+];
+
+// Menu Penilaian: dipisah agar mode campuran bisa memakai backend untuk menu ini saja.
+export const adminReviewHandlers = [
+  // Penilaian AI dan B2B: daftar semua submission yang sudah sampai tahap penilaian.
+  http.get(apiPath('/admin/reviews'), async () => {
+    await networkDelay();
+    return run(() => adminApi.listReviews());
+  }),
+
+  http.get(apiPath('/admin/reviews/:id'), async ({ params }) => {
+    await networkDelay();
+    try {
+      const detail = adminApi.getReview(String(params.id));
+      return detail ? ok(detail) : fail(404, 'Penilaian tidak ditemukan.');
+    } catch (error) {
+      return toFailure(error);
+    }
+  }),
+
+  // AI case: jalankan ulang penilaian. 409 bila belum selesai dinilai.
+  http.post(apiPath('/admin/reviews/:id/regrade'), async ({ params }) => {
+    await networkDelay();
+    return run(() => adminApi.regrade(String(params.id)));
+  }),
+
+  // Body: IAdminFlagPayload ({ isFlagged, note }). Catatan internal admin.
+  http.put(apiPath('/admin/reviews/:id/flag'), async ({ params, request }) => {
+    await networkDelay();
+    const payload = (await request.json()) as IAdminFlagPayload;
+    return run(() => adminApi.setFlag(String(params.id), payload));
+  }),
+
+  // B2B: pengingat ke reviewer. 409 bila sudah dikirim dalam 24 jam terakhir.
+  http.post(apiPath('/admin/reviews/:id/remind'), async ({ params }) => {
+    await networkDelay();
+    return run(() => adminApi.remindReviewer(String(params.id)));
+  }),
+
+  // B2B: pindahkan submission ke reviewer aktif lain dari mitra yang sama.
+  // Body: IAdminReassignPayload ({ reviewerId }).
+  http.post(apiPath('/admin/reviews/:id/reassign'), async ({ params, request }) => {
+    await networkDelay();
+    const payload = (await request.json()) as IAdminReassignPayload;
+    return run(() => adminApi.reassignReviewer(String(params.id), payload));
+  }),
+];
+
+// Menu Reviewer & Mitra: dipisah agar mode campuran bisa memakai backend untuk menu ini saja.
+export const adminPartnerHandlers = [
+  // Reviewer & Mitra: mitra, reviewer, dan B2B case sebagai pilihan penugasan.
+  http.get(apiPath('/admin/partners'), async () => {
+    await networkDelay();
+    return run(() => adminApi.getDirectory());
+  }),
+
+  // Body: IAdminPartnerInput ({ name, industry, about }).
+  http.post(apiPath('/admin/partners'), async ({ request }) => {
+    await networkDelay();
+    const payload = (await request.json()) as IAdminPartnerInput;
+    return run(() => adminApi.createPartner(payload));
+  }),
+
+  // Body: IAdminPartnerInput. Nama dikunci (409) bila mitra sudah punya case.
+  http.put(apiPath('/admin/partners/:id'), async ({ params, request }) => {
+    await networkDelay();
+    const payload = (await request.json()) as IAdminPartnerInput;
+    return run(() => adminApi.updatePartner(String(params.id), payload));
+  }),
+
+  // Body: IAdminReviewerInput. Backend membuat akun dan mengirim email undangan.
+  http.post(apiPath('/admin/reviewers'), async ({ request }) => {
+    await networkDelay();
+    const payload = (await request.json()) as IAdminReviewerInput;
+    return run(() => adminApi.createReviewer(payload));
+  }),
+
+  // Body: IAdminReviewerAssignmentPayload ({ caseIds }), daftar lengkap pengganti yang lama.
+  http.put(apiPath('/admin/reviewers/:id/assignments'), async ({ params, request }) => {
+    await networkDelay();
+    const payload = (await request.json()) as IAdminReviewerAssignmentPayload;
+    return run(() => adminApi.setReviewerCases(String(params.id), payload));
+  }),
+
+  // Body: IAdminReviewerStatusPayload ({ isActive }). 409 bila masih ada antrean.
+  http.put(apiPath('/admin/reviewers/:id/status'), async ({ params, request }) => {
+    await networkDelay();
+    const payload = (await request.json()) as IAdminReviewerStatusPayload;
+    return run(() => adminApi.setReviewerStatus(String(params.id), payload));
   }),
 ];

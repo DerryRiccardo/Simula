@@ -5,6 +5,7 @@ import { useFieldArray, useFormContext } from 'react-hook-form';
 import { TextareaField, TextField } from '@/components/forms';
 import type { IAdminCaseInput } from '@/types';
 import { AddItemButton, BuilderSection, ItemCard } from './BuilderParts';
+import { MaterialFileField } from './MaterialFileField';
 
 // Brief lengkap (bagian 2) dan materi pendukung (bagian 3). Brief tampil di halaman, bukan PDF.
 export function BriefSection() {
@@ -61,7 +62,7 @@ export function BriefSection() {
       <BuilderSection
         id="materials"
         title="Materi pendukung"
-        description="Dataset, dokumentasi, template, atau starter repo yang bisa diunduh peserta. Prototype hanya menyimpan nama dan keterangannya."
+        description="Dataset, dokumentasi, template, atau starter repo yang bisa diunduh peserta setelah mulai mengerjakan."
       >
         {materials.fields.length === 0 && (
           <p className="text-sm text-ink-subtle">Belum ada materi. Materi bersifat opsional.</p>
@@ -72,21 +73,14 @@ export function BriefSection() {
             label={`Materi ${index + 1}`}
             onRemove={() => materials.remove(index)}
           >
-            <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_8rem]">
-              <TextField
-                id={`material-${index}-name`}
-                label="Nama berkas"
-                placeholder="data-transaksi.csv"
-                error={errors.materials?.[index]?.name?.message}
-                {...register(`materials.${index}.name`)}
-              />
-              <TextField
-                id={`material-${index}-format`}
-                label="Format"
-                placeholder="CSV"
-                {...register(`materials.${index}.format`)}
-              />
-            </div>
+            <MaterialFileField index={index} />
+            <TextField
+              id={`material-${index}-name`}
+              label="Nama materi"
+              placeholder="Data transaksi Q3"
+              error={errors.materials?.[index]?.name?.message}
+              {...register(`materials.${index}.name`)}
+            />
             <TextField
               id={`material-${index}-description`}
               label="Keterangan"
@@ -96,7 +90,16 @@ export function BriefSection() {
         ))}
         <AddItemButton
           label="Tambah materi"
-          onClick={() => materials.append({ name: '', format: '', description: '' })}
+          onClick={() =>
+            materials.append({
+              name: '',
+              format: '',
+              description: '',
+              fileId: null,
+              fileName: null,
+              sizeBytes: null,
+            })
+          }
         />
       </BuilderSection>
     </>

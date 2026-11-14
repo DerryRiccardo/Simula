@@ -103,10 +103,14 @@ export function BriefRequirements({ brief }: { brief: ICaseBrief }) {
   );
 }
 
+const DOWNLOAD_CLASS =
+  'grid size-9 shrink-0 place-items-center rounded-control border border-line text-ink-muted transition-colors outline-none hover:border-ink/25 hover:text-ink focus-visible:ring-3 focus-visible:ring-brand/30 active:scale-[0.97]';
+
 export function BriefMaterials({ brief }: { brief: ICaseBrief }) {
-  // Prototype: berkas materi belum tersedia. Backend nanti mengirim URL unduhan per materi.
-  const handleDownload = (name: string) =>
-    toast.info('Materi belum tersedia di prototype', { description: name });
+  // URL unduhan hanya dikirim ke peserta yang sedang mengerjakan; pratinjau admin dan mode mock
+  // tidak punya URL.
+  const handleUnavailable = (name: string) =>
+    toast.info('Berkas materi belum bisa diunduh di sini', { description: name });
 
   return (
     <ul className="divide-y divide-line overflow-hidden rounded-card border border-line">
@@ -120,14 +124,24 @@ export function BriefMaterials({ brief }: { brief: ICaseBrief }) {
           <span className="hidden shrink-0 font-mono text-xs text-ink-subtle tabular-nums sm:block">
             {material.format}, {material.sizeLabel}
           </span>
-          <button
-            type="button"
-            onClick={() => handleDownload(material.name)}
-            aria-label={`Unduh ${material.name}`}
-            className="grid size-9 shrink-0 place-items-center rounded-control border border-line text-ink-muted transition-colors outline-none hover:border-ink/25 hover:text-ink focus-visible:ring-3 focus-visible:ring-brand/30 active:scale-[0.97]"
-          >
-            <Download className="size-4" />
-          </button>
+          {material.downloadUrl ? (
+            <a
+              href={material.downloadUrl}
+              aria-label={`Unduh ${material.name}`}
+              className={DOWNLOAD_CLASS}
+            >
+              <Download className="size-4" />
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={() => handleUnavailable(material.name)}
+              aria-label={`Unduh ${material.name}`}
+              className={DOWNLOAD_CLASS}
+            >
+              <Download className="size-4" />
+            </button>
+          )}
         </li>
       ))}
     </ul>

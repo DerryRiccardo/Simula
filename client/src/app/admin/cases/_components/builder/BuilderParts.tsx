@@ -1,5 +1,5 @@
 import type { ChangeEvent, ReactNode } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Lock, Plus, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui';
 
@@ -54,6 +54,17 @@ export function ItemCard({ label, onRemove, children }: ItemCardProps) {
       </div>
       {children}
     </div>
+  );
+}
+
+/** Penanda struktur terkunci karena sudah ada peserta yang mulai mengerjakan. */
+export function LockNotice() {
+  return (
+    <p className="flex gap-2 rounded-control border border-line bg-surface-soft/60 px-4 py-3 text-sm leading-relaxed text-ink-muted">
+      <Lock className="mt-0.5 size-4 shrink-0 text-ink-subtle" />
+      Sudah ada peserta yang mulai mengerjakan, jadi struktur bagian ini dikunci. Nama dan deskripsi
+      tetap bisa diubah.
+    </p>
   );
 }
 

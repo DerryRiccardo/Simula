@@ -2,6 +2,7 @@ import api from './api';
 import { env, shouldMockService } from '@/lib/env';
 import type {
   IApiResponse,
+  IChangePasswordPayload,
   ILoginPayload,
   IOnboardingPayload,
   IRegisterPayload,
@@ -48,6 +49,12 @@ export const authService = {
   me: async () => {
     if (isMocked()) return (await loadMockApi()).me();
     return withMockSession((await api.get<IApiResponse<IUser>>('/auth/me')).data.data);
+  },
+  changePassword: async (payload: IChangePasswordPayload) => {
+    if (isMocked()) return (await loadMockApi()).changePassword(payload);
+    return withMockSession(
+      (await api.post<IApiResponse<IUser>>('/auth/change-password', payload)).data.data
+    );
   },
   completeOnboarding: async (payload: IOnboardingPayload) => {
     if (isMocked()) return (await loadMockApi()).completeOnboarding(payload);

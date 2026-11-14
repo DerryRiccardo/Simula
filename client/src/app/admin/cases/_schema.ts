@@ -2,10 +2,12 @@ import { z } from 'zod';
 
 import type { IAdminCase, IAdminCaseInput, TTier } from '@/types';
 
-// Validasi pembuat case (CONTEXT.md 4.11). Dipakai saat terbitkan; draft cukup berjudul.
+// Validasi pembuat case (CONTEXT.md 4.11). Dipakai saat terbitkan; draft cukup berjudul dan
+// setiap materi sudah punya berkas.
 // Server memvalidasi ulang aturan yang sama.
 
 const required = (label: string, min = 2) => z.string().trim().min(min, `${label} wajib diisi.`);
+const hasLine = (value: string) => value.split(/\r?\n/).some((line) => line.trim());
 
 export const adminCaseSchema = z
   .object({
@@ -15,12 +17,28 @@ export const adminCaseSchema = z
     level: z.enum(['beginner', 'intermediate', 'advanced']),
     durationLabel: required('Durasi'),
     summary: z.string().trim().min(20, 'Tulis ringkasan minimal 20 karakter.'),
+    about: z.string().trim().min(20, 'Tulis deskripsi minimal 20 karakter.'),
+    activities: z.string().refine(hasLine, 'Tulis minimal satu aktivitas.'),
+    skills: z.string().refine((value) => value.split(',').some((item) => item.trim()), {
+      message: 'Tulis minimal satu skill.',
+    }),
+    prerequisites: z.string(),
     context: z.string().trim().min(40, 'Tulis konteks minimal 40 karakter.'),
     tasks: z
       .array(z.object({ title: required('Judul tugas'), description: required('Deskripsi tugas') }))
       .min(1, 'Tambahkan minimal satu tugas.'),
     materials: z.array(
-      z.object({ name: required('Nama materi'), format: z.string(), description: z.string() })
+      z.object({
+        name: required('Nama materi'),
+        format: z.string(),
+        description: z.string(),
+        fileId: z
+          .string()
+          .nullable()
+          .refine((value) => Boolean(value), 'Unggah berkas materi.'),
+        fileName: z.string().nullable(),
+        sizeBytes: z.number().nullable(),
+      })
     ),
     slots: z
       .array(
@@ -111,6 +129,10 @@ export const getEmptyCase = (): IAdminCaseInput => ({
   level: 'beginner',
   durationLabel: '',
   summary: '',
+  about: '',
+  activities: '',
+  skills: '',
+  prerequisites: '',
   context: '',
   tasks: [{ title: '', description: '' }],
   materials: [],
@@ -132,10 +154,13 @@ export const getEmptyCase = (): IAdminCaseInput => ({
   reviewerRole: '',
 });
 
-/** Isian form dari case tersimpan, tanpa id, status, dan waktu simpan. */
+/** Isian form dari case tersimpan, tanpa id, status, dan info kunci dari server. */
 export const toCaseInput = ({
   id: _id,
+  slug: _slug,
   status: _status,
   updatedAt: _updatedAt,
+  isStructureLocked: _isStructureLocked,
+  hasEnrollments: _hasEnrollments,
   ...input
 }: IAdminCase): IAdminCaseInput => input;

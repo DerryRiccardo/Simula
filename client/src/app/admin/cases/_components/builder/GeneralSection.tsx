@@ -45,7 +45,7 @@ export function GeneralSection({ isTierLocked }: { isTierLocked: boolean }) {
             {isTierLocked ? (
               <p className="text-sm text-ink-muted">
                 {TIER_OPTIONS.find((option) => option.value === field.value)?.label}. Tier tidak
-                bisa diubah setelah case dibuat.
+                bisa diubah setelah ada peserta.
               </p>
             ) : (
               <FilterTabs
@@ -117,6 +117,43 @@ export function GeneralSection({ isTierLocked }: { isTierLocked: boolean }) {
         hint="Satu sampai dua kalimat untuk kartu katalog."
         error={errors.summary?.message}
         {...register('summary')}
+      />
+
+      <TextareaField
+        id="case-about"
+        label="Tentang case"
+        rows={4}
+        hint="Deskripsi di halaman detail: masalah yang dihadapi dan hasil yang diharapkan."
+        error={errors.about?.message}
+        {...register('about')}
+      />
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <TextareaField
+          id="case-activities"
+          label="Yang akan dikerjakan"
+          rows={4}
+          hint="Satu aktivitas per baris."
+          error={errors.activities?.message}
+          {...register('activities')}
+        />
+        <TextareaField
+          id="case-prerequisites"
+          label="Prasyarat"
+          rows={4}
+          hint="Satu poin per baris. Boleh dikosongkan."
+          error={errors.prerequisites?.message}
+          {...register('prerequisites')}
+        />
+      </div>
+
+      <TextField
+        id="case-skills"
+        label="Skill yang dilatih"
+        placeholder="SQL, Excel, Analisis data"
+        hint="Pisahkan dengan koma."
+        error={errors.skills?.message}
+        {...register('skills')}
       />
     </BuilderSection>
   );

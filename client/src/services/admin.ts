@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 import api from './api';
-import { env } from '@/lib/env';
+import { env, shouldMockService } from '@/lib/env';
 import type {
   IAdminCase,
   IAdminCaseSavePayload,
@@ -26,11 +26,17 @@ import type {
   IAdminReviewerStatusPayload,
   IAdminReviewList,
   IApiResponse,
+  IFileMeta,
   IPartner,
+  IUploadTicket,
 } from '@/types';
 
 // Mode mock: data dibaca langsung dari browser, sama seperti services/reviewer.ts.
 const loadMockApi = async () => (await import('@/mocks/adminApi')).adminApi;
+// Mode campuran per menu: Reviewer & Mitra dan Penilaian sudah memakai backend lebih dulu.
+const isPartnersMocked = () => shouldMockService('adminPartners');
+const isReviewsMocked = () => shouldMockService('adminReviews');
+const isCasesMocked = () => shouldMockService('adminCases');
 
 const reviewPath = (id: string) => `/admin/reviews/${encodeURIComponent(id)}`;
 const fieldPath = (key: string) => `/admin/fields/${encodeURIComponent(key)}`;
@@ -100,12 +106,12 @@ export const adminService = {
     return (await api.get<IApiResponse<IAdminOrder[]>>('/admin/orders')).data.data;
   },
   getPartnerDirectory: async () => {
-    if (env.isApiMocking) return (await loadMockApi()).getDirectory();
+    if (isPartnersMocked()) return (await loadMockApi()).getDirectory();
     return (await api.get<IApiResponse<IAdminPartnerDirectory>>('/admin/partners')).data.data;
   },
   /** id null = mitra baru. */
   savePartner: async ({ id, payload }: { id: string | null; payload: IAdminPartnerInput }) => {
-    if (env.isApiMocking) {
+    if (isPartnersMocked()) {
       const mockApi = await loadMockApi();
       return id ? mockApi.updatePartner(id, payload) : mockApi.createPartner(payload);
     }
@@ -115,7 +121,7 @@ export const adminService = {
     return response.data.data;
   },
   createReviewer: async (payload: IAdminReviewerInput) => {
-    if (env.isApiMocking) return (await loadMockApi()).createReviewer(payload);
+    if (isPartnersMocked()) return (await loadMockApi()).createReviewer(payload);
     return (await api.post<IApiResponse<IAdminReviewer>>('/admin/reviewers', payload)).data.data;
   },
   setReviewerCases: async ({
@@ -125,7 +131,7 @@ export const adminService = {
     id: string;
     payload: IAdminReviewerAssignmentPayload;
   }) => {
-    if (env.isApiMocking) return (await loadMockApi()).setReviewerCases(id, payload);
+    if (isPartnersMocked()) return (await loadMockApi()).setReviewerCases(id, payload);
     return (await api.put<IApiResponse<IAdminReviewer>>(`${reviewerPath(id)}/assignments`, payload))
       .data.data;
   },
@@ -136,12 +142,12 @@ export const adminService = {
     id: string;
     payload: IAdminReviewerStatusPayload;
   }) => {
-    if (env.isApiMocking) return (await loadMockApi()).setReviewerStatus(id, payload);
+    if (isPartnersMocked()) return (await loadMockApi()).setReviewerStatus(id, payload);
     return (await api.put<IApiResponse<IAdminReviewer>>(`${reviewerPath(id)}/status`, payload)).data
       .data;
   },
   reassignReviewer: async ({ id, payload }: { id: string; payload: IAdminReassignPayload }) => {
-    if (env.isApiMocking) return (await loadMockApi()).reassignReviewer(id, payload);
+    if (isReviewsMocked()) return (await loadMockApi()).reassignReviewer(id, payload);
     return (await api.post<IApiResponse<IAdminReviewDetail>>(`${reviewPath(id)}/reassign`, payload))
       .data.data;
   },
@@ -150,12 +156,12 @@ export const adminService = {
     return (await api.get<IApiResponse<IAdminOverview>>('/admin/overview')).data.data;
   },
   listReviews: async () => {
-    if (env.isApiMocking) return (await loadMockApi()).listReviews();
+    if (isReviewsMocked()) return (await loadMockApi()).listReviews();
     return (await api.get<IApiResponse<IAdminReviewList>>('/admin/reviews')).data.data;
   },
   /** null jika penilaian tidak ditemukan (404). */
   getReview: async (id: string): Promise<IAdminReviewDetail | null> => {
-    if (env.isApiMocking) return (await loadMockApi()).getReview(id);
+    if (isReviewsMocked()) return (await loadMockApi()).getReview(id);
     try {
       return (await api.get<IApiResponse<IAdminReviewDetail>>(reviewPath(id))).data.data;
     } catch (error) {
@@ -164,26 +170,26 @@ export const adminService = {
     }
   },
   regrade: async (id: string) => {
-    if (env.isApiMocking) return (await loadMockApi()).regrade(id);
+    if (isReviewsMocked()) return (await loadMockApi()).regrade(id);
     return (await api.post<IApiResponse<IAdminReviewDetail>>(`${reviewPath(id)}/regrade`)).data
       .data;
   },
   setFlag: async ({ id, payload }: { id: string; payload: IAdminFlagPayload }) => {
-    if (env.isApiMocking) return (await loadMockApi()).setFlag(id, payload);
+    if (isReviewsMocked()) return (await loadMockApi()).setFlag(id, payload);
     return (await api.put<IApiResponse<IAdminReviewDetail>>(`${reviewPath(id)}/flag`, payload)).data
       .data;
   },
   remindReviewer: async (id: string) => {
-    if (env.isApiMocking) return (await loadMockApi()).remindReviewer(id);
+    if (isReviewsMocked()) return (await loadMockApi()).remindReviewer(id);
     return (await api.post<IApiResponse<IAdminReviewDetail>>(`${reviewPath(id)}/remind`)).data.data;
   },
   listCases: async () => {
-    if (env.isApiMocking) return (await loadMockApi()).listCases();
+    if (isCasesMocked()) return (await loadMockApi()).listCases();
     return (await api.get<IApiResponse<IAdminCaseSummary[]>>('/admin/cases')).data.data;
   },
   /** null jika case tidak ditemukan (404). */
   getCase: async (id: string): Promise<IAdminCase | null> => {
-    if (env.isApiMocking) return (await loadMockApi()).getCase(id);
+    if (isCasesMocked()) return (await loadMockApi()).getCase(id);
     try {
       return (await api.get<IApiResponse<IAdminCase>>(`/admin/cases/${encodeURIComponent(id)}`))
         .data.data;
@@ -194,10 +200,34 @@ export const adminService = {
   },
   /** id null = buat case baru. */
   saveCase: async ({ id, payload }: { id: string | null; payload: IAdminCaseSavePayload }) => {
-    if (env.isApiMocking) return (await loadMockApi()).saveCase(id, payload);
+    if (isCasesMocked()) return (await loadMockApi()).saveCase(id, payload);
     const response = id
       ? await api.put<IApiResponse<IAdminCase>>(`/admin/cases/${encodeURIComponent(id)}`, payload)
       : await api.post<IApiResponse<IAdminCase>>('/admin/cases', payload);
     return response.data.data;
+  },
+  /** Unggah satu berkas materi: minta URL bertanda tangan, lalu PUT langsung ke storage. */
+  uploadMaterial: async ({
+    file,
+    onProgress,
+  }: {
+    file: File;
+    onProgress?: (percent: number) => void;
+  }): Promise<IFileMeta> => {
+    if (isCasesMocked()) return (await loadMockApi()).uploadMaterial(file);
+    const ticket = (
+      await api.post<IApiResponse<IUploadTicket>>('/admin/uploads', {
+        fileName: file.name,
+        sizeBytes: file.size,
+      })
+    ).data.data;
+    // axios polos, bukan instance api: URL bertanda tangan tidak boleh membawa cookie sesi.
+    await axios.put(ticket.uploadUrl, file, {
+      headers: ticket.headers,
+      onUploadProgress: (event) => {
+        if (event.total) onProgress?.(Math.round((event.loaded / event.total) * 100));
+      },
+    });
+    return { fileId: ticket.fileId, fileName: ticket.fileName, sizeBytes: ticket.sizeBytes };
   },
 };

@@ -5,7 +5,7 @@ import { Controller, useFieldArray, useFormContext, useWatch } from 'react-hook-
 import { TextField } from '@/components/forms';
 import { Checkbox, Label, NativeSelect } from '@/components/ui';
 import type { IAdminCaseInput, TSlotKind, TTier } from '@/types';
-import { AddItemButton, BuilderSection, ItemCard, toNumberInput } from './BuilderParts';
+import { AddItemButton, BuilderSection, ItemCard, LockNotice, toNumberInput } from './BuilderParts';
 
 // AI hanya bisa membaca isian teks, berkas yang bisa diproses, dan repo GitHub publik
 // (CONTEXT.md 4.5); tautan Google Drive tidak bisa dibuka AI.
@@ -22,7 +22,9 @@ const KIND_OPTIONS: Record<TTier, { value: TSlotKind; label: string }[]> = {
 };
 
 // Slot deliverable (bagian 4): satu slot = satu isian di form submission peserta.
-export function SlotsSection() {
+// isLocked: sudah ada peserta yang mulai, jadi jumlah, jenis, wajib, format, dan ukuran slot
+// dikunci agar draft dan submission mereka tetap cocok. Nama dan petunjuk tetap bisa diubah.
+export function SlotsSection({ isLocked }: { isLocked: boolean }) {
   const { control, register, formState } = useFormContext<IAdminCaseInput>();
   const { errors } = formState;
   const tier = useWatch({ control, name: 'tier' });
@@ -39,16 +41,17 @@ export function SlotsSection() {
           : 'Setiap slot punya aturan sendiri. Tombol submit peserta baru aktif setelah semua slot wajib terisi.'
       }
     >
-      {errors.slots?.root?.message && (
+      {isLocked && <LockNotice />}
+      {(errors.slots?.root?.message ?? errors.slots?.message) && (
         <p className="text-xs text-destructive" role="alert">
-          {errors.slots.root.message}
+          {errors.slots?.root?.message ?? errors.slots?.message}
         </p>
       )}
       {slots.fields.map((slot, index) => (
         <ItemCard
           key={slot.id}
           label={`Slot ${index + 1}`}
-          onRemove={slots.fields.length > 1 ? () => slots.remove(index) : undefined}
+          onRemove={!isLocked && slots.fields.length > 1 ? () => slots.remove(index) : undefined}
         >
           <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_14rem]">
             <TextField
@@ -63,11 +66,13 @@ export function SlotsSection() {
                 Jenis
               </Label>
               <NativeSelect id={`slot-${index}-kind`} {...register(`slots.${index}.kind`)}>
-                {KIND_OPTIONS[tier].map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
+                {KIND_OPTIONS[tier]
+                  .filter((option) => !isLocked || option.value === slotValues[index]?.kind)
+                  .map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
               </NativeSelect>
             </div>
           </div>
@@ -83,6 +88,7 @@ export function SlotsSection() {
                 label="Format diterima"
                 hint="Pisahkan dengan koma, tanpa titik."
                 placeholder="pdf, docx"
+                readOnly={isLocked}
                 {...register(`slots.${index}.formats`)}
               />
               <Controller
@@ -93,6 +99,7 @@ export function SlotsSection() {
                     id={`slot-${index}-size`}
                     label="Ukuran maks. (MB)"
                     min={1}
+                    readOnly={isLocked}
                     error={fieldState.error?.message}
                     {...toNumberInput(field)}
                   />
@@ -107,6 +114,7 @@ export function SlotsSection() {
               <label className="flex w-fit cursor-pointer items-center gap-2.5 text-sm text-ink">
                 <Checkbox
                   checked={field.value}
+                  disabled={isLocked}
                   onCheckedChange={(checked) => field.onChange(checked === true)}
                 />
                 Wajib diisi
@@ -115,19 +123,21 @@ export function SlotsSection() {
           />
         </ItemCard>
       ))}
-      <AddItemButton
-        label="Tambah slot"
-        onClick={() =>
-          slots.append({
-            title: '',
-            description: '',
-            kind: 'file',
-            isRequired: true,
-            formats: 'pdf, docx',
-            maxSizeMb: 10,
-          })
-        }
-      />
+      {!isLocked && (
+        <AddItemButton
+          label="Tambah slot"
+          onClick={() =>
+            slots.append({
+              title: '',
+              description: '',
+              kind: 'file',
+              isRequired: true,
+              formats: 'pdf, docx',
+              maxSizeMb: 10,
+            })
+          }
+        />
+      )}
     </BuilderSection>
   );
 }

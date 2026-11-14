@@ -37,6 +37,8 @@ export interface ICaseMaterial {
   format: string;
   sizeLabel: string;
   description: string;
+  /** URL unduhan bertanda tangan berumur pendek; hanya ada di workspace peserta. */
+  downloadUrl?: string | null;
 }
 
 export interface IRubricCriterion {

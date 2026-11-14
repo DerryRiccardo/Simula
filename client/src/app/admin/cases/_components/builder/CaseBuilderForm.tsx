@@ -12,6 +12,7 @@ import { getApiFieldErrors } from '@/lib/apiError';
 import type { IAdminCase, IAdminCaseInput } from '@/types';
 import { adminCaseSchema, toCaseInput } from '@/app/admin/cases/_schema';
 import { BriefSection } from './BriefSection';
+import { CasePreviewDialog } from './CasePreviewDialog';
 import { CommercialSection } from './CommercialSection';
 import { GeneralSection } from './GeneralSection';
 import { RubricSection } from './RubricSection';
@@ -39,7 +40,9 @@ export function CaseBuilderForm({ adminCase, defaultValues }: CaseBuilderFormPro
   const tier = useWatch({ control, name: 'tier' });
   const saveCase = useSaveAdminCase();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const isPublished = adminCase?.status === 'published';
+  const isStructureLocked = adminCase?.isStructureLocked ?? false;
 
   // Peringatan saat menutup tab dengan perubahan yang belum disimpan.
   useEffect(() => {
@@ -67,9 +70,13 @@ export function CaseBuilderForm({ adminCase, defaultValues }: CaseBuilderFormPro
       }
     );
 
-  // Draft boleh belum lengkap, cukup berjudul; validasi penuh hanya saat terbitkan.
+  // Draft boleh belum lengkap: cukup berjudul dan setiap materi sudah berkas (wajib di database).
+  // Validasi penuh hanya saat terbitkan.
   const handleSaveDraft = async () => {
-    if (await trigger('title', { shouldFocus: true })) save(false);
+    const materialFields = getValues('materials').map(
+      (_, index) => `materials.${index}.fileId` as const
+    );
+    if (await trigger(['title', ...materialFields], { shouldFocus: true })) save(false);
   };
 
   const handleInvalid = () =>
@@ -100,10 +107,10 @@ export function CaseBuilderForm({ adminCase, defaultValues }: CaseBuilderFormPro
         </nav>
 
         <div className="grid min-w-0 gap-6">
-          <GeneralSection isTierLocked={adminCase !== null} />
+          <GeneralSection isTierLocked={adminCase?.hasEnrollments ?? false} />
           <BriefSection />
-          <SlotsSection />
-          <RubricSection />
+          <SlotsSection isLocked={isStructureLocked} />
+          <RubricSection isLocked={isStructureLocked} />
           {tier === 'b2b' && <CommercialSection adminCase={adminCase} />}
 
           <div className="sticky bottom-4 z-10 flex flex-wrap items-center justify-between gap-3 rounded-card border border-line bg-white/95 px-5 py-4 shadow-lift backdrop-blur-sm">
@@ -112,7 +119,15 @@ export function CaseBuilderForm({ adminCase, defaultValues }: CaseBuilderFormPro
                 ? 'Case ini sudah terbit. Perubahan berlaku setelah disimpan.'
                 : 'Draft hanya terlihat oleh admin sampai diterbitkan.'}
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="pill"
+                onClick={() => setIsPreviewOpen(true)}
+              >
+                Pratinjau
+              </Button>
               {!isPublished && (
                 <Button
                   type="button"
@@ -138,12 +153,19 @@ export function CaseBuilderForm({ adminCase, defaultValues }: CaseBuilderFormPro
           description={
             isPublished
               ? 'Perubahan berlaku untuk peserta yang mengambil case ini berikutnya. Peserta yang sedang mengerjakan tetap memakai brief saat mereka mulai.'
-              : 'Case muncul di katalog dan bisa diambil peserta. Rubrik sebaiknya tidak diubah lagi setelah ada submission.'
+              : 'Case muncul di katalog dan bisa diambil peserta. Case terbit tidak bisa dikembalikan ke draft, dan struktur slot serta rubrik dikunci setelah ada peserta yang mulai.'
           }
           confirmLabel={isPublished ? 'Ya, simpan' : 'Ya, terbitkan'}
           onConfirm={() => save(true)}
           isPending={saveCase.isPending}
         />
+        {isPreviewOpen && (
+          <CasePreviewDialog
+            isOpen={isPreviewOpen}
+            onOpenChange={setIsPreviewOpen}
+            input={getValues()}
+          />
+        )}
       </form>
     </FormProvider>
   );

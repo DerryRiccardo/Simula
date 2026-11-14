@@ -11,6 +11,13 @@ export interface IUser {
   fieldKeys: string[];
   studentStatus: TStudentStatus | null;
   major: string | null;
+  /** true: akun memakai password sementara dari admin dan wajib menggantinya dulu. */
+  mustChangePassword?: boolean;
+}
+
+export interface IChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
 }
 
 export interface ILoginPayload {

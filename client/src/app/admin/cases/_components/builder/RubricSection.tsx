@@ -6,10 +6,12 @@ import { TextField } from '@/components/forms';
 import { cn } from '@/lib/utils';
 import type { IAdminCaseInput } from '@/types';
 import { getTotalWeight } from '@/app/admin/cases/_schema';
-import { AddItemButton, BuilderSection, ItemCard, toNumberInput } from './BuilderParts';
+import { AddItemButton, BuilderSection, ItemCard, LockNotice, toNumberInput } from './BuilderParts';
 
 // Rubrik (bagian 5): dipakai reviewer dan AI. Skor = Σ (level ÷ 5 × bobot), total bobot 100%.
-export function RubricSection() {
+// isLocked: jumlah dan bobot kriteria dikunci setelah ada peserta yang mulai, agar skor tetap
+// sebanding antarpeserta. Nama dan deskripsi tetap bisa diubah.
+export function RubricSection({ isLocked }: { isLocked: boolean }) {
   const { control, register, formState } = useFormContext<IAdminCaseInput>();
   const { errors } = formState;
   const rubric = useFieldArray({ control, name: 'rubric' });
@@ -22,6 +24,7 @@ export function RubricSection() {
       title="Rubrik penilaian"
       description="Reviewer dan AI menilai setiap kriteria di level 1 sampai 5. Diisi dari kerangka rubrik umum; sesuaikan nama, bobot, dan deskripsinya."
     >
+      {isLocked && <LockNotice />}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-control border border-line px-4 py-3">
         <p className="text-sm text-ink-muted" aria-live="polite">
           Total bobot{' '}
@@ -65,7 +68,7 @@ export function RubricSection() {
         <ItemCard
           key={criterion.id}
           label={`Kriteria ${index + 1}`}
-          onRemove={rubric.fields.length > 1 ? () => rubric.remove(index) : undefined}
+          onRemove={!isLocked && rubric.fields.length > 1 ? () => rubric.remove(index) : undefined}
         >
           <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_8rem]">
             <TextField
@@ -83,6 +86,7 @@ export function RubricSection() {
                   label="Bobot (%)"
                   min={1}
                   max={100}
+                  readOnly={isLocked}
                   error={fieldState.error?.message}
                   {...toNumberInput(field)}
                 />
@@ -97,10 +101,12 @@ export function RubricSection() {
           />
         </ItemCard>
       ))}
-      <AddItemButton
-        label="Tambah kriteria"
-        onClick={() => rubric.append({ name: '', weight: 0, description: '' })}
-      />
+      {!isLocked && (
+        <AddItemButton
+          label="Tambah kriteria"
+          onClick={() => rubric.append({ name: '', weight: 0, description: '' })}
+        />
+      )}
     </BuilderSection>
   );
 }

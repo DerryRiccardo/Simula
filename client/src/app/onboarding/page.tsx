@@ -1,11 +1,11 @@
 import { Suspense } from 'react';
 
-import { Container } from '@/components/layout';
+import { AuthFlowHeader, Container } from '@/components/layout';
 import { PageLoader, RequireAuth } from '@/components/routing';
 import { PATHS } from '@/constants/paths';
 import { createPageMetadata } from '@/lib/seo';
 import { OnboardingGate } from './_components/OnboardingGate';
-import { OnboardingHeader } from './_components/OnboardingHeader';
+
 import { OnboardingWizard } from './_components/OnboardingWizard';
 
 export const metadata = createPageMetadata({
@@ -28,7 +28,7 @@ export default function OnboardingPage() {
               className="absolute -top-56 left-1/2 -z-10 size-[36rem] -translate-x-1/2 rounded-full bg-brand-soft blur-3xl"
               aria-hidden="true"
             />
-            <OnboardingHeader />
+            <AuthFlowHeader />
             <main className="flex-1 py-12 lg:py-16">
               <Container>
                 <OnboardingWizard />

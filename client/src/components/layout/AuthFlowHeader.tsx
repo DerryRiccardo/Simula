@@ -2,11 +2,13 @@
 
 import { LogOut } from 'lucide-react';
 
-import { Container, Logo } from '@/components/layout';
+import { Container } from './Container';
+import { Logo } from './Logo';
 import { Button } from '@/components/ui';
 import { useLogout } from '@/hooks/useAuth';
 
-export function OnboardingHeader() {
+/** Header halaman alur akun (onboarding, ganti kata sandi): logo dan tombol Keluar. */
+export function AuthFlowHeader() {
   const logout = useLogout();
 
   return (

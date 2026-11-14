@@ -85,6 +85,15 @@ export function useCompleteOnboarding(next?: string | null) {
   });
 }
 
+export function useChangePassword(next?: string | null) {
+  const onAuthSuccess = useAuthSuccess(next);
+  return useMutation({
+    mutationFn: authService.changePassword,
+    onSuccess: (user) => onAuthSuccess(user, 'Kata sandi berhasil diganti.'),
+    onError: (error) => handleAuthError(error, 'Gagal mengganti kata sandi. Coba lagi.'),
+  });
+}
+
 export function useLogout() {
   const queryClient = useQueryClient();
   const router = useRouter();

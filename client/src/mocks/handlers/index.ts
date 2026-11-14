@@ -1,7 +1,12 @@
 import type { HttpHandler } from 'msw/http';
 
 import { shouldMockService, type TApiService } from '@/lib/env';
-import { adminHandlers } from './admin';
+import {
+  adminCaseHandlers,
+  adminHandlers,
+  adminPartnerHandlers,
+  adminReviewHandlers,
+} from './admin';
 import { authHandlers } from './auth';
 import { certificateHandlers } from './certificate';
 import { checkoutHandlers } from './checkout';
@@ -24,6 +29,9 @@ const HANDLERS_BY_SERVICE: Record<TApiService, HttpHandler[]> = {
   profile: profileHandlers,
   reviewer: reviewerHandlers,
   admin: adminHandlers,
+  adminPartners: adminPartnerHandlers,
+  adminReviews: adminReviewHandlers,
+  adminCases: adminCaseHandlers,
 };
 
 // Mode campuran: layanan yang sudah memakai backend tidak didaftarkan, agar service worker tidak

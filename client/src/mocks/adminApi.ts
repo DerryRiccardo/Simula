@@ -60,6 +60,12 @@ function validate({ input, isPublish }: IAdminCaseSavePayload) {
   if (input.tasks.length === 0 || input.slots.length === 0) {
     throw new ApiResponseError(422, 'Case terbit wajib punya minimal satu tugas dan satu slot.');
   }
+  const missingFile = input.materials.findIndex((material) => !material.fileId);
+  if (missingFile !== -1) {
+    throw new ApiResponseError(422, 'Unggah berkas untuk setiap materi.', [
+      { field: `materials.${missingFile}.fileId`, message: 'Unggah berkas materi.' },
+    ]);
+  }
   if (input.tier !== 'b2b') return;
   const errors: IFieldError[] = [];
   if (!input.partnerId) errors.push({ field: 'partnerId', message: 'Pilih mitra.' });
@@ -337,18 +343,44 @@ export const adminApi = {
     requireAdmin();
     const existing = id ? listAllCases().find((item) => item.id === id) : null;
     if (id && !existing) throw new ApiResponseError(404, 'Case tidak ditemukan.');
+    if (existing?.status === 'published' && !payload.isPublish) {
+      throw new ApiResponseError(409, 'Case yang sudah terbit tidak bisa dikembalikan ke draft.');
+    }
     // AI case dinilai AI: tanpa mitra dan reviewer.
     const input: IAdminCaseInput =
       payload.input.tier === 'b2b' ? payload.input : { ...payload.input, partnerId: '' };
     validate({ ...payload, input });
     const reviewerIds = getAssignmentsForPartner(existing?.id ?? null, input.partnerId);
+    const newId = `c-admin-${crypto.randomUUID().slice(0, 8)}`;
     const saved = mockDb.saveAdminCase({
       ...input,
-      id: existing?.id ?? `c-admin-${crypto.randomUUID().slice(0, 8)}`,
+      id: existing?.id ?? newId,
+      slug: existing?.slug ?? newId,
       status: payload.isPublish ? 'published' : 'draft',
       updatedAt: new Date().toISOString(),
+      isStructureLocked: existing?.isStructureLocked ?? false,
+      hasEnrollments: existing?.hasEnrollments ?? false,
     });
     mockDb.setCaseReviewers(saved.id, reviewerIds);
     return saved;
+  },
+
+  /** Tiket unggah materi tiruan; mode mock tidak punya storage. */
+  createMaterialUpload: (fileName: string, sizeBytes: number) => {
+    requireAdmin();
+    return {
+      fileId: crypto.randomUUID(),
+      fileName,
+      sizeBytes,
+      uploadUrl: 'about:blank',
+      method: 'PUT' as const,
+      headers: {},
+      expiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
+    };
+  },
+
+  uploadMaterial: (file: File) => {
+    requireAdmin();
+    return { fileId: crypto.randomUUID(), fileName: file.name, sizeBytes: file.size };
   },
 };

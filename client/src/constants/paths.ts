@@ -6,6 +6,7 @@ export const PATHS = {
   login: '/login',
   register: '/register',
   onboarding: '/onboarding',
+  changePassword: '/change-password',
 
   cases: '/cases',
   caseDetail: (slug: string) => `/cases/${encodeURIComponent(slug)}`,

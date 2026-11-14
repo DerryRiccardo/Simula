@@ -36,6 +36,11 @@ export interface IAdminReviewer {
   decidedCount: number;
   /** Rata-rata hari kerja dari submit sampai diputuskan; null bila belum ada keputusan. */
   averageReviewDays: number | null;
+  /**
+   * Hanya di respons "Tambah reviewer": password sementara yang ditampilkan sekali ke admin.
+   * Reviewer wajib menggantinya saat pertama masuk.
+   */
+  temporaryPassword?: string | null;
 }
 
 /** B2B case sebagai pilihan penugasan reviewer. */

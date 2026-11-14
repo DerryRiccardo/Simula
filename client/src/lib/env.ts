@@ -8,6 +8,12 @@ export type TApiService =
   | 'result'
   | 'reviewer'
   | 'admin'
+  /** Panel admin: menu Reviewer & Mitra (mitra, reviewer, penugasan). */
+  | 'adminPartners'
+  /** Panel admin: menu Penilaian (monitor AI dan B2B, nilai ulang, ganti reviewer). */
+  | 'adminReviews'
+  /** Panel admin: pembuat case (daftar, form, unggah materi, terbitkan). */
+  | 'adminCases'
   | 'certificate'
   | 'profile';
 

@@ -32,6 +32,18 @@ export interface IAdminSlotInput {
   maxSizeMb: number;
 }
 
+/** Materi pendukung; berkasnya diunggah ke storage lewat POST /admin/uploads. */
+export interface IAdminMaterialInput {
+  name: string;
+  /** Ekstensi berkas dalam huruf besar, mis. "PDF". Diisi dari berkas yang diunggah. */
+  format: string;
+  description: string;
+  /** null sampai berkas selesai diunggah. Wajib saat menyimpan. */
+  fileId: string | null;
+  fileName: string | null;
+  sizeBytes: number | null;
+}
+
 /** Isi pembuat case: satu objek untuk keenam bagian form. */
 export interface IAdminCaseInput {
   tier: TTier;
@@ -41,11 +53,19 @@ export interface IAdminCaseInput {
   level: TCaseLevel;
   durationLabel: string;
   summary: string;
+  /** Paragraf "Tentang case" di halaman detail. */
+  about: string;
+  /** Satu poin per baris. */
+  activities: string;
+  /** Dipisah koma, mis. "SQL, Excel". */
+  skills: string;
+  /** Satu poin per baris, boleh kosong. */
+  prerequisites: string;
   // 2. Brief lengkap (paragraf konteks dipisah baris kosong)
   context: string;
   tasks: { title: string; description: string }[];
-  // 3. Materi pendukung (prototype: hanya metadata, tanpa unggahan berkas)
-  materials: { name: string; format: string; description: string }[];
+  // 3. Materi pendukung
+  materials: IAdminMaterialInput[];
   // 4. Slot deliverable
   slots: IAdminSlotInput[];
   // 5. Rubrik
@@ -62,8 +82,16 @@ export interface IAdminCaseInput {
 
 export interface IAdminCase extends IAdminCaseInput {
   id: string;
+  slug: string;
   status: TAdminCaseStatus;
   updatedAt: string;
+  /**
+   * true bila sudah ada peserta yang mulai mengerjakan: jumlah, jenis, format, dan ukuran slot serta
+   * jumlah dan bobot kriteria tidak bisa diubah lagi. Judul dan deskripsi tetap bisa.
+   */
+  isStructureLocked: boolean;
+  /** true bila sudah ada enrollment; tier tidak bisa diubah. */
+  hasEnrollments: boolean;
 }
 
 export interface IAdminCaseSavePayload {

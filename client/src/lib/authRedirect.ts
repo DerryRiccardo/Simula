@@ -29,6 +29,8 @@ export const getIsSigningOut = () => isSigningOut;
 
 /** Tujuan setelah login/register: onboarding dulu bila belum, lalu `next` atau beranda per peran. */
 export function getPostAuthPath(user: IUser, next?: string | null) {
+  // Kata sandi sementara dari admin wajib diganti sebelum halaman lain.
+  if (user.mustChangePassword) return withNext(PATHS.changePassword, next);
   if (user.role === 'student' && !user.isOnboarded) {
     const safeNext = getSafeNextPath(next);
     return safeNext ? `${PATHS.onboarding}?next=${encodeURIComponent(safeNext)}` : PATHS.onboarding;

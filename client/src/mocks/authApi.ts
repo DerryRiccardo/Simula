@@ -1,6 +1,12 @@
 import { ApiResponseError } from '@/lib/apiError';
 import { mockDb, toPublicUser } from '@/mocks/db';
-import type { ILoginPayload, IOnboardingPayload, IRegisterPayload, IUser } from '@/types';
+import type {
+  IChangePasswordPayload,
+  ILoginPayload,
+  IOnboardingPayload,
+  IRegisterPayload,
+  IUser,
+} from '@/types';
 
 // Logika auth untuk mode mock. Dipakai service saat mock aktif dan oleh handler MSW.
 // Sesi di produksi memakai cookie httpOnly; di mock, sesi disimpan di mockDb.
@@ -59,6 +65,17 @@ export const authApi = {
     return toPublicUser(user);
   },
 
+  /** Mode mock tidak menyimpan kata sandi; cukup mematikan tanda wajib ganti. */
+  changePassword: ({ newPassword }: IChangePasswordPayload): IUser => {
+    const sessionUser = mockDb.getSessionUser();
+    if (!sessionUser) throw new ApiResponseError(401, 'Belum masuk.');
+    if (newPassword.length < 8) {
+      throw new ApiResponseError(422, 'Kata sandi minimal 8 karakter.', [
+        { field: 'newPassword', message: 'Kata sandi minimal 8 karakter' },
+      ]);
+    }
+    return { ...sessionUser, mustChangePassword: false };
+  },
   completeOnboarding: ({ fieldKeys, studentStatus, major }: IOnboardingPayload): IUser => {
     const sessionUser = mockDb.getSessionUser();
     if (!sessionUser) throw new ApiResponseError(401, 'Belum masuk.');

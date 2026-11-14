@@ -40,6 +40,8 @@ export function useCreateReviewer() {
     mutationFn: adminService.createReviewer,
     onSuccess: (reviewer) => {
       invalidate();
+      // Dengan backend, kata sandi sementara ditampilkan di dialog (email undangan menyusul).
+      if (reviewer.temporaryPassword) return;
       toast.success('Reviewer ditambahkan', {
         description: `Undangan untuk mengatur password dikirim ke ${reviewer.email}.`,
       });

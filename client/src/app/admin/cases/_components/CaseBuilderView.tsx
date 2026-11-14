@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Info, SearchX } from 'lucide-react';
+import { ArrowLeft, SearchX } from 'lucide-react';
 
 import { EmptyState, ErrorState, Skeleton } from '@/components';
 import { Button } from '@/components/ui';
@@ -26,12 +26,6 @@ function BuilderHeader({ adminCase }: { adminCase: IAdminCase | null }) {
         </div>
       )}
       <h1 className="text-page-title">{adminCase ? adminCase.title : 'Buat case baru'}</h1>
-      {/* Batas prototype dijelaskan terang, supaya tidak dikira sudah tersambung ke katalog. */}
-      <p className="flex max-w-[70ch] gap-2 text-sm leading-relaxed text-ink-muted">
-        <Info className="mt-0.5 size-4 shrink-0 text-ink-subtle" />
-        Prototype: case tersimpan di panel admin. Katalog mahasiswa baru memakai case buatan admin
-        setelah backend tersedia.
-      </p>
     </header>
   );
 }
