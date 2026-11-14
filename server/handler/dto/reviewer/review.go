@@ -151,19 +151,31 @@ func MapGradeReqToInput(req GradeRequest) reviewerModule.GradeInput {
 
 // MapQueueToResponse memetakan antrean dan riwayat.
 func MapQueueToResponse(q reviewerModule.Queue) ReviewerQueueResponse {
-	return ReviewerQueueResponse{Pending: mapItems(q.Pending), History: mapItems(q.History)}
+	slaDays := q.Settings.ReviewSlaDays
+	if slaDays <= 0 {
+		slaDays = entity.ReviewSLABusinessDays
+	}
+	return ReviewerQueueResponse{
+		Pending: mapItems(q.Pending, slaDays),
+		History: mapItems(q.History, slaDays),
+	}
 }
 
-func mapItems(entries []entity.ReviewQueueEntry) []ReviewQueueItemResponse {
+func mapItems(entries []entity.ReviewQueueEntry, slaDays int) []ReviewQueueItemResponse {
 	items := make([]ReviewQueueItemResponse, 0, len(entries))
 	for i := range entries {
-		items = append(items, MapQueueItem(entries[i]))
+		items = append(items, MapQueueItemWithSLA(entries[i], slaDays))
 	}
 	return items
 }
 
-// MapQueueItem memetakan satu submission di antrean.
+// MapQueueItem memetakan satu submission di antrean memakai SLA bawaan.
 func MapQueueItem(e entity.ReviewQueueEntry) ReviewQueueItemResponse {
+	return MapQueueItemWithSLA(e, entity.ReviewSLABusinessDays)
+}
+
+// MapQueueItemWithSLA memetakan satu submission di antrean dengan SLA dari pengaturan.
+func MapQueueItemWithSLA(e entity.ReviewQueueEntry, slaDays int) ReviewQueueItemResponse {
 	enrollment := e.Enrollment
 	item := ReviewQueueItemResponse{
 		ID:             enrollment.ID,
@@ -191,7 +203,7 @@ func MapQueueItem(e entity.ReviewQueueEntry) ReviewQueueItemResponse {
 	if enrollment.ReviewDueAt != nil {
 		item.ReviewDueAt = enrollment.ReviewDueAt.UTC()
 	} else {
-		item.ReviewDueAt = entity.AddBusinessDays(item.SubmittedAt, entity.ReviewSLABusinessDays)
+		item.ReviewDueAt = entity.AddBusinessDays(item.SubmittedAt, slaDays)
 	}
 	return item
 }
@@ -199,13 +211,17 @@ func MapQueueItem(e entity.ReviewQueueEntry) ReviewQueueItemResponse {
 // MapDetailToResponse memetakan halaman review.
 func MapDetailToResponse(d reviewerModule.SubmissionDetail) ReviewSubmissionDetailResponse {
 	entry := d.Entry
+	settings := d.Settings
+	if settings.ReviewSlaDays <= 0 {
+		settings = entity.DefaultPlatformSettings()
+	}
 	response := ReviewSubmissionDetailResponse{
-		Item:                    MapQueueItem(entry),
+		Item:                    MapQueueItemWithSLA(entry, settings.ReviewSlaDays),
 		CaseInfo:                studentDto.MapCaseInfo(d.Case, nil),
 		Brief:                   studentDto.MapBrief(d.Case),
-		MaxRevisions:            entity.MaxRevisions,
-		CanRequestRevision:      entry.CanRequestRevision(),
-		RecommendationThreshold: entity.RecommendationThreshold,
+		MaxRevisions:            settings.MaxRevisions,
+		CanRequestRevision:      entry.CanRequestRevisionWith(settings.MaxRevisions),
+		RecommendationThreshold: settings.RecommendationThreshold,
 	}
 	if entry.Submission != nil {
 		response.Submission = studentDto.MapSubmissionRecord(entry.Submission, d.DownloadURLs)

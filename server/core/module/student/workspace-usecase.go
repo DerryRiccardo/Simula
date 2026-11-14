@@ -77,6 +77,7 @@ type WorkspaceDeps struct {
 	GradingQueue coreRepo.GradingQueue
 	// GradingModel dicatat di run penilaian.
 	GradingModel string
+	Platform     coreRepo.PlatformRepository
 	Now          func() time.Time
 }
 
@@ -265,7 +266,8 @@ func (uc *workspaceUseCase) Submit(ctx context.Context, enrollmentID string, con
 		ChangedAt:    now,
 	}
 	if change.To == entity.EnrollmentInReview {
-		dueAt := entity.AddBusinessDays(now, entity.ReviewSLABusinessDays)
+		settings := coreRepo.LoadSettings(ctx, uc.Platform)
+		dueAt := entity.AddBusinessDays(now, settings.ReviewSlaDays)
 		change.ReviewDueAt = &dueAt
 		change.AssignReviewer = true
 	}

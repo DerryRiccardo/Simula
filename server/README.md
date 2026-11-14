@@ -64,6 +64,8 @@ Catatan Windows: `go test -race` butuh compiler C (cgo). Bila belum ada, jalanka
 | GET | `/api/auth/google/callback` | Publik | Callback Google, redirect ke front-end |
 | GET | `/api/auth/me` | Login | User yang sedang masuk |
 | PATCH | `/api/users/me/onboarding` | Mahasiswa | Bidang (1–3), status, jurusan |
+| GET, PATCH | `/api/users/me/profile` | Mahasiswa | Halaman profil: data diri, bidang, dan daftar permintaan berbagi profil ke mitra |
+| PUT | `/api/users/me/data-sharing` | Mahasiswa | Ubah sikap bawaan berbagi profil (`ask` / `always` / `never`) |
 | GET | `/api/cases` | Publik (personal bila login) | Katalog: filter tier, bidang, level, pencarian; sort relevance, popular, rating, price_low; pagination |
 | GET | `/api/cases/:slug` | Publik (personal bila login) | Info umum case + status enrollment user |
 | GET | `/api/me/dashboard` | Mahasiswa | Statistik, case yang perlu tindakan, 3 rekomendasi |
@@ -91,6 +93,15 @@ Catatan Windows: `go test -race` butuh compiler C (cgo). Bila belum ada, jalanka
 | POST | `/api/reviewer/submissions/:id/grade` | Reviewer | Nilai per kriteria, feedback, rekomendasi interview |
 | POST | `/api/reviewer/submissions/:id/revision` | Reviewer | Kembalikan untuk revisi (maksimal 2 kali, tenggat +3 hari) |
 | POST | `/api/auth/change-password` | Login | Ganti kata sandi (wajib bagi reviewer baru) |
+| GET | `/api/admin/overview` | Admin | Ringkasan operasional: 4 angka utama, perlu tindakan, aktivitas terbaru |
+| GET | `/api/admin/members`, `/api/admin/members/:id` | Admin | Daftar dan detail member (mahasiswa) beserta enrollment, sertifikat, dan order |
+| GET | `/api/admin/orders` | Admin | Daftar order B2B (order menunggu yang lewat batas bayar tampil sebagai `expired`) |
+| GET | `/api/admin/talent-pool` | Admin | Daftar kandidat B2B yang direkomendasikan reviewer beserta status persetujuannya |
+| POST | `/api/admin/talent-pool/:id/share` | Admin | Teruskan profil kandidat ke mitra (wajib sudah `granted` dan belum pernah diteruskan) |
+| GET, POST | `/api/admin/fields` | Admin | Daftar dan tambah bidang studi |
+| PUT | `/api/admin/fields/:key`, `/api/admin/fields/:key/status` | Admin | Ubah nama/deskripsi dan aktifkan/nonaktifkan bidang (minimal satu bidang tetap aktif) |
+| POST | `/api/admin/fields/:key/move` | Admin | Tukar urutan bidang ke atas (`-1`) atau ke bawah (`1`) |
+| GET, PUT | `/api/admin/settings` | Admin | Pengaturan platform beserta riwayat perubahan |
 | GET | `/api/admin/partners` | Admin | Mitra, reviewer, dan B2B case untuk penugasan |
 | POST, PUT | `/api/admin/partners`, `/api/admin/partners/:id` | Admin | Tambah dan ubah mitra |
 | POST | `/api/admin/reviewers` | Admin | Tambah reviewer (password sementara dikirim sekali) |

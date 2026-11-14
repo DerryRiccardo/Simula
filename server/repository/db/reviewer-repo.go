@@ -165,7 +165,7 @@ func (r *reviewerRepo) RequestRevision(ctx context.Context, d entity.RevisionDec
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		result := tx.Model(&entity.Enrollment{}).
 			Where("id = ? AND status = ? AND revision_count < ? AND "+claimSQL,
-				d.EnrollmentID, entity.EnrollmentInReview, entity.MaxRevisions, d.ReviewerID).
+				d.EnrollmentID, entity.EnrollmentInReview, d.MaxRevisions, d.ReviewerID).
 			Updates(map[string]any{
 				"status":               entity.EnrollmentRevisionRequested,
 				"revision_count":       gorm.Expr("revision_count + 1"),

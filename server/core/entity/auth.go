@@ -3,6 +3,7 @@ package entity
 import (
 	"net/mail"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 	"unicode"
@@ -11,15 +12,26 @@ import (
 
 // Batas input auth. Sama dengan validasi form di client (app/(auth)/_schemas.ts dan onboarding).
 const (
-	NameMinLength       = 3
-	NameMaxLength       = 80
-	EmailMaxLength      = 254
-	PasswordMinLength   = 8
-	PasswordMaxBytes    = 72 // batas bcrypt; sisanya diabaikan diam-diam bila tidak dibatasi
-	MaxOnboardingFields = 3
-	MajorMaxLength      = 100
-	NextPathMaxLength   = 512
+	NameMinLength        = 3
+	NameMaxLength        = 80
+	EmailMaxLength       = 254
+	PasswordMinLength    = 8
+	PasswordMaxBytes     = 72 // batas bcrypt; sisanya diabaikan diam-diam bila tidak dibatasi
+	MaxOnboardingFields  = 3
+	MajorMaxLength       = 100
+	InstitutionMaxLength = 100
+	NextPathMaxLength    = 512
 )
+
+var linkedinURLPattern = regexp.MustCompile(`(?i)^https://(www\.)?linkedin\.com/in/[\w-]+/?$`)
+
+// ValidateLinkedinURL mengembalikan pesan error bila URL LinkedIn tidak sesuai format profil.
+func ValidateLinkedinURL(raw string) string {
+	if raw == "" || linkedinURLPattern.MatchString(raw) {
+		return ""
+	}
+	return "Gunakan format https://linkedin.com/in/nama-kamu"
+}
 
 // RateLimit adalah batas jumlah percobaan dalam satu jendela waktu.
 type RateLimit struct {

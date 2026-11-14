@@ -19,3 +19,7 @@ func newHealthHandler(cfg *config.Config, db *gorm.DB, rdb *redis.Client) *publi
 	)
 	return publicHandler.Health(uc)
 }
+
+func newPlatformHandler(db *gorm.DB) *publicHandler.PlatformHandler {
+	return publicHandler.Platform(dbRepo.InitPlatformRepo(db))
+}

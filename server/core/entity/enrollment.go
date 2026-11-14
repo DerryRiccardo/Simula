@@ -84,8 +84,10 @@ type Enrollment struct {
 	AssignedReviewerID *string
 	// LastReminderAt adalah pengingat terakhir admin ke reviewer pemegang.
 	LastReminderAt *time.Time
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	// ProfileSharedAt adalah waktu admin meneruskan profil kandidat ke mitra (Talent pool).
+	ProfileSharedAt *time.Time
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 
 	Case        *Case        `gorm:"foreignKey:CaseID"`
 	Certificate *Certificate `gorm:"foreignKey:EnrollmentID"`

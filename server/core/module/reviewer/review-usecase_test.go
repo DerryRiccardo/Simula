@@ -294,7 +294,7 @@ func TestRequestRevision(t *testing.T) {
 		env.repo.On("RequestRevision", mock.Anything, entity.RevisionDecision{
 			EnrollmentID: enrollmentID, SubmissionID: submissionID, ReviewerID: reviewerID,
 			Reason: "Tautan tidak bisa dibuka", Note: "Repo masih private, mohon dibuka aksesnya.",
-			DeadlineAt: testNow.AddDate(0, 0, 3), At: testNow,
+			MaxRevisions: entity.MaxRevisions, DeadlineAt: testNow.AddDate(0, 0, 3), At: testNow,
 		}).Return(nil)
 		revised := pendingEntry(2)
 		revised.Enrollment.Status = entity.EnrollmentRevisionRequested

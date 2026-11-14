@@ -73,7 +73,12 @@ func (e *ReviewQueueEntry) DecidedAt() *time.Time {
 
 // CanRequestRevision bernilai true bila submission masih menunggu dan batas revisi belum habis.
 func (e *ReviewQueueEntry) CanRequestRevision() bool {
-	return e.Enrollment.Status == EnrollmentInReview && e.Enrollment.RevisionCount < MaxRevisions
+	return e.CanRequestRevisionWith(MaxRevisions)
+}
+
+// CanRequestRevisionWith memeriksa batas revisi menggunakan nilai pengaturan platform.
+func (e *ReviewQueueEntry) CanRequestRevisionWith(maxRevisions int) bool {
+	return e.Enrollment.Status == EnrollmentInReview && e.Enrollment.RevisionCount < maxRevisions
 }
 
 // ReviewDecision adalah jenis keputusan di draft reviewer.
@@ -175,6 +180,7 @@ type RevisionDecision struct {
 	ReviewerID   string
 	Reason       string
 	Note         string
+	MaxRevisions int
 	// DeadlineAt adalah tenggat baru peserta.
 	DeadlineAt time.Time
 	At         time.Time

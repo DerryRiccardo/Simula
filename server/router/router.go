@@ -32,20 +32,28 @@ const (
 
 // Handlers berisi semua handler yang didaftarkan. Dikonstruksi di app/server.go.
 type Handlers struct {
-	Health       *publicHandler.HealthHandler
-	Auth         *authHandler.AuthHandler
-	Onboarding   *studentHandler.OnboardingHandler
-	Learning     *studentHandler.LearningHandler
-	Workspace    *studentHandler.WorkspaceHandler
-	Upload       *studentHandler.UploadHandler
-	Result       *studentHandler.ResultHandler
-	Certificate  *publicHandler.CertificateHandler
-	Checkout     *studentHandler.CheckoutHandler
-	Midtrans     *webhookHandler.MidtransHandler
-	Review       *reviewerHandler.ReviewHandler
-	AdminPartner *adminHandler.PartnerHandler
-	AdminReview  *adminHandler.ReviewHandler
-	AdminCase    *adminHandler.CaseHandler
+	Health          *publicHandler.HealthHandler
+	Platform        *publicHandler.PlatformHandler
+	Auth            *authHandler.AuthHandler
+	Onboarding      *studentHandler.OnboardingHandler
+	Profile         *studentHandler.ProfileHandler
+	Learning        *studentHandler.LearningHandler
+	Workspace       *studentHandler.WorkspaceHandler
+	Upload          *studentHandler.UploadHandler
+	Result          *studentHandler.ResultHandler
+	Certificate     *publicHandler.CertificateHandler
+	Checkout        *studentHandler.CheckoutHandler
+	Midtrans        *webhookHandler.MidtransHandler
+	Review          *reviewerHandler.ReviewHandler
+	AdminPartner    *adminHandler.PartnerHandler
+	AdminReview     *adminHandler.ReviewHandler
+	AdminCase       *adminHandler.CaseHandler
+	AdminOverview   *adminHandler.OverviewHandler
+	AdminMember     *adminHandler.MemberHandler
+	AdminOrder      *adminHandler.OrderHandler
+	AdminTalentPool *adminHandler.TalentPoolHandler
+	AdminField      *adminHandler.FieldHandler
+	AdminSettings   *adminHandler.SettingsHandler
 }
 
 // Middlewares adalah middleware akses yang dipasang per grup.
@@ -69,6 +77,8 @@ func Register(engine *gin.Engine, h Handlers, mw Middlewares) []Route {
 	public := r.group(AccessPublic)
 	public.GET("/health", h.Health.Live)
 	public.GET("/health/ready", h.Health.Ready)
+	public.GET("/fields", h.Platform.ListFields)
+	public.GET("/settings", h.Platform.GetSettings)
 	public.POST("/auth/register", h.Auth.Register)
 	public.POST("/auth/login", h.Auth.Login)
 	public.POST("/auth/refresh", h.Auth.Refresh)
@@ -89,6 +99,9 @@ func Register(engine *gin.Engine, h Handlers, mw Middlewares) []Route {
 
 	student := r.group(AccessStudent, mw.Auth, mw.RequireRole(entity.RoleStudent))
 	student.PATCH("/users/me/onboarding", h.Onboarding.Complete)
+	student.GET("/users/me/profile", h.Profile.GetProfile)
+	student.PATCH("/users/me/profile", h.Profile.UpdateDetails)
+	student.PUT("/users/me/data-sharing", h.Profile.UpdateShareDefault)
 	student.GET("/me/dashboard", h.Learning.Dashboard)
 	student.GET("/me/enrollments", h.Learning.ListEnrollments)
 	student.POST("/me/enrollments", h.Learning.StartCase)
@@ -119,6 +132,19 @@ func Register(engine *gin.Engine, h Handlers, mw Middlewares) []Route {
 
 	// Panel admin: identitas peserta terlihat (anonimitas hanya di portal reviewer).
 	admin := r.group(AccessAdmin, mw.Auth, mw.RequireRole(entity.RoleAdmin))
+	admin.GET("/admin/overview", h.AdminOverview.GetOverview)
+	admin.GET("/admin/members", h.AdminMember.ListMembers)
+	admin.GET("/admin/members/:id", h.AdminMember.GetMember)
+	admin.GET("/admin/orders", h.AdminOrder.ListOrders)
+	admin.GET("/admin/talent-pool", h.AdminTalentPool.ListTalentPool)
+	admin.POST("/admin/talent-pool/:id/share", h.AdminTalentPool.ShareTalent)
+	admin.GET("/admin/fields", h.AdminField.ListFields)
+	admin.POST("/admin/fields", h.AdminField.CreateField)
+	admin.PUT("/admin/fields/:key", h.AdminField.UpdateField)
+	admin.PUT("/admin/fields/:key/status", h.AdminField.SetFieldActive)
+	admin.POST("/admin/fields/:key/move", h.AdminField.MoveField)
+	admin.GET("/admin/settings", h.AdminSettings.GetSettings)
+	admin.PUT("/admin/settings", h.AdminSettings.SaveSettings)
 	admin.GET("/admin/partners", h.AdminPartner.GetDirectory)
 	admin.POST("/admin/partners", h.AdminPartner.CreatePartner)
 	admin.PUT("/admin/partners/:id", h.AdminPartner.UpdatePartner)

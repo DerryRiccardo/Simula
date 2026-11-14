@@ -73,6 +73,7 @@ type CheckoutDeps struct {
 	Simulator       coreRepo.PaymentSimulator
 	Payments        PaymentProcessor
 	Queue           coreRepo.OrderQueue
+	Platform        coreRepo.PlatformRepository
 	CandidateNumber func() int
 	Now             func() time.Time
 }
@@ -156,6 +157,8 @@ func (uc *checkoutUseCase) CreateOrder(ctx context.Context, caseID string, metho
 	}
 
 	now := uc.Now()
+	settings := coreRepo.LoadSettings(ctx, uc.Platform)
+	paymentWindow := time.Duration(settings.PaymentWindowHours) * time.Hour
 	order := entity.Order{
 		ID:            uuid.NewString(),
 		InvoiceNumber: entity.InvoiceNumber(now, seq),
@@ -165,7 +168,7 @@ func (uc *checkoutUseCase) CreateOrder(ctx context.Context, caseID string, metho
 		Status:        entity.OrderAwaitingPayment,
 		Subtotal:      *c.Price,
 		AdminFee:      method.AdminFee(),
-		ExpiresAt:     now.Add(entity.PaymentWindow),
+		ExpiresAt:     now.Add(paymentWindow),
 		CreatedAt:     now,
 		UpdatedAt:     now,
 	}

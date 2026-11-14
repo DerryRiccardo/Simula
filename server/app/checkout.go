@@ -37,9 +37,11 @@ func newPayments(cfg *config.Config, db *gorm.DB) paymentComponents {
 		components.gateway = midtrans.Disabled{}
 	}
 	orders := dbRepo.InitOrderRepo(db)
+	platform := dbRepo.InitPlatformRepo(db)
 	hook := hookModule.NewOrderHook(hookModule.OrderHookDeps{
 		Orders:      orders,
 		Enrollments: dbRepo.InitEnrollmentRepo(db),
+		Platform:    platform,
 	})
 	components.service = sharedModule.NewPaymentService(sharedModule.PaymentDeps{
 		Orders:      orders,
@@ -59,6 +61,7 @@ func newCheckoutHandler(cfg *config.Config, db *gorm.DB, payments paymentCompone
 		Simulator:   payments.simulator,
 		Payments:    payments.service,
 		Queue:       task.NewOrderQueue(client, cfg.QueueName),
+		Platform:    dbRepo.InitPlatformRepo(db),
 	})
 	return studentHandler.Checkout(uc)
 }

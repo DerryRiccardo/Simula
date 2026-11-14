@@ -65,7 +65,12 @@ const (
 
 // StartDeadline adalah batas klik "Mulai mengerjakan" untuk B2B case yang baru lunas.
 func StartDeadline(paidAt time.Time) time.Time {
-	return paidAt.AddDate(0, 0, B2BStartWindowDays)
+	return StartDeadlineWithWindow(paidAt, B2BStartWindowDays)
+}
+
+// StartDeadlineWithWindow menghitung batas mulai dengan jumlah hari dari pengaturan platform.
+func StartDeadlineWithWindow(paidAt time.Time, days int) time.Time {
+	return paidAt.AddDate(0, 0, days)
 }
 
 // PaymentDetails adalah instruksi bayar dari payment gateway (kolom payment_details), bentuknya

@@ -98,3 +98,16 @@ type CertificateRepository interface {
 	// GetByPublicID mengembalikan coreErrors.ErrCertificateNotFound bila ID verifikasi tidak terdaftar.
 	GetByPublicID(ctx context.Context, publicID string) (entity.Certificate, error)
 }
+
+// ProfileRepository melayani halaman Profil mahasiswa.
+type ProfileRepository interface {
+	// GetProfile memuat akun mahasiswa (dengan bidang) beserta daftar permintaan berbagi profil B2B.
+	// Mengembalikan coreErrors.ErrUserNotFound bila user tidak ada.
+	GetProfile(ctx context.Context, userID string) (entity.StudentProfile, error)
+	// UpdateDetails memperbarui data diri + bidang pilihan dalam satu transaksi. Mengembalikan
+	// coreErrors.ErrUserNotFound bila user tidak ada.
+	UpdateDetails(ctx context.Context, userID string, in entity.ProfileDetailsUpdate, now time.Time) error
+	// UpdateShareDefault mengubah sikap bawaan berbagi profil. Mengembalikan
+	// coreErrors.ErrUserNotFound bila user tidak ada.
+	UpdateShareDefault(ctx context.Context, userID string, shareDefault entity.ShareDefault, now time.Time) error
+}

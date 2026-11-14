@@ -38,6 +38,36 @@ const (
 	ShareDefaultNever  ShareDefault = "never"
 )
 
+// IsValid memeriksa apakah sikap bawaan berbagi profil dikenal.
+func (s ShareDefault) IsValid() bool {
+	return s == ShareDefaultAsk || s == ShareDefaultAlways || s == ShareDefaultNever
+}
+
+// ProfileDetailsUpdate adalah kolom data diri + bidang di halaman Profil mahasiswa.
+type ProfileDetailsUpdate struct {
+	Name          string
+	Institution   *string
+	Major         *string
+	StudentStatus StudentStatus
+	LinkedinURL   *string
+	FieldKeys     []string
+}
+
+// SharedProfile adalah satu permintaan berbagi profil dari case B2B yang direkomendasikan reviewer
+// (ISharedProfile di client).
+type SharedProfile struct {
+	EnrollmentID string
+	CaseTitle    string
+	PartnerName  string
+	Consent      string
+}
+
+// StudentProfile adalah isi halaman Profil mahasiswa (IProfile di client).
+type StudentProfile struct {
+	User           User
+	SharedProfiles []SharedProfile
+}
+
 // User adalah akun untuk semua peran.
 type User struct {
 	ID            string

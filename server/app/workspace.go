@@ -38,6 +38,7 @@ func newWorkspaceHandler(db *gorm.DB, store coreRepo.Storage, queue coreRepo.Gra
 		Grading:      dbRepo.InitGradingRepo(db),
 		GradingQueue: queue,
 		GradingModel: gradingModel,
+		Platform:     dbRepo.InitPlatformRepo(db),
 	})
 	return studentHandler.Workspace(uc)
 }

@@ -274,6 +274,91 @@ paths:
         "422":
           $ref: "#/components/responses/ValidationError"
 
+  /users/me/profile:
+    get:
+      tags: [Auth]
+      summary: Profil mahasiswa beserta permintaan berbagi data B2B
+      operationId: getMyProfile
+      security:
+        - accessCookie: []
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/StudentProfile"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+    patch:
+      tags: [Auth]
+      summary: Perbarui data diri dan bidang pilihan mahasiswa
+      operationId: updateMyProfileDetails
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileDetailsRequest"
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/StudentProfile"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /users/me/data-sharing:
+    put:
+      tags: [Auth]
+      summary: Perbarui sikap bawaan berbagi profil mahasiswa
+      operationId: updateMyDataSharing
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [shareDefault]
+              properties:
+                shareDefault:
+                  type: string
+                  enum: [ask, always, never]
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/StudentProfile"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
   /cases:
     get:
       tags: [Learning]
@@ -1173,6 +1258,108 @@ paths:
         "422":
           $ref: "#/components/responses/ValidationError"
 
+  /admin/overview:
+    get:
+      tags: [Admin]
+      summary: Ringkasan operasional panel admin
+      description: >-
+        4 angka utama (pendapatan 30 hari, member aktif, case terbit, sertifikat terbit), daftar
+        perlu tindakan berurutan prioritas, dan 8 aktivitas terbaru.
+      operationId: getAdminOverview
+      security:
+        - accessCookie: []
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AdminOverview"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /admin/members:
+    get:
+      tags: [Admin]
+      summary: Daftar member (mahasiswa)
+      description: Maksimal 500 akun ber-role student beserta ringkasan aktivitasnya, urut bergabung terbaru.
+      operationId: listAdminMembers
+      security:
+        - accessCookie: []
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/AdminMemberSummary" }
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /admin/members/{id}:
+    get:
+      tags: [Admin]
+      summary: Detail member (mahasiswa)
+      description: >-
+        Profil, daftar enrollment, sertifikat, dan order milik seorang mahasiswa. Order awaiting_payment
+        yang sudah melewati expiresAt dikembalikan dengan status expired saat dibaca.
+      operationId: getAdminMember
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AdminMemberDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/orders:
+    get:
+      tags: [Admin]
+      summary: Daftar order B2B
+      description: >-
+        Maksimal 500 order B2B, urut dibuat terbaru. Order awaiting_payment yang sudah melewati
+        expiresAt dikembalikan dengan status expired saat dibaca.
+      operationId: listAdminOrders
+      security:
+        - accessCookie: []
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/AdminOrder" }
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
   /admin/partners:
     get:
       tags: [Admin]
@@ -1698,6 +1885,258 @@ paths:
                     properties:
                       data:
                         $ref: "#/components/schemas/UploadTicket"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/talent-pool:
+    get:
+      tags: [Admin]
+      summary: Daftar kandidat B2B yang direkomendasikan reviewer
+      operationId: listAdminTalentPool
+      security:
+        - accessCookie: []
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/TalentCandidate" }
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /admin/talent-pool/{id}/share:
+    post:
+      tags: [Admin]
+      summary: Teruskan profil kandidat ke mitra
+      description: >-
+        Wajib kandidat sudah menyetujui (consent = granted) dan belum pernah diteruskan.
+      operationId: shareTalentCandidate
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/TalentCandidate"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/fields:
+    get:
+      tags: [Admin]
+      summary: Daftar bidang studi beserta jumlah case dan member
+      operationId: listAdminFields
+      security:
+        - accessCookie: []
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/AdminField" }
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+    post:
+      tags: [Admin]
+      summary: Tambah bidang studi baru
+      operationId: createAdminField
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminFieldInput" }
+      responses:
+        "201":
+          description: Dibuat
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AdminField"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/fields/{key}:
+    put:
+      tags: [Admin]
+      summary: Perbarui nama dan keterangan bidang studi
+      operationId: updateAdminField
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: key, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminFieldInput" }
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/AdminField" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/fields/{key}/status:
+    put:
+      tags: [Admin]
+      summary: Aktifkan atau nonaktifkan bidang studi
+      operationId: setAdminFieldStatus
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: key, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [isActive]
+              properties:
+                isActive: { type: boolean }
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/AdminField" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/fields/{key}/move:
+    post:
+      tags: [Admin]
+      summary: Tukar urutan bidang studi ke atas (-1) atau ke bawah (1)
+      operationId: moveAdminField
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: key, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [direction]
+              properties:
+                direction: { type: integer, enum: [-1, 1] }
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/AdminField" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/settings:
+    get:
+      tags: [Admin]
+      summary: Pengaturan platform beserta nilai bawaan dan riwayat perubahan
+      operationId: getAdminSettings
+      security:
+        - accessCookie: []
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AdminSettings"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+    put:
+      tags: [Admin]
+      summary: Simpan pengaturan platform dan catat perubahan
+      operationId: saveAdminSettings
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PlatformSettings" }
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AdminSettings"
+        "409":
+          $ref: "#/components/responses/Conflict"
         "422":
           $ref: "#/components/responses/ValidationError"
 
@@ -2516,6 +2955,234 @@ components:
         participantCount: { type: integer }
         pendingReviewCount: { type: integer }
         updatedAt: { type: string, format: date-time }
+    AdminOverview:
+      type: object
+      description: IAdminOverview di client
+      properties:
+        stats:
+          type: object
+          properties:
+            memberCount: { type: integer }
+            activeMemberCount: { type: integer }
+            publishedCaseCount: { type: integer }
+            aiCaseCount: { type: integer }
+            b2bCaseCount: { type: integer }
+            draftCaseCount: { type: integer }
+            pendingReviewCount: { type: integer }
+            overdueReviewCount: { type: integer }
+            revenueLast30Days: { type: integer }
+            paidOrderCountLast30Days: { type: integer }
+            awaitingPaymentCount: { type: integer }
+            aiGradedCount: { type: integer }
+            aiPassedCount: { type: integer }
+        actionItems:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              kind:
+                type: string
+                enum: [review_overdue, review_due_soon, case_without_reviewer, payment_expiring, draft_stale]
+              enrollmentId: { type: string, format: uuid, nullable: true }
+              caseId: { type: string, format: uuid }
+              caseTitle: { type: string }
+              memberName: { type: string, nullable: true }
+              at: { type: string, format: date-time }
+              partnerName: { type: string, nullable: true }
+        activities:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              type:
+                type: string
+                enum: [submitted, revision_requested, reviewed, paid, certificate_issued]
+              memberName: { type: string }
+              caseId: { type: string, format: uuid }
+              caseTitle: { type: string }
+              tier: { type: string, enum: [ai, b2b] }
+              at: { type: string, format: date-time }
+    AdminMemberSummary:
+      type: object
+      description: IAdminMemberSummary di client
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string, format: email }
+        studentStatus: { type: string, enum: [final_year, fresh_graduate], nullable: true }
+        major: { type: string, nullable: true }
+        fieldKeys: { type: array, items: { type: string } }
+        joinedAt: { type: string, format: date-time }
+        lastActiveAt: { type: string, format: date-time, nullable: true }
+        aiCaseCount: { type: integer }
+        b2bCaseCount: { type: integer }
+        activeCaseCount: { type: integer }
+        certificateCount: { type: integer }
+        totalSpent: { type: integer }
+    AdminMemberDetail:
+      type: object
+      description: IAdminMemberDetail di client
+      properties:
+        member:
+          allOf:
+            - $ref: "#/components/schemas/AdminMemberSummary"
+            - type: object
+              properties:
+                institution: { type: string, nullable: true }
+                linkedinUrl: { type: string, nullable: true }
+                shareDefault: { type: string, enum: [ask, always] }
+        enrollments:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              caseId: { type: string, format: uuid }
+              caseTitle: { type: string }
+              tier: { type: string, enum: [ai, b2b] }
+              partnerName: { type: string, nullable: true }
+              status:
+                type: string
+                enum: [pending_payment, not_started, in_progress, ai_grading, in_review, revision_requested, passed, failed]
+              score: { type: integer, nullable: true }
+              updatedAt: { type: string, format: date-time }
+              hasReview: { type: boolean }
+        orders:
+          type: array
+          items: { $ref: "#/components/schemas/AdminOrder" }
+        certificates:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, description: public_id sertifikat }
+              enrollmentId: { type: string, format: uuid }
+              caseTitle: { type: string }
+              tier: { type: string, enum: [ai, b2b] }
+              score: { type: integer }
+              issuedAt: { type: string, format: date-time }
+    AdminOrder:
+      allOf:
+        - $ref: "#/components/schemas/Order"
+        - type: object
+          description: IAdminOrder di client
+          properties:
+            memberId: { type: string, format: uuid }
+            memberName: { type: string }
+            memberEmail: { type: string, format: email }
+            caseTitle: { type: string }
+            partnerName: { type: string, nullable: true }
+    TalentCandidate:
+      type: object
+      description: ITalentCandidate di client
+      properties:
+        id: { type: string, format: uuid, description: ID enrollment }
+        memberId: { type: string, format: uuid }
+        memberName: { type: string }
+        memberEmail: { type: string, format: email }
+        fieldKeys: { type: array, items: { type: string } }
+        caseId: { type: string, format: uuid }
+        caseTitle: { type: string }
+        partnerId: { type: string, format: uuid, nullable: true }
+        partnerName: { type: string, nullable: true }
+        reviewerName: { type: string, nullable: true }
+        reviewerRole: { type: string }
+        score: { type: integer }
+        recommendedAt: { type: string, format: date-time }
+        consent: { type: string, enum: [pending, granted, declined] }
+        sharedAt: { type: string, format: date-time, nullable: true }
+    ProfileDetailsRequest:
+      type: object
+      required: [name, studentStatus, fieldKeys]
+      properties:
+        name: { type: string }
+        institution: { type: string, nullable: true }
+        major: { type: string, nullable: true }
+        studentStatus: { type: string, enum: [final_year, fresh_graduate] }
+        linkedinUrl: { type: string, nullable: true }
+        fieldKeys: { type: array, items: { type: string } }
+    StudentProfile:
+      type: object
+      description: IProfile di client
+      properties:
+        user: { $ref: "#/components/schemas/User" }
+        institution: { type: string, nullable: true }
+        linkedinUrl: { type: string, nullable: true }
+        shareDefault: { type: string, enum: [ask, always, never] }
+        sharedProfiles:
+          type: array
+          items:
+            type: object
+            properties:
+              enrollmentId: { type: string, format: uuid }
+              caseTitle: { type: string }
+              partnerName: { type: string }
+              consent: { type: string, enum: [pending, granted, declined] }
+    AdminFieldInput:
+      type: object
+      required: [label, description]
+      properties:
+        label: { type: string }
+        description: { type: string }
+    AdminField:
+      type: object
+      description: IAdminField di client
+      properties:
+        key: { type: string }
+        label: { type: string }
+        description: { type: string }
+        isActive: { type: boolean }
+        order: { type: integer }
+        caseCount: { type: integer }
+        memberCount: { type: integer }
+    PlatformSettings:
+      type: object
+      description: IPlatformSettings di client
+      required:
+        - reviewSlaDays
+        - maxRevisions
+        - revisionExtraDays
+        - recommendationThreshold
+        - passingScoreAi
+        - passingScoreB2b
+        - b2bStartWindowDays
+        - paymentWindowHours
+        - whatsappNumber
+      properties:
+        reviewSlaDays: { type: integer, minimum: 1, maximum: 15 }
+        maxRevisions: { type: integer, minimum: 0, maximum: 5 }
+        revisionExtraDays: { type: integer, minimum: 1, maximum: 14 }
+        recommendationThreshold: { type: integer, minimum: 50, maximum: 100 }
+        passingScoreAi: { type: integer, minimum: 1, maximum: 100 }
+        passingScoreB2b: { type: integer, minimum: 1, maximum: 100 }
+        b2bStartWindowDays: { type: integer, minimum: 7, maximum: 180 }
+        paymentWindowHours: { type: integer, minimum: 1, maximum: 72 }
+        whatsappNumber: { type: string }
+    AdminSettings:
+      type: object
+      description: IAdminSettings di client
+      properties:
+        values: { $ref: "#/components/schemas/PlatformSettings" }
+        defaults: { $ref: "#/components/schemas/PlatformSettings" }
+        log:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              at: { type: string, format: date-time }
+              actorName: { type: string }
+              changes:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    key: { type: string }
+                    label: { type: string }
+                    from: { type: string }
+                    to: { type: string }
   responses:
     Conflict:
       description: Status tidak mengizinkan aksi ini (mis. sudah terkirim atau tenggat lewat)

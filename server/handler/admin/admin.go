@@ -170,3 +170,218 @@ func (h *ReviewHandler) respond(c *gin.Context) func(adminModule.ReviewDetail, e
 		response.OK(c, adminDto.MapReviewDetailToResponse(detail))
 	}
 }
+
+// OverviewHandler melayani menu Dashboard admin.
+type OverviewHandler struct {
+	uc adminModule.OverviewUseCase
+}
+
+// Overview membuat handler Dashboard admin.
+func Overview(uc adminModule.OverviewUseCase) *OverviewHandler {
+	return &OverviewHandler{uc: uc}
+}
+
+// GetOverview: GET /api/admin/overview.
+func (h *OverviewHandler) GetOverview(c *gin.Context) {
+	overview, err := h.uc.GetOverview(c.Request.Context())
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	response.OK(c, adminDto.MapOverviewToResponse(overview))
+}
+
+// MemberHandler melayani menu Member admin.
+type MemberHandler struct {
+	uc adminModule.MemberUseCase
+}
+
+// Member membuat handler Member admin.
+func Member(uc adminModule.MemberUseCase) *MemberHandler {
+	return &MemberHandler{uc: uc}
+}
+
+// ListMembers: GET /api/admin/members.
+func (h *MemberHandler) ListMembers(c *gin.Context) {
+	members, err := h.uc.ListMembers(c.Request.Context())
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	response.OK(c, adminDto.MapMemberSummaries(members))
+}
+
+// GetMember: GET /api/admin/members/:id.
+func (h *MemberHandler) GetMember(c *gin.Context) {
+	detail, err := h.uc.GetMember(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	response.OK(c, adminDto.MapMemberDetailToResponse(detail))
+}
+
+// OrderHandler melayani menu Order admin.
+type OrderHandler struct {
+	uc adminModule.OrderUseCase
+}
+
+// Order membuat handler Order admin.
+func Order(uc adminModule.OrderUseCase) *OrderHandler {
+	return &OrderHandler{uc: uc}
+}
+
+// ListOrders: GET /api/admin/orders.
+func (h *OrderHandler) ListOrders(c *gin.Context) {
+	orders, err := h.uc.ListOrders(c.Request.Context())
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	response.OK(c, adminDto.MapAdminOrders(orders))
+}
+
+// TalentPoolHandler melayani menu Talent pool admin.
+type TalentPoolHandler struct {
+	uc adminModule.TalentPoolUseCase
+}
+
+// TalentPool membuat handler Talent pool admin.
+func TalentPool(uc adminModule.TalentPoolUseCase) *TalentPoolHandler {
+	return &TalentPoolHandler{uc: uc}
+}
+
+// ListTalentPool: GET /api/admin/talent-pool.
+func (h *TalentPoolHandler) ListTalentPool(c *gin.Context) {
+	candidates, err := h.uc.ListTalentPool(c.Request.Context())
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	response.OK(c, adminDto.MapTalentCandidates(candidates))
+}
+
+// ShareTalent: POST /api/admin/talent-pool/:id/share.
+func (h *TalentPoolHandler) ShareTalent(c *gin.Context) {
+	candidate, err := h.uc.ShareTalent(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	response.OK(c, adminDto.MapTalentCandidate(candidate))
+}
+
+// FieldHandler melayani menu Bidang studi admin.
+type FieldHandler struct {
+	uc adminModule.FieldUseCase
+}
+
+// Field membuat handler Bidang studi admin.
+func Field(uc adminModule.FieldUseCase) *FieldHandler {
+	return &FieldHandler{uc: uc}
+}
+
+// ListFields: GET /api/admin/fields.
+func (h *FieldHandler) ListFields(c *gin.Context) {
+	fields, err := h.uc.ListFields(c.Request.Context())
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	response.OK(c, adminDto.MapAdminFields(fields))
+}
+
+// CreateField: POST /api/admin/fields.
+func (h *FieldHandler) CreateField(c *gin.Context) {
+	var req adminDto.FieldRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		_ = c.Error(bind.Error(err))
+		return
+	}
+	created, err := h.uc.CreateField(c.Request.Context(), adminDto.MapFieldReqToInput(req))
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	response.Created(c, adminDto.MapAdminField(created))
+}
+
+// UpdateField: PUT /api/admin/fields/:key.
+func (h *FieldHandler) UpdateField(c *gin.Context) {
+	var req adminDto.FieldRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		_ = c.Error(bind.Error(err))
+		return
+	}
+	fields, err := h.uc.UpdateField(c.Request.Context(), c.Param("key"), adminDto.MapFieldReqToInput(req))
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	response.OK(c, adminDto.MapAdminFields(fields))
+}
+
+// SetFieldActive: PUT /api/admin/fields/:key/status.
+func (h *FieldHandler) SetFieldActive(c *gin.Context) {
+	var req adminDto.FieldStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		_ = c.Error(bind.Error(err))
+		return
+	}
+	fields, err := h.uc.SetFieldActive(c.Request.Context(), c.Param("key"), req.IsActive)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	response.OK(c, adminDto.MapAdminFields(fields))
+}
+
+// MoveField: POST /api/admin/fields/:key/move.
+func (h *FieldHandler) MoveField(c *gin.Context) {
+	var req adminDto.FieldMoveRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		_ = c.Error(bind.Error(err))
+		return
+	}
+	fields, err := h.uc.MoveField(c.Request.Context(), c.Param("key"), req.Direction)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	response.OK(c, adminDto.MapAdminFields(fields))
+}
+
+// SettingsHandler melayani menu Pengaturan admin.
+type SettingsHandler struct {
+	uc adminModule.SettingsUseCase
+}
+
+// Settings membuat handler Pengaturan admin.
+func Settings(uc adminModule.SettingsUseCase) *SettingsHandler {
+	return &SettingsHandler{uc: uc}
+}
+
+// GetSettings: GET /api/admin/settings.
+func (h *SettingsHandler) GetSettings(c *gin.Context) {
+	settings, err := h.uc.GetSettings(c.Request.Context())
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	response.OK(c, adminDto.MapAdminSettingsToResponse(settings))
+}
+
+// SaveSettings: PUT /api/admin/settings.
+func (h *SettingsHandler) SaveSettings(c *gin.Context) {
+	var req adminDto.PlatformSettingsPayload
+	if err := c.ShouldBindJSON(&req); err != nil {
+		_ = c.Error(bind.Error(err))
+		return
+	}
+	settings, err := h.uc.SaveSettings(c.Request.Context(), adminDto.MapSettingsReqToEntity(req))
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	response.OK(c, adminDto.MapAdminSettingsToResponse(settings))
+}

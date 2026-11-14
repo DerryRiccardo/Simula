@@ -31,7 +31,6 @@ const (
 )
 
 var (
-	msgRevisionLimit = fmt.Sprintf("Batas revisi (%d kali) sudah habis. Nilai submission ini.", entity.MaxRevisions)
 	msgReasonLength  = fmt.Sprintf("Tulis alasan minimal %d karakter.", entity.ReviewReasonMinRunes)
 	msgNoteLength    = fmt.Sprintf("Tulis catatan minimal %d karakter.", entity.ReviewReasonMinRunes)
 	msgTooLong       = fmt.Sprintf("Maksimal %d karakter.", entity.ReviewReasonMaxRunes)
@@ -47,7 +46,8 @@ type Queue struct {
 	// Pending urut dari tenggat review paling dekat.
 	Pending []entity.ReviewQueueEntry
 	// History urut dari keputusan terbaru.
-	History []entity.ReviewQueueEntry
+	History  []entity.ReviewQueueEntry
+	Settings entity.PlatformSettings
 }
 
 // SubmissionDetail adalah isi halaman review satu submission.
@@ -58,6 +58,7 @@ type SubmissionDetail struct {
 	Draft        *entity.ReviewDraft
 	// DownloadURLs adalah link unduh sementara per fileId; berkas yang gagal ditandatangani dilewati.
 	DownloadURLs map[string]string
+	Settings     entity.PlatformSettings
 }
 
 // GradeCriterionInput adalah penilaian satu kriteria dari reviewer.
@@ -96,6 +97,7 @@ type ReviewDeps struct {
 	Cases    coreRepo.CaseRepository
 	Files    coreRepo.FileRepository
 	Storage  coreRepo.Storage
+	Platform coreRepo.PlatformRepository
 	// OnReviewed memfinalkan penilaian (hook.OnReviewed), sama dengan penilaian AI.
 	OnReviewed func(ctx context.Context, outcome entity.ReviewOutcome) error
 	Now        func() time.Time
@@ -122,7 +124,11 @@ func (uc *reviewUseCase) GetQueue(ctx context.Context) (Queue, error) {
 	if err != nil {
 		return Queue{}, apperror.Internal(err)
 	}
-	queue := Queue{Pending: []entity.ReviewQueueEntry{}, History: []entity.ReviewQueueEntry{}}
+	queue := Queue{
+		Pending:  []entity.ReviewQueueEntry{},
+		History:  []entity.ReviewQueueEntry{},
+		Settings: coreRepo.LoadSettings(ctx, uc.Platform),
+	}
 	for _, entry := range entries {
 		if entry.Enrollment.Status == entity.EnrollmentInReview {
 			queue.Pending = append(queue.Pending, entry)
@@ -152,7 +158,13 @@ func (uc *reviewUseCase) GetSubmission(ctx context.Context, enrollmentID string)
 	if err != nil {
 		return SubmissionDetail{}, apperror.Internal(err)
 	}
-	detail := SubmissionDetail{Entry: entry, Case: c, LastRevision: lastRevision, DownloadURLs: map[string]string{}}
+	detail := SubmissionDetail{
+		Entry:        entry,
+		Case:         c,
+		LastRevision: lastRevision,
+		DownloadURLs: map[string]string{},
+		Settings:     coreRepo.LoadSettings(ctx, uc.Platform),
+	}
 	if entry.Enrollment.Status == entity.EnrollmentInReview && entry.Submission != nil {
 		draft, err := uc.Reviewers.GetDraft(ctx, entry.Submission.ID)
 		switch {
@@ -265,8 +277,9 @@ func (uc *reviewUseCase) RequestRevision(ctx context.Context, enrollmentID, reas
 	if err != nil {
 		return entity.ReviewQueueEntry{}, err
 	}
-	if !entry.CanRequestRevision() {
-		return entity.ReviewQueueEntry{}, apperror.Conflict(msgRevisionLimit)
+	settings := coreRepo.LoadSettings(ctx, uc.Platform)
+	if !entry.CanRequestRevisionWith(settings.MaxRevisions) {
+		return entity.ReviewQueueEntry{}, apperror.Conflict(fmt.Sprintf("Batas revisi (%d kali) sudah habis. Nilai submission ini.", settings.MaxRevisions))
 	}
 	note = strings.TrimSpace(note)
 	var fields []apperror.FieldError
@@ -287,7 +300,8 @@ func (uc *reviewUseCase) RequestRevision(ctx context.Context, enrollmentID, reas
 		ReviewerID:   current.ID,
 		Reason:       reason,
 		Note:         note,
-		DeadlineAt:   now.AddDate(0, 0, entity.RevisionExtraDays),
+		MaxRevisions: settings.MaxRevisions,
+		DeadlineAt:   now.AddDate(0, 0, settings.RevisionExtraDays),
 		At:           now,
 	})
 	if errors.Is(err, coreErrors.ErrStatusConflict) {

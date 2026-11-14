@@ -17,3 +17,11 @@ func newLearningHandler(db *gorm.DB) *studentHandler.LearningHandler {
 	})
 	return studentHandler.Learning(uc)
 }
+
+func newProfileHandler(db *gorm.DB) *studentHandler.ProfileHandler {
+	uc := studentModule.InitProfileUseCase(studentModule.ProfileDeps{
+		Profiles: dbRepo.InitProfileRepo(db),
+		Fields:   dbRepo.InitFieldRepo(db),
+	})
+	return studentHandler.Profile(uc)
+}

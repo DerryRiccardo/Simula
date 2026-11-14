@@ -19,6 +19,7 @@ import (
 type OrderHookDeps struct {
 	Orders      coreRepo.OrderRepository
 	Enrollments coreRepo.EnrollmentRepository
+	Platform    coreRepo.PlatformRepository
 	// CandidateNumber membuat nomor kandidat anonim; default acak dalam rentang entity.CandidateNumber*.
 	CandidateNumber func() int
 	Now             func() time.Time
@@ -49,7 +50,8 @@ func (h *OrderHook) OnOrderPaid(ctx context.Context, order entity.Order) error {
 	if order.Status != entity.OrderPaid || order.PaidAt == nil {
 		return nil
 	}
-	startBy := entity.StartDeadline(*order.PaidAt)
+	settings := coreRepo.LoadSettings(ctx, h.Platform)
+	startBy := entity.StartDeadlineWithWindow(*order.PaidAt, settings.B2BStartWindowDays)
 	enrollmentID, err := h.activate(ctx, order, startBy)
 	if err != nil {
 		return err

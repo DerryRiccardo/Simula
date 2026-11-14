@@ -12,6 +12,7 @@ Skema awal (migrasi `001_initial_schema.sql`, 24 tabel), diturunkan dari kontrak
 | `002_slot_key_hyphen` | Slot key boleh memakai tanda hubung (`design-doc`), sesuai pembuat case di client. |
 | `003_enrollment_assigned_reviewer` | `enrollments.assigned_reviewer_id`: reviewer pemegang submission B2B. |
 | `004_admin_reviewers` | `reviewer_profiles` (mitra dan jabatan reviewer), `users.must_change_password`, `enrollments.last_reminder_at`, `review_flags` (tanda bermasalah dari admin). |
+| `005_admin_platform` | `enrollments.profile_shared_at` (waktu profil diteruskan ke mitra di Talent pool), `fields.is_active`, `platform_settings` (satu baris pengaturan platform), `platform_settings_logs` (riwayat perubahan pengaturan). |
 
 ## Konvensi
 
@@ -127,7 +128,9 @@ erDiagram
 
 | Tabel | Isi | Catatan |
 | --- | --- | --- |
-| `fields` | Taksonomi bidang (12 baris, di-seed di migrasi) | Sama dengan `FIELD_OPTIONS` di client. Dirujuk FK dari `cases` dan `user_fields`. |
+| `fields` | Taksonomi bidang (12 baris awal, di-seed di migrasi), `is_active` (`005`) | Sama dengan `FIELD_OPTIONS` di client. Dirujuk FK dari `cases` dan `user_fields`. Bidang nonaktif tidak bisa dipilih untuk case dan onboarding baru. |
+| `platform_settings` | Pengaturan platform (satu baris, `005`): SLA review, batas revisi, tambahan tenggat revisi, saran rekomendasi, ambang lulus bawaan AI/B2B, batas mulai B2B, batas waktu bayar, nomor WhatsApp | Satu baris dikunci dengan `id boolean PRIMARY KEY DEFAULT true CHECK (id)`. |
+| `platform_settings_logs` | Riwayat perubahan pengaturan platform (`005`): `actor_id`, `changes` (`jsonb`), `created_at` | Mencatat siapa, kapan, dan daftar perubahan nilai lama → baru. |
 | `users` | Akun semua peran + data profil | Email lowercase dan unik. Minimal salah satu dari `password_hash` atau `google_sub` terisi. `is_active` untuk menonaktifkan akun tanpa menghapus riwayat. |
 | `user_fields` | Bidang pilihan user (1–3) dengan urutan | Batas 3 dicek use case. |
 | `refresh_tokens` | Hash refresh token, `family_id` untuk rantai rotasi, `revoked_at`, `replaced_by_id` | Token lama dipakai ulang → cabut seluruh `family_id`. |

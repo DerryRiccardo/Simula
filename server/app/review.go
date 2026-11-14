@@ -29,6 +29,7 @@ func newReviewerHandler(db *gorm.DB, store coreRepo.Storage) *reviewerHandler.Re
 		Cases:      dbRepo.InitCaseRepo(db),
 		Files:      dbRepo.InitFileRepo(db),
 		Storage:    store,
+		Platform:   dbRepo.InitPlatformRepo(db),
 		OnReviewed: newReviewHook(db).OnReviewed,
 	})
 	return reviewerHandler.Review(uc)

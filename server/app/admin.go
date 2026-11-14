@@ -48,3 +48,45 @@ func newAdminReviewHandler(db *gorm.DB, store coreRepo.Storage, queue coreRepo.G
 	})
 	return adminHandler.Review(uc)
 }
+
+func newAdminOverviewHandler(db *gorm.DB) *adminHandler.OverviewHandler {
+	uc := adminModule.InitOverviewUseCase(adminModule.OverviewDeps{
+		Overview: dbRepo.InitAdminOverviewRepo(db),
+	})
+	return adminHandler.Overview(uc)
+}
+
+func newAdminMemberHandler(db *gorm.DB) *adminHandler.MemberHandler {
+	uc := adminModule.InitMemberUseCase(adminModule.MemberDeps{
+		Members: dbRepo.InitAdminMemberRepo(db),
+	})
+	return adminHandler.Member(uc)
+}
+
+func newAdminOrderHandler(db *gorm.DB) *adminHandler.OrderHandler {
+	uc := adminModule.InitOrderUseCase(adminModule.OrderDeps{
+		Orders: dbRepo.InitAdminOrderRepo(db),
+	})
+	return adminHandler.Order(uc)
+}
+
+func newAdminTalentPoolHandler(db *gorm.DB) *adminHandler.TalentPoolHandler {
+	uc := adminModule.InitTalentPoolUseCase(adminModule.TalentPoolDeps{
+		TalentPool: dbRepo.InitAdminTalentPoolRepo(db),
+	})
+	return adminHandler.TalentPool(uc)
+}
+
+func newAdminFieldHandler(db *gorm.DB) *adminHandler.FieldHandler {
+	uc := adminModule.InitFieldUseCase(adminModule.FieldDeps{
+		Fields: dbRepo.InitAdminFieldRepo(db),
+	})
+	return adminHandler.Field(uc)
+}
+
+func newAdminSettingsHandler(db *gorm.DB) *adminHandler.SettingsHandler {
+	uc := adminModule.InitSettingsUseCase(adminModule.SettingsDeps{
+		Settings: dbRepo.InitAdminSettingsRepo(db),
+	})
+	return adminHandler.Settings(uc)
+}

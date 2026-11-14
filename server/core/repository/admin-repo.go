@@ -53,3 +53,59 @@ type AdminReviewRepository interface {
 	// transaksi. Mengembalikan coreErrors.ErrStatusConflict bila status sudah bukan failed.
 	Regrade(ctx context.Context, enrollmentID, submissionID string, run *entity.AIGradingRun, now time.Time) error
 }
+
+// AdminOverviewRepository melayani menu Dashboard (Ringkasan) panel admin.
+type AdminOverviewRepository interface {
+	LoadOverview(ctx context.Context, now time.Time) (entity.AdminOverviewData, error)
+}
+
+// AdminMemberRepository melayani menu Member panel admin.
+type AdminMemberRepository interface {
+	ListMembers(ctx context.Context, limit int) ([]entity.AdminMemberSummary, error)
+	// GetMember mengembalikan coreErrors.ErrUserNotFound bila user tidak ada atau bukan mahasiswa.
+	GetMember(ctx context.Context, memberID string) (entity.AdminMemberDetail, error)
+}
+
+// AdminOrderRepository melayani menu Order panel admin.
+type AdminOrderRepository interface {
+	ListOrders(ctx context.Context, limit int) ([]entity.AdminOrder, error)
+}
+
+// AdminTalentPoolRepository melayani menu Talent pool panel admin.
+type AdminTalentPoolRepository interface {
+	ListCandidates(ctx context.Context, limit int) ([]entity.TalentCandidate, error)
+	// GetCandidate mengembalikan coreErrors.ErrEnrollmentNotFound bila enrollment tidak masuk
+	// talent pool.
+	GetCandidate(ctx context.Context, enrollmentID string) (entity.TalentCandidate, error)
+	// ShareCandidate mencatat waktu profil diteruskan ke mitra bila mahasiswa sudah menyetujui dan
+	// belum pernah diteruskan. Mengembalikan coreErrors.ErrStatusConflict bila syarat tidak
+	// terpenuhi.
+	ShareCandidate(ctx context.Context, enrollmentID string, now time.Time) error
+}
+
+// AdminFieldRepository melayani menu Bidang studi panel admin.
+type AdminFieldRepository interface {
+	ListFields(ctx context.Context) ([]entity.AdminField, error)
+	GetField(ctx context.Context, key string) (entity.Field, error)
+	KeyTaken(ctx context.Context, key string) (bool, error)
+	LabelTaken(ctx context.Context, label, exceptKey string) (bool, error)
+	// CreateField menyimpan bidang baru di urutan paling bawah.
+	CreateField(ctx context.Context, key, label, description string) (entity.AdminField, error)
+	// UpdateField mengubah label dan deskripsi bidang. Mengembalikan coreErrors.ErrFieldNotFound bila
+	// key tidak ada.
+	UpdateField(ctx context.Context, key, label, description string) error
+	// SetFieldActive mengubah status aktif bidang. Bila menonaktifkan bidang aktif terakhir,
+	// mengembalikan coreErrors.ErrStatusConflict. Bila key tidak ada, mengembalikan
+	// coreErrors.ErrFieldNotFound.
+	SetFieldActive(ctx context.Context, key string, isActive bool) error
+	// MoveField menukar urutan bidang dengan tetangga di arah direction (-1 ke atas, 1 ke bawah).
+	// Mengembalikan coreErrors.ErrFieldNotFound bila key tidak ada.
+	MoveField(ctx context.Context, key string, direction int) error
+}
+
+// AdminSettingsRepository melayani menu Pengaturan panel admin.
+type AdminSettingsRepository interface {
+	GetSettings(ctx context.Context) (entity.PlatformSettings, error)
+	ListLogs(ctx context.Context, limit int) ([]entity.SettingsLogEntry, error)
+	SaveSettings(ctx context.Context, settings entity.PlatformSettings, logEntry *entity.PlatformSettingsLog) error
+}

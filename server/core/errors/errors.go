@@ -29,4 +29,6 @@ var (
 	ErrPartnerNotFound     = errors.New("partner not found")
 	ErrPartnerNameTaken    = errors.New("partner name already used")
 	ErrReviewerNotFound    = errors.New("reviewer not found")
+	ErrFieldNotFound       = errors.New("field not found")
+	ErrFieldLabelTaken     = errors.New("field label already used")
 )

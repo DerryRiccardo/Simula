@@ -135,7 +135,7 @@ func (uc *caseUseCase) SaveCase(ctx context.Context, id string, input entity.Adm
 	if existing != nil {
 		fields = append(fields, validateLocks(*existing, input)...)
 	}
-	refFields, err := uc.validateReferences(ctx, input)
+	refFields, err := uc.validateReferences(ctx, existing, input)
 	if err != nil {
 		return entity.AdminCaseDetail{}, err
 	}
@@ -335,9 +335,12 @@ func (uc *caseUseCase) uniqueSlug(ctx context.Context, title string) (string, er
 }
 
 // validateReferences memeriksa bidang dan mitra yang dipilih benar-benar ada.
-func (uc *caseUseCase) validateReferences(ctx context.Context, in entity.AdminCaseInput) ([]apperror.FieldError, error) {
+func (uc *caseUseCase) validateReferences(
+	ctx context.Context, existing *entity.AdminCaseDetail, in entity.AdminCaseInput,
+) ([]apperror.FieldError, error) {
 	var fields []apperror.FieldError
-	if in.FieldKey != "" {
+	keepField := existing != nil && existing.Case.FieldKey == in.FieldKey
+	if in.FieldKey != "" && !keepField {
 		keys, err := uc.Fields.ExistingKeys(ctx, []string{in.FieldKey})
 		if err != nil {
 			return nil, apperror.Internal(err)

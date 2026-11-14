@@ -23,7 +23,10 @@ func (r *fieldRepo) ExistingKeys(ctx context.Context, keys []string) ([]string, 
 	if len(keys) == 0 {
 		return existing, nil
 	}
-	err := r.db.WithContext(ctx).Table("fields").Where("key IN ?", keys).Pluck("key", &existing).Error
+	err := r.db.WithContext(ctx).
+		Table("fields").
+		Where("key IN ? AND is_active = ?", keys, true).
+		Pluck("key", &existing).Error
 	if err != nil {
 		return nil, fmt.Errorf("failed to read fields: %w", err)
 	}

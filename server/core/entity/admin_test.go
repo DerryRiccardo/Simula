@@ -53,3 +53,38 @@ func TestAdminReviewRow_Actions(t *testing.T) {
 	pending.Holder = nil
 	assert.False(t, pending.CanRemind(now), "no holder to remind")
 }
+
+func TestReviewActionKind(t *testing.T) {
+	monday := time.Date(2026, 11, 2, 3, 0, 0, 0, time.UTC) // Senin 10.00 WIB
+
+	kind, ok := ReviewActionKind(monday.Add(-time.Minute), monday)
+	assert.True(t, ok)
+	assert.Equal(t, AdminActionReviewOverdue, kind)
+
+	kind, ok = ReviewActionKind(monday.AddDate(0, 0, 1), monday)
+	assert.True(t, ok)
+	assert.Equal(t, AdminActionReviewDueSoon, kind)
+
+	_, ok = ReviewActionKind(monday.AddDate(0, 0, 2), monday)
+	assert.False(t, ok)
+}
+
+func TestIsPaymentExpiringSoon(t *testing.T) {
+	now := time.Date(2026, 11, 4, 10, 0, 0, 0, time.UTC)
+	assert.False(t, IsPaymentExpiringSoon(now.Add(-time.Minute), now))
+	assert.True(t, IsPaymentExpiringSoon(now, now))
+	assert.True(t, IsPaymentExpiringSoon(now.Add(24*time.Hour), now))
+	assert.False(t, IsPaymentExpiringSoon(now.Add(24*time.Hour+time.Second), now))
+}
+
+func TestAdminOrder_EffectiveStatus(t *testing.T) {
+	now := time.Date(2026, 11, 4, 10, 0, 0, 0, time.UTC)
+	awaiting := AdminOrder{Order: Order{Status: OrderAwaitingPayment, ExpiresAt: now.Add(time.Hour)}}
+	assert.Equal(t, OrderAwaitingPayment, awaiting.EffectiveStatus(now))
+
+	overdue := AdminOrder{Order: Order{Status: OrderAwaitingPayment, ExpiresAt: now}}
+	assert.Equal(t, OrderExpired, overdue.EffectiveStatus(now))
+
+	paid := AdminOrder{Order: Order{Status: OrderPaid, ExpiresAt: now.Add(-time.Hour)}}
+	assert.Equal(t, OrderPaid, paid.EffectiveStatus(now))
+}
