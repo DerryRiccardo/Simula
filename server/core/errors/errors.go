@@ -26,4 +26,7 @@ var (
 	ErrOrderAwaitingExists = errors.New("order awaiting payment already exists")
 	ErrPaymentDisabled     = errors.New("payment gateway is not configured")
 	ErrReviewDraftNotFound = errors.New("review draft not found")
+	ErrPartnerNotFound     = errors.New("partner not found")
+	ErrPartnerNameTaken    = errors.New("partner name already used")
+	ErrReviewerNotFound    = errors.New("reviewer not found")
 )

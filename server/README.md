@@ -90,6 +90,21 @@ Catatan Windows: `go test -race` butuh compiler C (cgo). Bila belum ada, jalanka
 | PUT | `/api/reviewer/submissions/:id/draft` | Reviewer | Simpan draft penilaian otomatis |
 | POST | `/api/reviewer/submissions/:id/grade` | Reviewer | Nilai per kriteria, feedback, rekomendasi interview |
 | POST | `/api/reviewer/submissions/:id/revision` | Reviewer | Kembalikan untuk revisi (maksimal 2 kali, tenggat +3 hari) |
+| POST | `/api/auth/change-password` | Login | Ganti kata sandi (wajib bagi reviewer baru) |
+| GET | `/api/admin/partners` | Admin | Mitra, reviewer, dan B2B case untuk penugasan |
+| POST, PUT | `/api/admin/partners`, `/api/admin/partners/:id` | Admin | Tambah dan ubah mitra |
+| POST | `/api/admin/reviewers` | Admin | Tambah reviewer (password sementara dikirim sekali) |
+| PUT | `/api/admin/reviewers/:id/assignments` | Admin | Atur case yang ditugaskan (hanya case milik mitranya) |
+| PUT | `/api/admin/reviewers/:id/status` | Admin | Aktifkan atau nonaktifkan reviewer |
+| GET | `/api/admin/reviews`, `/api/admin/reviews/:id` | Admin | Penilaian AI dan B2B, beserta detail |
+| POST | `/api/admin/reviews/:id/regrade` | Admin | Nilai ulang AI (hanya yang belum lulus) |
+| PUT | `/api/admin/reviews/:id/flag` | Admin | Tandai atau lepas tanda bermasalah |
+| POST | `/api/admin/reviews/:id/remind` | Admin | Ingatkan reviewer (maksimal sekali per 24 jam) |
+| POST | `/api/admin/reviews/:id/reassign` | Admin | Ganti reviewer pemegang submission |
+| GET | `/api/admin/cases`, `/api/admin/cases/:id` | Admin | Daftar case dan isi pembuat case (beserta status kunci struktur) |
+| POST | `/api/admin/cases` | Admin | Buat case (draft atau langsung terbit) |
+| PUT | `/api/admin/cases/:id` | Admin | Perbarui case; terbit tidak bisa kembali ke draft, slot dan rubrik dikunci setelah ada peserta yang mulai |
+| POST | `/api/admin/uploads` | Admin | URL unggah materi pendukung ke R2 (maks. 50 MB) |
 
 Kontrak lengkap: [`docs/openapi.yaml`](docs/openapi.yaml).
 
@@ -125,6 +140,16 @@ Kontrak lengkap: [`docs/openapi.yaml`](docs/openapi.yaml).
 - Berkas dibuka lewat link unduh R2 sementara (10 menit) karena bucket private.
 - Nilai: skor dihitung server lewat `hook.OnReviewed` (sama dengan penilaian AI), sertifikat berlogo mitra terbit bila lulus. Bila direkomendasikan, `share_consent` diisi sesuai pengaturan peserta (`ask` → menunggu persetujuan di halaman hasil).
 - Seed membuat satu reviewer per mitra contoh (`reviewer@`, `reviewer2@` untuk Sagara Commerce, `reviewer.samudra@`, `reviewer.kirana@`, `reviewer.bentala@` di `simula.test`) dan menugaskannya ke case mitranya.
+
+## Panel admin: Reviewer & Mitra dan Penilaian
+
+- Migrasi `004` menambah `reviewer_profiles` (mitra dan jabatan reviewer), `users.must_change_password`, `enrollments.last_reminder_at`, dan `review_flags`.
+- **Reviewer baru** dibuat admin dengan password sementara acak (12 karakter) yang dikirim sekali di respons. Reviewer wajib menggantinya lewat `POST /api/auth/change-password` saat pertama masuk; client mengarahkan ke `/change-password`. Email undangan menyusul bersama Resend.
+- **Penugasan** hanya ke B2B case milik mitra reviewer. Case yang masih punya submission menunggu di tangan reviewer itu tidak bisa dilepas, dan reviewer yang masih memegang antrean tidak bisa dinonaktifkan. Pindahkan dulu lewat Ganti reviewer.
+- **Jabatan reviewer** tampil ke peserta sebagai peran penilai; bila belum ada profil, dipakai peran penilai di case.
+- **Nilai ulang** hanya untuk AI case yang belum lulus: hasil yang lulus sudah menerbitkan sertifikat, dan sertifikat yang terbit tidak bisa dicabut.
+- **Ganti reviewer** memindahkan submission yang menunggu ke reviewer aktif lain dari mitra yang sama, menambahkan penugasan case bila perlu, dan membuang draft reviewer lama. Tenggat SLA tidak berubah.
+- Pengingat dan tanda bermasalah tidak mengubah `updated_at` enrollment.
 
 ## Auth
 

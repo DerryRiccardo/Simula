@@ -53,17 +53,20 @@ func RunServer(ctx context.Context, cfg *config.Config) error {
 	}
 
 	router.Register(engine, router.Handlers{
-		Health:      newHealthHandler(cfg, db, rdb),
-		Auth:        auth.auth,
-		Onboarding:  auth.onboarding,
-		Learning:    newLearningHandler(db),
-		Workspace:   newWorkspaceHandler(db, store, gradingQueue, gradingModel),
-		Upload:      studentHandler.Upload(newUploadUseCase(cfg, db, store)),
-		Result:      newResultHandler(db),
-		Certificate: newCertificateHandler(db),
-		Checkout:    newCheckoutHandler(cfg, db, payments, client),
-		Midtrans:    webhookHandler.Midtrans(payments.service),
-		Review:      newReviewerHandler(db, store),
+		Health:       newHealthHandler(cfg, db, rdb),
+		Auth:         auth.auth,
+		Onboarding:   auth.onboarding,
+		Learning:     newLearningHandler(db),
+		Workspace:    newWorkspaceHandler(db, store, gradingQueue, gradingModel),
+		Upload:       studentHandler.Upload(newUploadUseCase(cfg, db, store)),
+		Result:       newResultHandler(db),
+		Certificate:  newCertificateHandler(db),
+		Checkout:     newCheckoutHandler(cfg, db, payments, client),
+		Midtrans:     webhookHandler.Midtrans(payments.service),
+		Review:       newReviewerHandler(db, store),
+		AdminPartner: newAdminPartnerHandler(db),
+		AdminReview:  newAdminReviewHandler(db, store, gradingQueue, gradingModel),
+		AdminCase:    newAdminCaseHandler(cfg, db, store),
 	}, auth.middlewares)
 
 	return initializers.RunHTTPServer(ctx, cfg, initializers.NewHTTPServer(cfg, engine))

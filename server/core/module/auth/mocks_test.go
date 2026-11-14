@@ -225,3 +225,13 @@ func (g *fakeGoogle) Exchange(_ context.Context, code, _ string) (coreRepo.Googl
 	}
 	return g.identity, nil
 }
+
+func (r *fakeUserRepo) UpdatePassword(_ context.Context, userID, hash string, _ time.Time) error {
+	user, ok := r.users[userID]
+	if !ok {
+		return coreErrors.ErrUserNotFound
+	}
+	user.PasswordHash = &hash
+	user.MustChangePassword = false
+	return nil
+}

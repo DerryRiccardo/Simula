@@ -69,6 +69,15 @@ func (r *userRepo) LinkGoogle(ctx context.Context, userID, sub string) error {
 	return nil
 }
 
+func (r *userRepo) UpdatePassword(ctx context.Context, userID, hash string, now time.Time) error {
+	err := r.db.WithContext(ctx).Model(&entity.User{}).Where("id = ?", userID).
+		Updates(map[string]any{"password_hash": hash, "must_change_password": false, "updated_at": now}).Error
+	if err != nil {
+		return fmt.Errorf("failed to update password of %s: %w", userID, err)
+	}
+	return nil
+}
+
 func (r *userRepo) CompleteOnboarding(
 	ctx context.Context, userID string, fieldKeys []string, status entity.StudentStatus, major *string,
 ) error {

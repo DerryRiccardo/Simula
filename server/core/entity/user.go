@@ -53,9 +53,11 @@ type User struct {
 	Institution   *string
 	LinkedinURL   *string `gorm:"column:linkedin_url"`
 	ShareDefault  ShareDefault
-	Fields        []UserField `gorm:"foreignKey:UserID"`
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	// MustChangePassword: akun dibuat admin dengan password sementara yang wajib diganti.
+	MustChangePassword bool
+	Fields             []UserField `gorm:"foreignKey:UserID"`
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
 }
 
 // UserField adalah satu bidang pilihan user beserta urutannya.

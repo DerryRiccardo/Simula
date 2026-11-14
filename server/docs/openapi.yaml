@@ -32,6 +32,8 @@ tags:
     description: Notifikasi layanan eksternal
   - name: Reviewer
     description: Portal reviewer mitra (kandidat anonim)
+  - name: Admin
+    description: Panel admin (Reviewer & Mitra, Penilaian)
 
 paths:
   /health:
@@ -1134,6 +1136,571 @@ paths:
         "422":
           $ref: "#/components/responses/ValidationError"
 
+  /auth/change-password:
+    post:
+      tags: [Auth]
+      summary: Ganti kata sandi
+      description: >-
+        Untuk user yang sedang masuk. Reviewer yang dibuat admin wajib memakainya dulu
+        (mustChangePassword). Field error: currentPassword, newPassword.
+      operationId: changePassword
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currentPassword, newPassword]
+              properties:
+                currentPassword: { type: string }
+                newPassword: { type: string, minLength: 8 }
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/partners:
+    get:
+      tags: [Admin]
+      summary: Direktori Reviewer & Mitra
+      operationId: getPartnerDirectory
+      security:
+        - accessCookie: []
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AdminPartnerDirectory"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+    post:
+      tags: [Admin]
+      summary: Tambah mitra
+      operationId: createPartner
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, minLength: 2 }
+                industry: { type: string, minLength: 2 }
+                about: { type: string, minLength: 20 }
+      responses:
+        "201":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Partner"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/partners/{id}:
+    put:
+      tags: [Admin]
+      summary: Ubah mitra
+      operationId: updatePartner
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, minLength: 2 }
+                industry: { type: string, minLength: 2 }
+                about: { type: string, minLength: 20 }
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/Partner"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/reviewers:
+    post:
+      tags: [Admin]
+      summary: Tambah reviewer
+      description: >-
+        Membuat akun reviewer dengan password sementara yang dikirim sekali di
+        temporaryPassword; reviewer wajib menggantinya saat pertama masuk.
+      operationId: createReviewer
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, partnerId, jobTitle]
+              properties:
+                name: { type: string, minLength: 3 }
+                email: { type: string, format: email }
+                partnerId: { type: string, format: uuid }
+                jobTitle: { type: string, minLength: 3 }
+      responses:
+        "201":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AdminReviewer"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/reviewers/{id}/assignments:
+    put:
+      tags: [Admin]
+      summary: Atur penugasan case reviewer
+      description: >-
+        Daftar lengkap case; hanya B2B case milik mitra reviewer. Case yang masih punya
+        submission menunggu di tangan reviewer ini tidak bisa dilepas (409).
+      operationId: setReviewerCases
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                caseIds: { type: array, items: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AdminReviewer"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/reviewers/{id}/status:
+    put:
+      tags: [Admin]
+      summary: Aktifkan atau nonaktifkan reviewer
+      description: >-
+        Reviewer nonaktif tidak bisa masuk. Ditolak (409) bila masih memegang submission menunggu.
+      operationId: setReviewerStatus
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isActive: { type: boolean }
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AdminReviewer"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/reviews:
+    get:
+      tags: [Admin]
+      summary: Penilaian AI dan B2B
+      description: >-
+        Enrollment yang sudah submit (maksimal 500, urut submit terbaru) beserta ringkasan per AI case.
+        Admin melihat identitas peserta.
+      operationId: listAdminReviews
+      security:
+        - accessCookie: []
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AdminReviewList"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+
+  /admin/reviews/{id}:
+    get:
+      tags: [Admin]
+      summary: Detail penilaian (id = enrollment)
+      operationId: getAdminReview
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AdminReviewDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/reviews/{id}/regrade:
+    post:
+      tags: [Admin]
+      summary: Nilai ulang AI
+      description: >-
+        Hanya AI case yang belum lulus: hasil yang lulus sudah menerbitkan sertifikat yang tidak
+        bisa dicabut. Hasil lama dihapus dan penilaian AI dijalankan ulang.
+      operationId: regradeReview
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AdminReviewDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/reviews/{id}/flag:
+    put:
+      tags: [Admin]
+      summary: Tandai atau lepas tanda bermasalah
+      operationId: flagReview
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                isFlagged: { type: boolean }
+                note: { type: string, description: "Wajib bila isFlagged, minimal 10 karakter" }
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AdminReviewDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/reviews/{id}/remind:
+    post:
+      tags: [Admin]
+      summary: Ingatkan reviewer
+      description: >-
+        B2B menunggu review, maksimal sekali per 24 jam. Email menyusul bersama Resend.
+      operationId: remindReviewer
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AdminReviewDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/reviews/{id}/reassign:
+    post:
+      tags: [Admin]
+      summary: Ganti reviewer
+      description: >-
+        Ke reviewer aktif lain dari mitra yang sama; penugasan case ditambahkan bila belum ada.
+        Draft reviewer lama dibuang, tenggat SLA tidak berubah.
+      operationId: reassignReviewer
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reviewerId]
+              properties:
+                reviewerId: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AdminReviewDetail"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/cases:
+    get:
+      tags: [Admin]
+      summary: Daftar case (draft dan terbit)
+      description: Maksimal 500, urut terakhir diubah. Jumlah peserta tidak menghitung order yang belum dibayar.
+      operationId: listAdminCases
+      security:
+        - accessCookie: []
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/AdminCaseSummary" }
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+    post:
+      tags: [Admin]
+      summary: Buat case
+      description: >-
+        isPublish false menyimpan draft (cukup judul, bidang, level, ambang lulus, dan berkas materi);
+        true memakai validasi penuh lalu menerbitkan case. Slug dibuat dari judul dan tidak berubah.
+      operationId: createAdminCase
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminCaseSaveRequest" }
+      responses:
+        "201":
+          description: Dibuat
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AdminCase"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /admin/cases/{id}:
+    get:
+      tags: [Admin]
+      summary: Isi pembuat case
+      operationId: getAdminCase
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AdminCase"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [Admin]
+      summary: Perbarui case
+      description: >-
+        Menimpa isi case beserta tugas, materi, slot, dan rubrik. Case terbit tidak bisa kembali ke
+        draft (409). Setelah ada enrollment, tier tidak bisa diubah; setelah ada peserta yang mulai,
+        jumlah, jenis, wajib, format, dan ukuran slot serta jumlah dan bobot kriteria dikunci (422,
+        field slots/rubric). Mengganti mitra melepas reviewer mitra lama; ditolak 409 bila mereka masih
+        memegang submission menunggu.
+      operationId: updateAdminCase
+      security:
+        - accessCookie: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminCaseSaveRequest" }
+      responses:
+        "200":
+          description: Berhasil
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/AdminCase"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /admin/uploads:
+    post:
+      tags: [Admin]
+      summary: URL unggah materi pendukung
+      description: >-
+        Membuat berkas pending (purpose material) dan URL PUT ke R2. Format PDF, DOCX, XLSX, PPTX,
+        CSV, ZIP, TXT, MD, PNG, JPG; maksimal 50 MB. Berkas terlampir saat case disimpan; yang tidak
+        dipakai dibersihkan bersama unggahan pending lain.
+      operationId: createMaterialUpload
+      security:
+        - accessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fileName, sizeBytes]
+              properties:
+                fileName: { type: string }
+                sizeBytes: { type: integer, format: int64 }
+      responses:
+        "201":
+          description: Dibuat
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/UploadTicket"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
 components:
   securitySchemes:
     accessCookie:
@@ -1504,6 +2071,10 @@ components:
               format: { type: string, example: PDF }
               sizeLabel: { type: string, example: "1,8 MB" }
               description: { type: string }
+              downloadUrl:
+                type: string
+                nullable: true
+                description: URL unduhan R2 sementara; hanya di workspace peserta
         rubric: { type: array, items: { $ref: "#/components/schemas/RubricCriterion" } }
         slots: { type: array, items: { $ref: "#/components/schemas/SubmissionSlot" } }
         passingScore: { type: integer }
@@ -1733,6 +2304,218 @@ components:
         maxRevisions: { type: integer }
         canRequestRevision: { type: boolean }
         recommendationThreshold: { type: integer }
+    Partner:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        industry: { type: string }
+        about: { type: string }
+    AdminReviewer:
+      type: object
+      description: IAdminReviewer di client
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string }
+        partnerId: { type: string, format: uuid }
+        partnerName: { type: string }
+        jobTitle: { type: string }
+        isActive: { type: boolean }
+        caseIds: { type: array, items: { type: string, format: uuid } }
+        pendingCount: { type: integer }
+        decidedCount: { type: integer }
+        averageReviewDays: { type: number, nullable: true }
+        temporaryPassword: { type: string, nullable: true, description: Hanya di respons Tambah reviewer }
+    AdminPartnerDirectory:
+      type: object
+      description: IAdminPartnerDirectory di client
+      properties:
+        partners:
+          type: array
+          items:
+            allOf:
+              - $ref: "#/components/schemas/Partner"
+              - type: object
+                properties:
+                  caseCount: { type: integer }
+                  activeReviewerCount: { type: integer }
+                  pendingReviewCount: { type: integer }
+        reviewers: { type: array, items: { $ref: "#/components/schemas/AdminReviewer" } }
+        cases:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, format: uuid }
+              title: { type: string }
+              fieldKey: { type: string }
+              partnerId: { type: string, format: uuid, nullable: true }
+              status: { type: string, enum: [draft, published] }
+              price: { type: integer }
+              pendingReviewCount: { type: integer }
+              activeReviewerCount: { type: integer }
+    AdminReviewItem:
+      type: object
+      description: IAdminReviewItem di client (id = enrollment)
+      properties:
+        id: { type: string, format: uuid }
+        tier: { type: string, enum: [ai, b2b] }
+        memberId: { type: string, format: uuid }
+        memberName: { type: string }
+        memberEmail: { type: string }
+        caseId: { type: string, format: uuid }
+        caseTitle: { type: string }
+        partnerName: { type: string, nullable: true }
+        reviewerId: { type: string, nullable: true }
+        reviewerName: { type: string, nullable: true }
+        reviewerRole: { type: string, nullable: true }
+        status: { type: string, enum: [ai_grading, in_review, revision_requested, passed, failed] }
+        attempt: { type: integer }
+        submittedAt: { type: string, format: date-time }
+        reviewDueAt: { type: string, format: date-time, nullable: true }
+        decidedAt: { type: string, format: date-time, nullable: true }
+        score: { type: integer, nullable: true }
+        passingScore: { type: integer }
+        certificateId: { type: string, nullable: true }
+        isFlagged: { type: boolean }
+        lastReminderAt: { type: string, format: date-time, nullable: true }
+        isRecommended: { type: boolean }
+    AdminReviewList:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: "#/components/schemas/AdminReviewItem" } }
+        aiCaseStats:
+          type: array
+          items:
+            type: object
+            properties:
+              caseId: { type: string }
+              caseTitle: { type: string }
+              gradedCount: { type: integer }
+              passedCount: { type: integer }
+              averageScore: { type: integer, nullable: true }
+              flaggedCount: { type: integer }
+    AdminReviewDetail:
+      type: object
+      description: IAdminReviewDetail di client
+      properties:
+        item: { $ref: "#/components/schemas/AdminReviewItem" }
+        caseInfo: { $ref: "#/components/schemas/CaseDetail" }
+        brief: { $ref: "#/components/schemas/CaseBrief" }
+        submission:
+          allOf: [{ $ref: "#/components/schemas/SubmissionRecord" }]
+          nullable: true
+        lastRevision: { type: object, nullable: true }
+        review:
+          allOf: [{ $ref: "#/components/schemas/ReviewResult" }]
+          nullable: true
+        events: { type: array, items: { type: object } }
+        flag:
+          type: object
+          nullable: true
+          properties:
+            note: { type: string }
+            flaggedAt: { type: string, format: date-time }
+        canRegrade: { type: boolean }
+        canRemind: { type: boolean }
+        reassignOptions:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              name: { type: string }
+              jobTitle: { type: string }
+              pendingCount: { type: integer }
+              isAssignedToCase: { type: boolean }
+    AdminCaseInput:
+      type: object
+      description: IAdminCaseInput di client. Daftar teks dalam bentuk form (satu poin per baris, skill dipisah koma).
+      properties:
+        tier: { type: string, enum: [ai, b2b] }
+        title: { type: string }
+        fieldKey: { type: string }
+        level: { type: string, enum: [beginner, intermediate, advanced] }
+        durationLabel: { type: string }
+        summary: { type: string }
+        about: { type: string }
+        activities: { type: string }
+        skills: { type: string }
+        prerequisites: { type: string }
+        context: { type: string, description: Paragraf dipisah baris kosong }
+        tasks:
+          type: array
+          items:
+            type: object
+            properties:
+              title: { type: string }
+              description: { type: string }
+        materials:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              format: { type: string, description: Dari ekstensi berkas; diabaikan saat menyimpan }
+              description: { type: string }
+              fileId: { type: string, format: uuid, nullable: true }
+              fileName: { type: string, nullable: true }
+              sizeBytes: { type: integer, format: int64, nullable: true }
+        slots:
+          type: array
+          items:
+            type: object
+            properties:
+              title: { type: string }
+              description: { type: string }
+              kind: { type: string, enum: [file, link, text] }
+              isRequired: { type: boolean }
+              formats: { type: string, example: "pdf, docx" }
+              maxSizeMb: { type: integer }
+        rubric:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              weight: { type: integer }
+              description: { type: string }
+        passingScore: { type: integer }
+        price: { type: integer, description: 0 untuk AI case }
+        deadlineDays: { type: integer }
+        partnerId: { type: string, description: String kosong bila belum dipilih }
+        reviewerRole: { type: string }
+    AdminCaseSaveRequest:
+      type: object
+      required: [input, isPublish]
+      properties:
+        input: { $ref: "#/components/schemas/AdminCaseInput" }
+        isPublish: { type: boolean }
+    AdminCase:
+      allOf:
+        - $ref: "#/components/schemas/AdminCaseInput"
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            slug: { type: string }
+            status: { type: string, enum: [draft, published] }
+            updatedAt: { type: string, format: date-time }
+            isStructureLocked: { type: boolean }
+            hasEnrollments: { type: boolean }
+    AdminCaseSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        tier: { type: string, enum: [ai, b2b] }
+        fieldKey: { type: string }
+        level: { type: string }
+        status: { type: string, enum: [draft, published] }
+        partnerName: { type: string, nullable: true }
+        participantCount: { type: integer }
+        pendingReviewCount: { type: integer }
+        updatedAt: { type: string, format: date-time }
   responses:
     Conflict:
       description: Status tidak mengizinkan aksi ini (mis. sudah terkirim atau tenggat lewat)

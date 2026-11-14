@@ -280,3 +280,7 @@ func (m *mockStorage) PresignDownload(ctx context.Context, key, fileName string,
 func (m *mockEnrollmentRepo) SetShareConsent(ctx context.Context, enrollmentID, consent string, now time.Time) error {
 	return m.Called(ctx, enrollmentID, consent, now).Error(0)
 }
+
+func (m *mockUserRepo) UpdatePassword(ctx context.Context, userID, hash string, now time.Time) error {
+	return m.Called(ctx, userID, hash, now).Error(0)
+}

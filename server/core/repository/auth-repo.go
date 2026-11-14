@@ -18,6 +18,8 @@ type UserRepository interface {
 	LinkGoogle(ctx context.Context, userID, sub string) error
 	// CompleteOnboarding mengganti bidang pilihan dan menandai user selesai onboarding secara atomik.
 	CompleteOnboarding(ctx context.Context, userID string, fieldKeys []string, status entity.StudentStatus, major *string) error
+	// UpdatePassword menyimpan hash baru dan mematikan tanda wajib ganti kata sandi.
+	UpdatePassword(ctx context.Context, userID, hash string, now time.Time) error
 }
 
 // FieldRepository membaca taksonomi bidang.

@@ -111,6 +111,23 @@ func (h *AuthHandler) Me(c *gin.Context) {
 	response.OK(c, authDto.MapUserToResponse(user))
 }
 
+// ChangePassword: POST /api/auth/change-password.
+func (h *AuthHandler) ChangePassword(c *gin.Context) {
+	var req authDto.ChangePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		_ = c.Error(bind.Error(err))
+		return
+	}
+	user, err := h.uc.ChangePassword(c.Request.Context(), authModule.ChangePasswordInput{
+		CurrentPassword: req.CurrentPassword, NewPassword: req.NewPassword,
+	})
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	response.OK(c, authDto.MapUserToResponse(user))
+}
+
 // GoogleStart: GET /api/auth/google?next=/path. Browser diarahkan ke halaman login Google.
 func (h *AuthHandler) GoogleStart(c *gin.Context) {
 	start, err := h.uc.StartGoogleLogin(c.Query("next"))

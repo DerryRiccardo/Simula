@@ -11,6 +11,7 @@ Skema awal (migrasi `001_initial_schema.sql`, 24 tabel), diturunkan dari kontrak
 | `001_initial_schema` | Skema awal (24 tabel) |
 | `002_slot_key_hyphen` | Slot key boleh memakai tanda hubung (`design-doc`), sesuai pembuat case di client. |
 | `003_enrollment_assigned_reviewer` | `enrollments.assigned_reviewer_id`: reviewer pemegang submission B2B. |
+| `004_admin_reviewers` | `reviewer_profiles` (mitra dan jabatan reviewer), `users.must_change_password`, `enrollments.last_reminder_at`, `review_flags` (tanda bermasalah dari admin). |
 
 ## Konvensi
 

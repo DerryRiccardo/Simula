@@ -25,6 +25,7 @@ func newReviewHook(db *gorm.DB) *hookModule.ReviewHook {
 func newReviewerHandler(db *gorm.DB, store coreRepo.Storage) *reviewerHandler.ReviewHandler {
 	uc := reviewerModule.InitReviewUseCase(reviewerModule.ReviewDeps{
 		Reviewers:  dbRepo.InitReviewerRepo(db),
+		Profiles:   dbRepo.InitAdminPartnerRepo(db),
 		Cases:      dbRepo.InitCaseRepo(db),
 		Files:      dbRepo.InitFileRepo(db),
 		Storage:    store,

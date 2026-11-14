@@ -83,12 +83,19 @@ type ReviewUseCase interface {
 	RequestRevision(ctx context.Context, enrollmentID, reason, note string) (entity.ReviewQueueEntry, error)
 }
 
+// ProfileReader membaca profil reviewer (mitra dan jabatan).
+type ProfileReader interface {
+	GetReviewerProfile(ctx context.Context, userID string) (entity.ReviewerProfile, error)
+}
+
 // ReviewDeps adalah dependency use case reviewer.
 type ReviewDeps struct {
 	Reviewers coreRepo.ReviewerRepository
-	Cases     coreRepo.CaseRepository
-	Files     coreRepo.FileRepository
-	Storage   coreRepo.Storage
+	// Profiles memberi jabatan reviewer yang tampil ke peserta sebagai peran penilai.
+	Profiles ProfileReader
+	Cases    coreRepo.CaseRepository
+	Files    coreRepo.FileRepository
+	Storage  coreRepo.Storage
 	// OnReviewed memfinalkan penilaian (hook.OnReviewed), sama dengan penilaian AI.
 	OnReviewed func(ctx context.Context, outcome entity.ReviewOutcome) error
 	Now        func() time.Time
@@ -229,13 +236,17 @@ func (uc *reviewUseCase) Grade(ctx context.Context, enrollmentID string, input G
 		return entity.ReviewQueueEntry{}, apperror.Validation(fields...)
 	}
 
+	role, err := uc.reviewerRole(ctx, current.ID, &c)
+	if err != nil {
+		return entity.ReviewQueueEntry{}, err
+	}
 	reviewerID := current.ID
 	err = uc.OnReviewed(ctx, entity.ReviewOutcome{
 		EnrollmentID:  entry.Enrollment.ID,
 		SubmissionID:  entry.Submission.ID,
 		ReviewerType:  entity.ReviewerHuman,
 		ReviewerID:    &reviewerID,
-		ReviewerRole:  entity.ReviewerRoleFor(&c),
+		ReviewerRole:  role,
 		Scores:        scores,
 		Feedback:      feedback,
 		IsRecommended: input.IsRecommended,
@@ -288,6 +299,20 @@ func (uc *reviewUseCase) RequestRevision(ctx context.Context, enrollmentID, reas
 	return uc.reloadDecided(ctx, current.ID, entry.Enrollment.ID, func(e entity.ReviewQueueEntry) bool {
 		return e.Enrollment.Status == entity.EnrollmentRevisionRequested
 	})
+}
+
+// reviewerRole memakai jabatan di profil reviewer; bila belum ada, peran penilai di case.
+func (uc *reviewUseCase) reviewerRole(ctx context.Context, reviewerID string, c *entity.Case) (string, error) {
+	if uc.Profiles != nil {
+		profile, err := uc.Profiles.GetReviewerProfile(ctx, reviewerID)
+		if err == nil && strings.TrimSpace(profile.JobTitle) != "" {
+			return profile.JobTitle, nil
+		}
+		if err != nil && !errors.Is(err, coreErrors.ErrReviewerNotFound) {
+			return "", apperror.Internal(err)
+		}
+	}
+	return entity.ReviewerRoleFor(c), nil
 }
 
 // reloadDecided memuat ulang submission setelah keputusan. Bila keputusan reviewer ini tidak

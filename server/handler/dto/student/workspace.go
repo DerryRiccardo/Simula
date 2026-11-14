@@ -141,6 +141,8 @@ type MaterialResponse struct {
 	Format      string `json:"format"`
 	SizeLabel   string `json:"sizeLabel"`
 	Description string `json:"description"`
+	// DownloadURL adalah link unduh R2 sementara; hanya diisi saat brief terbuka untuk peserta.
+	DownloadURL *string `json:"downloadUrl"`
 }
 
 // RubricCriterionResponse adalah IRubricCriterion.
@@ -262,7 +264,7 @@ func MapWorkspaceToResponse(w studentModule.Workspace) WorkspaceResponse {
 	if !w.CanViewBrief {
 		return response
 	}
-	brief := mapBrief(w.Case)
+	brief := mapBriefWithDownloads(w.Case, w.MaterialURLs)
 	response.Brief = &brief
 	if w.Draft != nil {
 		response.Draft = &SubmissionDraftResponse{
@@ -367,6 +369,11 @@ func mapCaseInfo(c entity.Case, enrollment *entity.Enrollment) CaseDetailRespons
 }
 
 func mapBrief(c entity.Case) CaseBriefResponse {
+	return mapBriefWithDownloads(c, nil)
+}
+
+// mapBriefWithDownloads memetakan brief beserta link unduh materi (per ID materi).
+func mapBriefWithDownloads(c entity.Case, materialURLs map[string]string) CaseBriefResponse {
 	brief := CaseBriefResponse{
 		Context:      nonNil(c.Context),
 		Tasks:        make([]TaskResponse, 0, len(c.Tasks)),
@@ -383,13 +390,17 @@ func mapBrief(c entity.Case) CaseBriefResponse {
 		if material.File == nil {
 			continue
 		}
-		brief.Materials = append(brief.Materials, MaterialResponse{
+		item := MaterialResponse{
 			ID:          material.ID,
 			Name:        material.Name,
 			Format:      strings.ToUpper(entity.FileExtension(material.File.FileName)),
 			SizeLabel:   formatFileSize(material.File.SizeBytes),
 			Description: material.Description,
-		})
+		}
+		if url, ok := materialURLs[material.ID]; ok {
+			item.DownloadURL = &url
+		}
+		brief.Materials = append(brief.Materials, item)
 	}
 	return brief
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/DerryRiccardo/Simula/server/core/entity"
+	adminHandler "github.com/DerryRiccardo/Simula/server/handler/admin"
 	authHandler "github.com/DerryRiccardo/Simula/server/handler/auth"
 	publicHandler "github.com/DerryRiccardo/Simula/server/handler/public"
 	reviewerHandler "github.com/DerryRiccardo/Simula/server/handler/reviewer"
@@ -31,17 +32,20 @@ const (
 
 // Handlers berisi semua handler yang didaftarkan. Dikonstruksi di app/server.go.
 type Handlers struct {
-	Health      *publicHandler.HealthHandler
-	Auth        *authHandler.AuthHandler
-	Onboarding  *studentHandler.OnboardingHandler
-	Learning    *studentHandler.LearningHandler
-	Workspace   *studentHandler.WorkspaceHandler
-	Upload      *studentHandler.UploadHandler
-	Result      *studentHandler.ResultHandler
-	Certificate *publicHandler.CertificateHandler
-	Checkout    *studentHandler.CheckoutHandler
-	Midtrans    *webhookHandler.MidtransHandler
-	Review      *reviewerHandler.ReviewHandler
+	Health       *publicHandler.HealthHandler
+	Auth         *authHandler.AuthHandler
+	Onboarding   *studentHandler.OnboardingHandler
+	Learning     *studentHandler.LearningHandler
+	Workspace    *studentHandler.WorkspaceHandler
+	Upload       *studentHandler.UploadHandler
+	Result       *studentHandler.ResultHandler
+	Certificate  *publicHandler.CertificateHandler
+	Checkout     *studentHandler.CheckoutHandler
+	Midtrans     *webhookHandler.MidtransHandler
+	Review       *reviewerHandler.ReviewHandler
+	AdminPartner *adminHandler.PartnerHandler
+	AdminReview  *adminHandler.ReviewHandler
+	AdminCase    *adminHandler.CaseHandler
 }
 
 // Middlewares adalah middleware akses yang dipasang per grup.
@@ -81,6 +85,7 @@ func Register(engine *gin.Engine, h Handlers, mw Middlewares) []Route {
 
 	authenticated := r.group(AccessAuthenticated, mw.Auth)
 	authenticated.GET("/auth/me", h.Auth.Me)
+	authenticated.POST("/auth/change-password", h.Auth.ChangePassword)
 
 	student := r.group(AccessStudent, mw.Auth, mw.RequireRole(entity.RoleStudent))
 	student.PATCH("/users/me/onboarding", h.Onboarding.Complete)
@@ -111,6 +116,26 @@ func Register(engine *gin.Engine, h Handlers, mw Middlewares) []Route {
 	reviewer.PUT("/reviewer/submissions/:id/draft", h.Review.SaveDraft)
 	reviewer.POST("/reviewer/submissions/:id/grade", h.Review.Grade)
 	reviewer.POST("/reviewer/submissions/:id/revision", h.Review.RequestRevision)
+
+	// Panel admin: identitas peserta terlihat (anonimitas hanya di portal reviewer).
+	admin := r.group(AccessAdmin, mw.Auth, mw.RequireRole(entity.RoleAdmin))
+	admin.GET("/admin/partners", h.AdminPartner.GetDirectory)
+	admin.POST("/admin/partners", h.AdminPartner.CreatePartner)
+	admin.PUT("/admin/partners/:id", h.AdminPartner.UpdatePartner)
+	admin.POST("/admin/reviewers", h.AdminPartner.CreateReviewer)
+	admin.PUT("/admin/reviewers/:id/assignments", h.AdminPartner.SetReviewerCases)
+	admin.PUT("/admin/reviewers/:id/status", h.AdminPartner.SetReviewerStatus)
+	admin.GET("/admin/reviews", h.AdminReview.ListReviews)
+	admin.GET("/admin/reviews/:id", h.AdminReview.GetReview)
+	admin.POST("/admin/reviews/:id/regrade", h.AdminReview.Regrade)
+	admin.PUT("/admin/reviews/:id/flag", h.AdminReview.SetFlag)
+	admin.POST("/admin/reviews/:id/remind", h.AdminReview.RemindReviewer)
+	admin.POST("/admin/reviews/:id/reassign", h.AdminReview.ReassignReviewer)
+	admin.GET("/admin/cases", h.AdminCase.ListCases)
+	admin.GET("/admin/cases/:id", h.AdminCase.GetCase)
+	admin.POST("/admin/cases", h.AdminCase.CreateCase)
+	admin.PUT("/admin/cases/:id", h.AdminCase.UpdateCase)
+	admin.POST("/admin/uploads", h.AdminCase.CreateMaterialUpload)
 
 	webhook := r.group(AccessWebhook)
 	webhook.POST("/webhooks/midtrans", h.Midtrans.Notify)

@@ -82,8 +82,10 @@ type Enrollment struct {
 	ShareConsent    *string
 	// AssignedReviewerID adalah reviewer pemegang submission B2B (nil sebelum submit pertama).
 	AssignedReviewerID *string
-	CreatedAt          time.Time
-	UpdatedAt          time.Time
+	// LastReminderAt adalah pengingat terakhir admin ke reviewer pemegang.
+	LastReminderAt *time.Time
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 
 	Case        *Case        `gorm:"foreignKey:CaseID"`
 	Certificate *Certificate `gorm:"foreignKey:EnrollmentID"`

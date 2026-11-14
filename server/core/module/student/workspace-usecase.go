@@ -38,6 +38,8 @@ type Workspace struct {
 	Draft        *entity.Submission
 	Submission   *entity.Submission
 	Revision     *entity.RevisionRequest
+	// MaterialURLs adalah link unduh materi pendukung per ID materi (bucket R2 private).
+	MaterialURLs map[string]string
 }
 
 // CaseStatus adalah isi halaman status (ICaseStatus di client). Slot dan rubrik hanya boleh dikirim
@@ -115,7 +117,26 @@ func (uc *workspaceUseCase) GetWorkspace(ctx context.Context, slug string) (Work
 	if enrollment.Status == entity.EnrollmentRevisionRequested && history.Latest != nil {
 		workspace.Revision = history.Latest.RevisionRequest
 	}
+	workspace.MaterialURLs = uc.materialURLs(ctx, c.Materials)
 	return workspace, nil
+}
+
+// materialURLs menandatangani link unduh materi. Materi yang gagal ditandatangani tetap tampil
+// tanpa link.
+func (uc *workspaceUseCase) materialURLs(ctx context.Context, materials []entity.CaseMaterial) map[string]string {
+	urls := make(map[string]string, len(materials))
+	for _, material := range materials {
+		if material.File == nil {
+			continue
+		}
+		url, err := uc.Storage.PresignDownload(ctx, material.File.ObjectKey, material.File.FileName, entity.MaterialDownloadTTL)
+		if err != nil {
+			log.Warn().Err(err).Str("material_id", material.ID).Msg("failed to presign material download")
+			continue
+		}
+		urls[material.ID] = url
+	}
+	return urls
 }
 
 func (uc *workspaceUseCase) StartWork(ctx context.Context, enrollmentID string) (entity.Enrollment, error) {

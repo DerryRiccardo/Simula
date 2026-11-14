@@ -68,41 +68,50 @@ func (r *reviewerRepo) GetEntry(ctx context.Context, reviewerID, enrollmentID st
 	return entries[0], nil
 }
 
-// withLatestSubmissions memasangkan setiap enrollment dengan submission terkirim terakhirnya
-// (satu query untuk semua enrollment).
+// withLatestSubmissions memasangkan setiap enrollment dengan submission terkirim terakhirnya.
 func (r *reviewerRepo) withLatestSubmissions(ctx context.Context, enrollments []entity.Enrollment, withScores bool) ([]entity.ReviewQueueEntry, error) {
-	entries := make([]entity.ReviewQueueEntry, 0, len(enrollments))
-	if len(enrollments) == 0 {
-		return entries, nil
-	}
 	ids := make([]string, 0, len(enrollments))
 	for _, enrollment := range enrollments {
 		ids = append(ids, enrollment.ID)
 	}
-	query := r.db.WithContext(ctx).Preload("RevisionRequest")
+	latest, err := latestSubmissions(r.db.WithContext(ctx), ids, withScores)
+	if err != nil {
+		return nil, err
+	}
+	entries := make([]entity.ReviewQueueEntry, 0, len(enrollments))
+	for _, enrollment := range enrollments {
+		entries = append(entries, entity.ReviewQueueEntry{Enrollment: enrollment, Submission: latest[enrollment.ID]})
+	}
+	return entries, nil
+}
+
+// latestSubmissions memuat submission terkirim terakhir (beserta Review dan RevisionRequest) per
+// enrollment dalam satu query. Dipakai portal reviewer dan menu Penilaian admin.
+func latestSubmissions(db *gorm.DB, enrollmentIDs []string, withScores bool) (map[string]*entity.Submission, error) {
+	latest := make(map[string]*entity.Submission, len(enrollmentIDs))
+	if len(enrollmentIDs) == 0 {
+		return latest, nil
+	}
+	query := db.Preload("RevisionRequest")
 	if withScores {
 		query = query.Preload("Review.Scores", func(tx *gorm.DB) *gorm.DB { return tx.Order("position") })
 	} else {
 		query = query.Preload("Review")
 	}
-	submissions := make([]entity.Submission, 0, len(ids))
+	submissions := make([]entity.Submission, 0, len(enrollmentIDs))
 	err := query.
-		Where("enrollment_id IN ? AND status <> ?", ids, entity.SubmissionDraft).
+		Where("enrollment_id IN ? AND status <> ?", enrollmentIDs, entity.SubmissionDraft).
 		Order("enrollment_id, attempt DESC").
 		Find(&submissions).Error
 	if err != nil {
-		return nil, fmt.Errorf("failed to load reviewed submissions: %w", err)
+		return nil, fmt.Errorf("failed to load latest submissions: %w", err)
 	}
-	latest := make(map[string]*entity.Submission, len(ids))
 	for i := range submissions {
 		if _, ok := latest[submissions[i].EnrollmentID]; !ok {
 			latest[submissions[i].EnrollmentID] = &submissions[i]
 		}
 	}
-	for _, enrollment := range enrollments {
-		entries = append(entries, entity.ReviewQueueEntry{Enrollment: enrollment, Submission: latest[enrollment.ID]})
-	}
-	return entries, nil
+	return latest, nil
 }
 
 func (r *reviewerRepo) LastRevision(ctx context.Context, enrollmentID string) (*entity.RevisionRequest, error) {

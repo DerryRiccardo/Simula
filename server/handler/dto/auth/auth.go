@@ -37,6 +37,14 @@ type UserResponse struct {
 	FieldKeys     []string `json:"fieldKeys"`
 	StudentStatus *string  `json:"studentStatus"`
 	Major         *string  `json:"major"`
+	// MustChangePassword: client mengarahkan ke halaman ganti kata sandi sebelum halaman lain.
+	MustChangePassword bool `json:"mustChangePassword"`
+}
+
+// ChangePasswordRequest adalah body POST /api/auth/change-password.
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"currentPassword"`
+	NewPassword     string `json:"newPassword"`
 }
 
 // MapRegisterReqToInput memetakan request ke input use case.
@@ -62,13 +70,14 @@ func MapUserToResponse(user entity.User) UserResponse {
 		status = &value
 	}
 	return UserResponse{
-		ID:            user.ID,
-		Name:          user.Name,
-		Email:         user.Email,
-		Role:          string(user.Role),
-		IsOnboarded:   user.IsOnboarded,
-		FieldKeys:     user.FieldKeys(),
-		StudentStatus: status,
-		Major:         user.Major,
+		ID:                 user.ID,
+		Name:               user.Name,
+		Email:              user.Email,
+		Role:               string(user.Role),
+		IsOnboarded:        user.IsOnboarded,
+		FieldKeys:          user.FieldKeys(),
+		StudentStatus:      status,
+		Major:              user.Major,
+		MustChangePassword: user.MustChangePassword,
 	}
 }

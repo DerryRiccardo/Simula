@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/DerryRiccardo/Simula/server/core/entity"
+	adminHandler "github.com/DerryRiccardo/Simula/server/handler/admin"
 	authHandler "github.com/DerryRiccardo/Simula/server/handler/auth"
 	publicHandler "github.com/DerryRiccardo/Simula/server/handler/public"
 	reviewerHandler "github.com/DerryRiccardo/Simula/server/handler/reviewer"
@@ -21,17 +22,20 @@ func registerForTest() (*gin.Engine, []Route) {
 	noop := func(c *gin.Context) { c.Next() }
 	routes := Register(engine,
 		Handlers{
-			Health:      publicHandler.Health(nil),
-			Auth:        authHandler.Auth(nil, sessioncookie.Config{}, "http://localhost:3000"),
-			Onboarding:  studentHandler.Onboarding(nil),
-			Learning:    studentHandler.Learning(nil),
-			Workspace:   studentHandler.Workspace(nil),
-			Upload:      studentHandler.Upload(nil),
-			Result:      studentHandler.Result(nil),
-			Certificate: publicHandler.Certificate(nil),
-			Checkout:    studentHandler.Checkout(nil),
-			Midtrans:    webhookHandler.Midtrans(nil),
-			Review:      reviewerHandler.Review(nil),
+			Health:       publicHandler.Health(nil),
+			Auth:         authHandler.Auth(nil, sessioncookie.Config{}, "http://localhost:3000"),
+			Onboarding:   studentHandler.Onboarding(nil),
+			Learning:     studentHandler.Learning(nil),
+			Workspace:    studentHandler.Workspace(nil),
+			Upload:       studentHandler.Upload(nil),
+			Result:       studentHandler.Result(nil),
+			Certificate:  publicHandler.Certificate(nil),
+			Checkout:     studentHandler.Checkout(nil),
+			Midtrans:     webhookHandler.Midtrans(nil),
+			Review:       reviewerHandler.Review(nil),
+			AdminPartner: adminHandler.Partner(nil),
+			AdminReview:  adminHandler.Review(nil),
+			AdminCase:    adminHandler.Case(nil),
 		},
 		Middlewares{
 			Auth:         noop,
@@ -72,6 +76,7 @@ func TestRegister_AccessGroups(t *testing.T) {
 		{Method: "GET", Path: "/api/auth/google", Access: AccessPublic},
 		{Method: "GET", Path: "/api/auth/google/callback", Access: AccessPublic},
 		{Method: "GET", Path: "/api/auth/me", Access: AccessAuthenticated},
+		{Method: "POST", Path: "/api/auth/change-password", Access: AccessAuthenticated},
 		{Method: "PATCH", Path: "/api/users/me/onboarding", Access: AccessStudent},
 		{Method: "GET", Path: "/api/cases", Access: AccessOptionalAuth},
 		{Method: "GET", Path: "/api/cases/:slug", Access: AccessOptionalAuth},
@@ -99,6 +104,23 @@ func TestRegister_AccessGroups(t *testing.T) {
 		{Method: "PUT", Path: "/api/reviewer/submissions/:id/draft", Access: AccessReviewer},
 		{Method: "POST", Path: "/api/reviewer/submissions/:id/grade", Access: AccessReviewer},
 		{Method: "POST", Path: "/api/reviewer/submissions/:id/revision", Access: AccessReviewer},
+		{Method: "GET", Path: "/api/admin/partners", Access: AccessAdmin},
+		{Method: "POST", Path: "/api/admin/partners", Access: AccessAdmin},
+		{Method: "PUT", Path: "/api/admin/partners/:id", Access: AccessAdmin},
+		{Method: "POST", Path: "/api/admin/reviewers", Access: AccessAdmin},
+		{Method: "PUT", Path: "/api/admin/reviewers/:id/assignments", Access: AccessAdmin},
+		{Method: "PUT", Path: "/api/admin/reviewers/:id/status", Access: AccessAdmin},
+		{Method: "GET", Path: "/api/admin/reviews", Access: AccessAdmin},
+		{Method: "GET", Path: "/api/admin/reviews/:id", Access: AccessAdmin},
+		{Method: "POST", Path: "/api/admin/reviews/:id/regrade", Access: AccessAdmin},
+		{Method: "PUT", Path: "/api/admin/reviews/:id/flag", Access: AccessAdmin},
+		{Method: "POST", Path: "/api/admin/reviews/:id/remind", Access: AccessAdmin},
+		{Method: "POST", Path: "/api/admin/reviews/:id/reassign", Access: AccessAdmin},
+		{Method: "GET", Path: "/api/admin/cases", Access: AccessAdmin},
+		{Method: "GET", Path: "/api/admin/cases/:id", Access: AccessAdmin},
+		{Method: "POST", Path: "/api/admin/cases", Access: AccessAdmin},
+		{Method: "PUT", Path: "/api/admin/cases/:id", Access: AccessAdmin},
+		{Method: "POST", Path: "/api/admin/uploads", Access: AccessAdmin},
 	}
 	for _, want := range tests {
 		t.Run(want.Method+" "+want.Path, func(t *testing.T) {
