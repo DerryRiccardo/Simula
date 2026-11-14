@@ -4,7 +4,7 @@ import { ProfileView } from './_components/ProfileView';
 
 export const metadata = createPageMetadata({
   title: 'Profil',
-  description: 'Data diri, bidang, pengaturan notifikasi, dan persetujuan berbagi data.',
+  description: 'Data diri, bidang, dan persetujuan berbagi data.',
   path: PATHS.profile,
   noIndex: true,
 });

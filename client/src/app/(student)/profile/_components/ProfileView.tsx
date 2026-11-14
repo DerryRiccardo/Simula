@@ -13,7 +13,6 @@ import { getInitials } from '@/lib/formatters';
 import type { IProfile } from '@/types';
 import { DataSharingSection } from './DataSharingSection';
 import { DetailsForm } from './DetailsForm';
-import { NotificationsForm } from './NotificationsForm';
 import { SettingsSection } from './SettingsSection';
 
 function ProfileSkeleton() {
@@ -94,7 +93,7 @@ export function ProfileView() {
     <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 pb-10">
       <PageHeading
         title="Profil"
-        description="Atur data diri, bidang, notifikasi, dan izin berbagi profil ke perusahaan mitra."
+        description="Atur data diri, bidang, dan izin berbagi profil ke perusahaan mitra."
       />
 
       {isLoading ? (
@@ -105,7 +104,6 @@ export function ProfileView() {
         <div className="grid gap-10">
           <IdentitySummary profile={profile} />
           <DetailsForm profile={profile} />
-          <NotificationsForm initial={profile.notifications} />
           <DataSharingSection profile={profile} />
           <AccountSection email={profile.user.email} />
         </div>

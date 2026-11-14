@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 import api from './api';
-import { env, shouldMockService } from '@/lib/env';
+import { shouldMockService } from '@/lib/env';
 import type {
   IAdminCase,
   IAdminCaseSavePayload,
@@ -33,7 +33,13 @@ import type {
 
 // Mode mock: data dibaca langsung dari browser, sama seperti services/reviewer.ts.
 const loadMockApi = async () => (await import('@/mocks/adminApi')).adminApi;
-// Mode campuran per menu: Reviewer & Mitra dan Penilaian sudah memakai backend lebih dulu.
+// Mode campuran per menu: tiap menu admin bisa dipindah ke backend satu per satu.
+const isOverviewMocked = () => shouldMockService('adminOverview');
+const isMembersMocked = () => shouldMockService('adminMembers');
+const isOrdersMocked = () => shouldMockService('adminOrders');
+const isTalentPoolMocked = () => shouldMockService('adminTalentPool');
+const isFieldsMocked = () => shouldMockService('adminFields');
+const isSettingsMocked = () => shouldMockService('adminSettings');
 const isPartnersMocked = () => shouldMockService('adminPartners');
 const isReviewsMocked = () => shouldMockService('adminReviews');
 const isCasesMocked = () => shouldMockService('adminCases');
@@ -44,11 +50,11 @@ const reviewerPath = (id: string) => `/admin/reviewers/${encodeURIComponent(id)}
 
 export const adminService = {
   listTalentPool: async () => {
-    if (env.isApiMocking) return (await loadMockApi()).listTalentPool();
+    if (isTalentPoolMocked()) return (await loadMockApi()).listTalentPool();
     return (await api.get<IApiResponse<ITalentCandidate[]>>('/admin/talent-pool')).data.data;
   },
   shareTalent: async (id: string) => {
-    if (env.isApiMocking) return (await loadMockApi()).shareTalent(id);
+    if (isTalentPoolMocked()) return (await loadMockApi()).shareTalent(id);
     return (
       await api.post<IApiResponse<ITalentCandidate>>(
         `/admin/talent-pool/${encodeURIComponent(id)}/share`
@@ -56,42 +62,42 @@ export const adminService = {
     ).data.data;
   },
   listFields: async () => {
-    if (env.isApiMocking) return (await loadMockApi()).listFields();
+    if (isFieldsMocked()) return (await loadMockApi()).listFields();
     return (await api.get<IApiResponse<IAdminField[]>>('/admin/fields')).data.data;
   },
   createField: async (payload: IAdminFieldInput) => {
-    if (env.isApiMocking) return (await loadMockApi()).createField(payload);
+    if (isFieldsMocked()) return (await loadMockApi()).createField(payload);
     return (await api.post<IApiResponse<IAdminField>>('/admin/fields', payload)).data.data;
   },
   updateField: async ({ key, payload }: { key: string; payload: IAdminFieldInput }) => {
-    if (env.isApiMocking) return (await loadMockApi()).updateField(key, payload);
+    if (isFieldsMocked()) return (await loadMockApi()).updateField(key, payload);
     return (await api.put<IApiResponse<IAdminField[]>>(fieldPath(key), payload)).data.data;
   },
   setFieldActive: async ({ key, isActive }: { key: string; isActive: boolean }) => {
-    if (env.isApiMocking) return (await loadMockApi()).setFieldActive(key, isActive);
+    if (isFieldsMocked()) return (await loadMockApi()).setFieldActive(key, isActive);
     return (await api.put<IApiResponse<IAdminField[]>>(`${fieldPath(key)}/status`, { isActive }))
       .data.data;
   },
   moveField: async ({ key, direction }: { key: string; direction: -1 | 1 }) => {
-    if (env.isApiMocking) return (await loadMockApi()).moveField(key, direction);
+    if (isFieldsMocked()) return (await loadMockApi()).moveField(key, direction);
     return (await api.post<IApiResponse<IAdminField[]>>(`${fieldPath(key)}/move`, { direction }))
       .data.data;
   },
   getSettings: async () => {
-    if (env.isApiMocking) return (await loadMockApi()).getSettings();
+    if (isSettingsMocked()) return (await loadMockApi()).getSettings();
     return (await api.get<IApiResponse<IAdminSettings>>('/admin/settings')).data.data;
   },
   saveSettings: async (payload: IPlatformSettings) => {
-    if (env.isApiMocking) return (await loadMockApi()).saveSettings(payload);
+    if (isSettingsMocked()) return (await loadMockApi()).saveSettings(payload);
     return (await api.put<IApiResponse<IAdminSettings>>('/admin/settings', payload)).data.data;
   },
   listMembers: async () => {
-    if (env.isApiMocking) return (await loadMockApi()).listMembers();
+    if (isMembersMocked()) return (await loadMockApi()).listMembers();
     return (await api.get<IApiResponse<IAdminMemberSummary[]>>('/admin/members')).data.data;
   },
   /** null jika member tidak ditemukan (404). */
   getMember: async (id: string): Promise<IAdminMemberDetail | null> => {
-    if (env.isApiMocking) return (await loadMockApi()).getMember(id);
+    if (isMembersMocked()) return (await loadMockApi()).getMember(id);
     try {
       return (
         await api.get<IApiResponse<IAdminMemberDetail>>(`/admin/members/${encodeURIComponent(id)}`)
@@ -102,7 +108,7 @@ export const adminService = {
     }
   },
   listOrders: async () => {
-    if (env.isApiMocking) return (await loadMockApi()).listOrders();
+    if (isOrdersMocked()) return (await loadMockApi()).listOrders();
     return (await api.get<IApiResponse<IAdminOrder[]>>('/admin/orders')).data.data;
   },
   getPartnerDirectory: async () => {
@@ -152,7 +158,7 @@ export const adminService = {
       .data.data;
   },
   getOverview: async () => {
-    if (env.isApiMocking) return (await loadMockApi()).getOverview();
+    if (isOverviewMocked()) return (await loadMockApi()).getOverview();
     return (await api.get<IApiResponse<IAdminOverview>>('/admin/overview')).data.data;
   },
   listReviews: async () => {

@@ -7,6 +7,7 @@ import {
   Monitor,
   PenTool,
   Scale,
+  Shapes,
   Smartphone,
   Truck,
   Users,
@@ -70,6 +71,12 @@ export const FIELD_OPTIONS: IFieldOption[] = [
 export const FIELD_BY_KEY: Record<string, IFieldOption> = Object.fromEntries(
   FIELD_OPTIONS.map((field) => [field.key, field])
 );
+
+export const DEFAULT_FIELD_ICON: LucideIcon = Shapes;
+
+export function getFieldIcon(key: string): LucideIcon {
+  return FIELD_BY_KEY[key]?.icon ?? DEFAULT_FIELD_ICON;
+}
 
 export const MAX_ONBOARDING_FIELDS = 3;
 

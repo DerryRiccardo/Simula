@@ -6,8 +6,8 @@ import { Reveal } from '@/components/animated';
 import { EmptyState, ErrorState, Skeleton } from '@/components';
 import { FilterTabs, PageHeading, SearchToolbar } from '@/components/student';
 import { Button } from '@/components/ui';
-import { REVIEW_SLA_BUSINESS_DAYS } from '@/constants/review';
 import { useAdminReviews } from '@/hooks/useAdminReviews';
+import { usePlatformSettings } from '@/hooks/usePlatform';
 import {
   ADMIN_REVIEW_ALL_CASES,
   ADMIN_REVIEW_SORT_OPTIONS,
@@ -21,7 +21,9 @@ import { REVIEW_GRID, ReviewRow } from './ReviewRow';
 import { ReviewStats } from './ReviewStats';
 
 /** Judul mengikuti sub-menu Penilaian yang dibuka. */
-const HEADING: Record<TAdminReviewTier, { title: string; description: string }> = {
+const getHeading = (
+  reviewSlaDays: number
+): Record<TAdminReviewTier, { title: string; description: string }> => ({
   all: {
     title: 'Penilaian',
     description:
@@ -34,9 +36,9 @@ const HEADING: Record<TAdminReviewTier, { title: string; description: string }> 
   },
   b2b: {
     title: 'Review B2B Case',
-    description: `Review praktisi mitra, dengan SLA ${REVIEW_SLA_BUSINESS_DAYS} hari kerja sejak submit terakhir.`,
+    description: `Review praktisi mitra, dengan SLA ${reviewSlaDays} hari kerja sejak submit terakhir.`,
   },
-};
+});
 
 function ReviewTable({ items }: { items: IAdminReviewItem[] }) {
   return (
@@ -77,9 +79,10 @@ function ReviewsSkeleton() {
 
 // Menu Penilaian (CONTEXT.md 4.13): pengawasan penilaian AI dan review B2B dalam satu daftar.
 export function ReviewsView() {
+  const { reviewSlaDays } = usePlatformSettings();
   const { data, isLoading, isError, refetch } = useAdminReviews();
   const filters = useAdminReviewFilters(data?.items);
-  const heading = HEADING[filters.tier];
+  const heading = getHeading(reviewSlaDays)[filters.tier];
 
   return (
     <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Info, Plus, Shapes } from 'lucide-react';
+import { Plus, Shapes } from 'lucide-react';
 
 import { ConfirmDialog, EmptyState, ErrorState, Skeleton } from '@/components';
 import { PageHeading } from '@/components/student';
@@ -98,11 +98,6 @@ export function FieldsView() {
               onEdit={(field) => open('form', field)}
               onToggleActive={(field) => open('status', field)}
             />
-            <p className="flex gap-2 text-xs leading-relaxed text-ink-subtle">
-              <Info className="mt-px size-3.5 shrink-0" />
-              Prototype: onboarding dan katalog masih memakai daftar bidang bawaan. Perubahan di
-              sini tersimpan dan dipakai begitu backend membaca data bidang.
-            </p>
           </section>
         </>
       )}

@@ -1,16 +1,9 @@
-import { DEFAULT_NOTIFICATIONS } from '@/constants/profile';
 import { MAX_ONBOARDING_FIELDS } from '@/constants/fields';
 import { findCaseById } from '@/mocks/data/cases';
 import { mockDb, toPublicUser } from '@/mocks/db';
 import { learningApi } from '@/mocks/learningApi';
 import { resolveReview } from '@/mocks/resultApi';
-import type {
-  IProfile,
-  IProfileDetailsPayload,
-  ISharedProfile,
-  TNotificationPreferences,
-  TShareDefault,
-} from '@/types';
+import type { IProfile, IProfileDetailsPayload, ISharedProfile, TShareDefault } from '@/types';
 
 // Logika halaman Profil untuk mode mock. Dipakai service saat mock aktif dan oleh handler MSW.
 
@@ -48,7 +41,6 @@ function buildProfile(userId: string): IProfile {
     user: toPublicUser(record),
     institution: settings.institution ?? null,
     linkedinUrl: settings.linkedinUrl ?? null,
-    notifications: settings.notifications ?? DEFAULT_NOTIFICATIONS,
     shareDefault: settings.shareDefault ?? 'ask',
     sharedProfiles: listSharedProfiles(userId),
   };
@@ -81,12 +73,6 @@ export const profileApi = {
       institution: toNullable(payload.institution),
       linkedinUrl,
     });
-    return buildProfile(user.id);
-  },
-
-  updateNotifications: (notifications: TNotificationPreferences): IProfile => {
-    const user = requireUser();
-    mockDb.updateUserProfile(user.id, { notifications });
     return buildProfile(user.id);
   },
 

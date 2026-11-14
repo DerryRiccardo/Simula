@@ -6,9 +6,9 @@ import { TextareaField, TextField } from '@/components/forms';
 import { FilterTabs } from '@/components/student';
 import { Label, NativeSelect } from '@/components/ui';
 import { CASE_LEVEL_LABEL } from '@/constants/caseLevel';
-import { FIELD_OPTIONS } from '@/constants/fields';
+import { FIELD_BY_KEY } from '@/constants/fields';
+import { useActiveFields, usePlatformSettings } from '@/hooks/usePlatform';
 import type { IAdminCaseInput, TCaseLevel, TTier } from '@/types';
-import { DEFAULT_PASSING_SCORE } from '@/app/admin/cases/_schema';
 import { BuilderSection } from './BuilderParts';
 
 const TIER_OPTIONS: { value: TTier; label: string }[] = [
@@ -18,15 +18,35 @@ const TIER_OPTIONS: { value: TTier; label: string }[] = [
 
 // Info umum (CONTEXT.md 4.11 bagian 1): yang tampil di katalog dan halaman detail case.
 export function GeneralSection({ isTierLocked }: { isTierLocked: boolean }) {
-  const { control, register, formState, setValue, getValues } = useFormContext<IAdminCaseInput>();
+  const { control, register, formState, setValue, getValues, watch } =
+    useFormContext<IAdminCaseInput>();
   const { errors } = formState;
+  const { fields, fieldByKey } = useActiveFields();
+  const settings = usePlatformSettings();
+  const currentFieldKey = watch('fieldKey');
+
+  const defaultPassingByTier: Record<TTier, number> = {
+    ai: settings.passingScoreAi,
+    b2b: settings.passingScoreB2b,
+  };
+
+  const fieldOptions =
+    currentFieldKey && !fieldByKey[currentFieldKey]
+      ? [
+          ...fields,
+          {
+            key: currentFieldKey,
+            label: `${FIELD_BY_KEY[currentFieldKey]?.label ?? currentFieldKey} (nonaktif)`,
+          },
+        ]
+      : fields;
 
   const handleTierChange = (tier: TTier) => {
     setValue('tier', tier, { shouldDirty: true });
     // Ambang lulus mengikuti usulan default tier selama admin belum mengubahnya.
     const passingScore = getValues('passingScore');
-    if (Object.values(DEFAULT_PASSING_SCORE).includes(passingScore)) {
-      setValue('passingScore', DEFAULT_PASSING_SCORE[tier], { shouldDirty: true });
+    if (Object.values(defaultPassingByTier).includes(passingScore)) {
+      setValue('passingScore', defaultPassingByTier[tier], { shouldDirty: true });
     }
   };
 
@@ -78,7 +98,7 @@ export function GeneralSection({ isTierLocked }: { isTierLocked: boolean }) {
             {...register('fieldKey')}
           >
             <option value="">Pilih bidang</option>
-            {FIELD_OPTIONS.map((option) => (
+            {fieldOptions.map((option) => (
               <option key={option.key} value={option.key}>
                 {option.label}
               </option>

@@ -2,7 +2,8 @@
 
 import { Check } from 'lucide-react';
 
-import { FIELD_OPTIONS, MAX_ONBOARDING_FIELDS } from '@/constants/fields';
+import { MAX_ONBOARDING_FIELDS } from '@/constants/fields';
+import { useActiveFields } from '@/hooks/usePlatform';
 import { cn } from '@/lib/utils';
 
 interface FieldPickerProps {
@@ -12,6 +13,7 @@ interface FieldPickerProps {
 }
 
 export function FieldPicker({ value, onChange, error }: FieldPickerProps) {
+  const { fields } = useActiveFields();
   const isMaxReached = value.length >= MAX_ONBOARDING_FIELDS;
 
   const handleToggle = (key: string) => {
@@ -34,7 +36,7 @@ export function FieldPicker({ value, onChange, error }: FieldPickerProps) {
       </div>
 
       <ul className="grid grid-cols-2 gap-3 md:grid-cols-3" role="group" aria-label="Bidang studi">
-        {FIELD_OPTIONS.map((field) => {
+        {fields.map((field) => {
           const Icon = field.icon;
           const isSelected = value.includes(field.key);
           const isDisabled = !isSelected && isMaxReached;

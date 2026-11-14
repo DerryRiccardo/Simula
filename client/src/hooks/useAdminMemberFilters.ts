@@ -1,6 +1,6 @@
 'use client';
 
-import { FIELD_FILTER_OPTIONS } from '@/constants/fields';
+import { useActiveFields } from './usePlatform';
 import { parseOption } from '@/lib/parseOption';
 import type { IAdminMemberSummary } from '@/types';
 import { useUrlParams } from './useUrlParams';
@@ -40,9 +40,10 @@ const COMPARATOR: Record<TMemberSort, (a: IAdminMemberSummary, b: IAdminMemberSu
 
 /** Aktivitas, bidang, pencarian, dan urutan daftar member, disimpan di URL. */
 export function useAdminMemberFilters(members: IAdminMemberSummary[] | undefined) {
+  const { filterOptions: fieldFilterOptions } = useActiveFields();
   const { searchParams, setParams } = useUrlParams();
   const activity = parseOption(MEMBER_ACTIVITY_OPTIONS, searchParams.get('activity'), 'all');
-  const field = parseOption(FIELD_FILTER_OPTIONS, searchParams.get('field'), 'all');
+  const field = parseOption(fieldFilterOptions, searchParams.get('field'), 'all');
   const sort = parseOption(MEMBER_SORT_OPTIONS, searchParams.get('sort'), 'joined');
   const urlSearch = searchParams.get('search') ?? '';
   const { searchInput, setSearchInput, clearSearch } = useUrlSearch(urlSearch, setParams);

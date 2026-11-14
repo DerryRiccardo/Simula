@@ -6,8 +6,8 @@ import { Reveal } from '@/components/animated';
 import { EmptyState, ErrorState, Skeleton } from '@/components';
 import { FilterTabs, PageHeading, SearchToolbar } from '@/components/student';
 import { Button } from '@/components/ui';
-import { REVIEW_SLA_BUSINESS_DAYS } from '@/constants/review';
 import { useCurrentUser } from '@/hooks/useAuth';
+import { usePlatformSettings } from '@/hooks/usePlatform';
 import { useReviewerQueue } from '@/hooks/useReviewer';
 import { FILTER_ALL_CASES, useQueueFilters } from '@/hooks/useReviewerQueueFilters';
 import { getFirstName } from '@/lib/formatters';
@@ -92,6 +92,7 @@ function QueueSkeleton() {
 // diurutkan dari tenggat SLA paling dekat.
 export function QueueView() {
   const { user } = useCurrentUser();
+  const { reviewSlaDays } = usePlatformSettings();
   const { data: queue, isLoading, isError, refetch } = useReviewerQueue();
   const filters = useQueueFilters(queue);
   const { tab, items } = filters;
@@ -100,7 +101,7 @@ export function QueueView() {
     <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8">
       <PageHeading
         title={user ? `Halo, ${getFirstName(user.name)}` : 'Antrean review'}
-        description={`Submission B2B yang ditugaskan kepadamu. Kandidat tampil anonim; nilai dengan rubrik case dalam ${REVIEW_SLA_BUSINESS_DAYS} hari kerja sejak dikirim.`}
+        description={`Submission B2B yang ditugaskan kepadamu. Kandidat tampil anonim; nilai dengan rubrik case dalam ${reviewSlaDays} hari kerja sejak dikirim.`}
       />
 
       {isLoading ? (

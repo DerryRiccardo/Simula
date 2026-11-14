@@ -42,18 +42,6 @@ export function useUpdateProfileDetails() {
   });
 }
 
-export function useUpdateNotifications() {
-  const sync = useSyncProfile();
-  return useMutation({
-    mutationFn: profileService.updateNotifications,
-    onSuccess: async (profile) => {
-      await sync(profile);
-      toast.success('Pengaturan notifikasi disimpan');
-    },
-    onError: (error) => handleApiError(error, 'Pengaturan notifikasi gagal disimpan.'),
-  });
-}
-
 export function useUpdateShareDefault() {
   const sync = useSyncProfile();
   return useMutation({

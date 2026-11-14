@@ -14,10 +14,10 @@ import {
   type IFilterSection,
 } from '@/components/student';
 import { Button } from '@/components/ui';
-import { FIELD_BY_KEY, FIELD_FILTER_OPTIONS } from '@/constants/fields';
 import { PATHS } from '@/constants/paths';
 import { useCurrentUser } from '@/hooks/useAuth';
 import { useCaseCatalog } from '@/hooks/useLearning';
+import { useActiveFields } from '@/hooks/usePlatform';
 import { useUrlParams } from '@/hooks/useUrlParams';
 import { useUrlSearch } from '@/hooks/useUrlSearch';
 import { parseOption } from '@/lib/parseOption';
@@ -54,9 +54,10 @@ const LEVEL_OPTIONS: { value: TCaseLevel | 'all'; label: string }[] = [
 
 export function CatalogView() {
   const { user, isLoading: isUserLoading } = useCurrentUser();
+  const { fieldByKey, filterOptions: fieldFilterOptions } = useActiveFields();
   const { searchParams, setParams } = useUrlParams();
   const tier = parseOption(TIER_TABS, searchParams.get('tier'), 'all');
-  const field = parseOption(FIELD_FILTER_OPTIONS, searchParams.get('field'), FILTER_ALL);
+  const field = parseOption(fieldFilterOptions, searchParams.get('field'), FILTER_ALL);
   const level = parseOption(LEVEL_OPTIONS, searchParams.get('level'), 'all');
   const sort = parseOption(SORT_OPTIONS, searchParams.get('sort'), 'relevance');
   const urlSearch = searchParams.get('search') ?? '';
@@ -78,7 +79,7 @@ export function CatalogView() {
 
   const cases = data?.data ?? [];
   const userFields = user?.fieldKeys ?? [];
-  const userFieldLabels = userFields.flatMap((key) => FIELD_BY_KEY[key]?.label ?? []);
+  const userFieldLabels = userFields.flatMap((key) => fieldByKey[key]?.label ?? []);
   // Tanpa pencarian dan filter bidang/level, daftar kosong berarti semua case di tab ini sudah diambil.
   const hasRefinements = field !== FILTER_ALL || level !== 'all' || urlSearch !== '';
   const tierLabel = tier === 'all' ? 'case' : TIER_TABS.find((tab) => tab.value === tier)?.label;
@@ -87,7 +88,7 @@ export function CatalogView() {
     {
       id: 'field',
       label: 'Bidang',
-      options: FIELD_FILTER_OPTIONS,
+      options: fieldFilterOptions,
       value: field,
       onChange: (value) => setParams({ field: value === FILTER_ALL ? null : value }),
     },

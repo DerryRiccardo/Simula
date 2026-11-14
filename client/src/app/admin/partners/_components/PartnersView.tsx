@@ -6,8 +6,8 @@ import { Handshake, Plus, SearchX, UserPlus } from 'lucide-react';
 import { ConfirmDialog, EmptyState, ErrorState, Skeleton } from '@/components';
 import { FilterTabs, PageHeading, SearchToolbar } from '@/components/student';
 import { Button } from '@/components/ui';
-import { REVIEW_SLA_BUSINESS_DAYS } from '@/constants/review';
 import { usePartnerDirectory, useSetReviewerStatus } from '@/hooks/useAdminPartners';
+import { usePlatformSettings } from '@/hooks/usePlatform';
 import {
   ADMIN_PARTNER_ALL,
   REVIEWER_SORT_OPTIONS,
@@ -22,13 +22,14 @@ import { ReviewerFormDialog } from './ReviewerFormDialog';
 import { ReviewerList } from './ReviewerList';
 
 function DirectoryStats({ directory }: { directory: IAdminPartnerDirectory }) {
+  const { reviewSlaDays } = usePlatformSettings();
   const active = directory.reviewers.filter((reviewer) => reviewer.isActive);
   const days = directory.reviewers.flatMap((reviewer) =>
     reviewer.averageReviewDays === null ? [] : [reviewer.averageReviewDays]
   );
   const averageDays =
     days.length > 0 ? days.reduce((total, value) => total + value, 0) / days.length : null;
-  const isSlow = averageDays !== null && averageDays > REVIEW_SLA_BUSINESS_DAYS;
+  const isSlow = averageDays !== null && averageDays > reviewSlaDays;
   const stats = [
     { label: 'Mitra', value: String(directory.partners.length) },
     { label: 'Reviewer aktif', value: String(active.length) },

@@ -8,8 +8,8 @@ import { Button } from '@/components/ui';
 import { ENROLLMENT_STATUS } from '@/constants/enrollmentStatus';
 import { B2B_PURCHASE_DISCLAIMER } from '@/constants/payment';
 import { PATHS } from '@/constants/paths';
-import { SITE } from '@/constants/site';
 import { useStartCase } from '@/hooks/useLearning';
+import { useWhatsappUrl } from '@/hooks/usePlatform';
 import { formatPrice } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type { ICaseDetail } from '@/types';
@@ -31,6 +31,7 @@ const getB2bBenefits = (detail: ICaseDetail) => [
 
 function PrimaryAction({ detail }: { detail: ICaseDetail }) {
   const startCase = useStartCase();
+  const whatsappUrl = useWhatsappUrl();
   const isAi = detail.tier === 'ai';
 
   if (detail.myEnrollment) {
@@ -83,7 +84,7 @@ function PrimaryAction({ detail }: { detail: ICaseDetail }) {
         <Link href={PATHS.caseCheckout(detail.slug)}>Bayar sekarang</Link>
       </Button>
       <a
-        href={SITE.whatsappUrl}
+        href={whatsappUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="flex items-center justify-center gap-2 text-sm font-medium text-ink-muted transition-colors hover:text-ink"

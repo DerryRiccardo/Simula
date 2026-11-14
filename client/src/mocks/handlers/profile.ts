@@ -3,7 +3,7 @@ import { http } from 'msw/http';
 import { mockDb } from '@/mocks/db';
 import { profileApi } from '@/mocks/profileApi';
 import { apiPath, fail, networkDelay, ok } from '@/mocks/utils';
-import type { IProfileDetailsPayload, TNotificationPreferences, TShareDefault } from '@/types';
+import type { IProfileDetailsPayload, TShareDefault } from '@/types';
 
 // Kontrak endpoint halaman Profil. Backend Go wajib mengikuti path dan bentuk respons ini.
 
@@ -28,13 +28,6 @@ export const profileHandlers = [
     await networkDelay();
     const payload = (await request.json()) as IProfileDetailsPayload;
     return requireSession() ?? run(() => profileApi.updateDetails(payload));
-  }),
-
-  // Body: TNotificationPreferences (per jenis notifikasi × kanal email / dashboard).
-  http.put(apiPath('/users/me/notifications'), async ({ request }) => {
-    await networkDelay();
-    const notifications = (await request.json()) as TNotificationPreferences;
-    return requireSession() ?? run(() => profileApi.updateNotifications(notifications));
   }),
 
   // Body: { shareDefault: 'ask' | 'always' | 'never' }.

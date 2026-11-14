@@ -1,23 +1,26 @@
+'use client';
+
 import Link from 'next/link';
 import { ArrowRight, Hourglass, Sparkles, type LucideIcon } from 'lucide-react';
 
 import { PATHS } from '@/constants/paths';
+import { usePlatformSettings } from '@/hooks/usePlatform';
 import type { TEnrollmentStatus } from '@/types';
 
-const STATUS_NOTE: Partial<
-  Record<TEnrollmentStatus, { icon: LucideIcon; title: string; body: string }>
-> = {
+const getStatusNote = (
+  reviewSlaDays: number
+): Partial<Record<TEnrollmentStatus, { icon: LucideIcon; title: string; body: string }>> => ({
   in_review: {
     icon: Hourglass,
     title: 'Menunggu review',
-    body: 'Reviewer mitra menilai dalam 5 hari kerja. Kamu akan diberi tahu saat hasilnya keluar.',
+    body: `Reviewer mitra menilai dalam ${reviewSlaDays} hari kerja. Kamu akan diberi tahu saat hasilnya keluar.`,
   },
   ai_grading: {
     icon: Sparkles,
     title: 'Sedang dinilai AI',
     body: 'Penilaian biasanya selesai dalam kurang dari satu menit.',
   },
-};
+});
 
 interface SubmissionStatusNoticeProps {
   slug: string;
@@ -26,7 +29,8 @@ interface SubmissionStatusNoticeProps {
 
 // Baris atas kartu submission terkirim: isian terkunci sampai ada keputusan penilai.
 export function SubmissionStatusNotice({ slug, status }: SubmissionStatusNoticeProps) {
-  const note = STATUS_NOTE[status];
+  const { reviewSlaDays } = usePlatformSettings();
+  const note = getStatusNote(reviewSlaDays)[status];
   if (!note) return null;
 
   return (

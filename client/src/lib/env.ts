@@ -8,6 +8,18 @@ export type TApiService =
   | 'result'
   | 'reviewer'
   | 'admin'
+  /** Panel admin: menu Dashboard (ringkasan angka, perlu tindakan, aktivitas terbaru). */
+  | 'adminOverview'
+  /** Panel admin: menu Member (daftar mahasiswa dan detail profil/enrollment/sertifikat/order). */
+  | 'adminMembers'
+  /** Panel admin: menu Order (daftar transaksi B2B). */
+  | 'adminOrders'
+  /** Panel admin: menu Talent pool (kandidat B2B yang direkomendasikan reviewer). */
+  | 'adminTalentPool'
+  /** Panel admin: menu Bidang studi (data master bidang studi). */
+  | 'adminFields'
+  /** Panel admin: menu Pengaturan (pengaturan platform dan riwayat perubahan). */
+  | 'adminSettings'
   /** Panel admin: menu Reviewer & Mitra (mitra, reviewer, penugasan). */
   | 'adminPartners'
   /** Panel admin: menu Penilaian (monitor AI dan B2B, nilai ulang, ganti reviewer). */

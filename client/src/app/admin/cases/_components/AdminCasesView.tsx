@@ -9,6 +9,7 @@ import { FilterTabs, PageHeading, SearchToolbar } from '@/components/student';
 import { Button } from '@/components/ui';
 import { PATHS } from '@/constants/paths';
 import { useAdminCases } from '@/hooks/useAdmin';
+import { usePlatformSettings } from '@/hooks/usePlatform';
 import {
   ADMIN_CASE_SORT_OPTIONS,
   ADMIN_STATUS_OPTIONS,
@@ -20,7 +21,7 @@ import type { IAdminCaseSummary } from '@/types';
 import { ADMIN_CASE_GRID, AdminCaseRow } from './AdminCaseRow';
 
 /** Judul mengikuti sub-menu Case yang dibuka (tier atau draft). */
-const HEADING = {
+const getHeading = (reviewSlaDays: number) => ({
   all: {
     title: 'Kelola case',
     description:
@@ -32,14 +33,13 @@ const HEADING = {
   },
   b2b: {
     title: 'B2B Case Study',
-    description:
-      'Case berbayar dari brief perusahaan mitra, dinilai praktisi mitra dalam 5 hari kerja.',
+    description: `Case berbayar dari brief perusahaan mitra, dinilai praktisi mitra dalam ${reviewSlaDays} hari kerja.`,
   },
   draft: {
     title: 'Draft',
     description: 'Case yang belum terbit dan hanya terlihat oleh admin.',
   },
-};
+});
 
 function CaseStats({ cases }: { cases: IAdminCaseSummary[] }) {
   const stats = [
@@ -95,10 +95,12 @@ function CaseTable({ items }: { items: IAdminCaseSummary[] }) {
 
 // Daftar case (CONTEXT.md 4.11): semua case AI dan B2B, draft maupun terbit.
 export function AdminCasesView() {
+  const { reviewSlaDays } = usePlatformSettings();
   const { data: cases, isLoading, isError, refetch } = useAdminCases();
   const filters = useAdminCaseFilters(cases);
+  const headings = getHeading(reviewSlaDays);
   const heading =
-    filters.status === 'draft' && filters.tier === 'all' ? HEADING.draft : HEADING[filters.tier];
+    filters.status === 'draft' && filters.tier === 'all' ? headings.draft : headings[filters.tier];
 
   return (
     <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8">

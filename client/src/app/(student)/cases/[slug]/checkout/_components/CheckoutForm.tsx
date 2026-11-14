@@ -7,9 +7,9 @@ import { AlertCircle, Loader2, Lock, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { PATHS } from '@/constants/paths';
 import { PAYMENT_METHOD_BY_VALUE } from '@/constants/payment';
-import { SITE } from '@/constants/site';
 import { useCurrentUser } from '@/hooks/useAuth';
 import { useCreateOrder } from '@/hooks/useCheckout';
+import { useWhatsappUrl } from '@/hooks/usePlatform';
 import type { ICheckoutSummary, IOrder, TPaymentMethod } from '@/types';
 import { GatewayDialog } from './GatewayDialog';
 import { OrderSummary } from './OrderSummary';
@@ -29,6 +29,7 @@ export function CheckoutForm({ slug, summary }: CheckoutFormProps) {
   const { caseInfo, order: previousOrder } = summary;
   const { user } = useCurrentUser();
   const createOrder = useCreateOrder();
+  const whatsappUrl = useWhatsappUrl();
   const [method, setMethod] = useState<TPaymentMethod>(previousOrder?.method ?? 'va_bca');
   // Order QRIS/e-wallet yang sedang "dibayar" di gateway tiruan.
   const [gatewayOrder, setGatewayOrder] = useState<IOrder | null>(null);
@@ -107,7 +108,7 @@ export function CheckoutForm({ slug, summary }: CheckoutFormProps) {
               Kembali
             </Link>
             <a
-              href={SITE.whatsappUrl}
+              href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 font-medium text-ink-muted transition-colors hover:text-ink"

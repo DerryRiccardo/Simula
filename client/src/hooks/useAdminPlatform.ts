@@ -7,6 +7,7 @@ import { handleApiError } from '@/lib/apiError';
 import { adminService } from '@/services/admin';
 import type { IAdminField, ITalentCandidate } from '@/types';
 import { adminKeys } from './useAdmin';
+import { PLATFORM_QUERY_KEYS } from './usePlatform';
 
 // --- Talent pool ---
 
@@ -47,6 +48,7 @@ function useFieldListMutation<TVariables>(
     mutationFn,
     onSuccess: (fields, variables) => {
       queryClient.setQueryData(adminKeys.fields(), fields);
+      queryClient.invalidateQueries({ queryKey: PLATFORM_QUERY_KEYS.fields });
       const message = getMessage(variables);
       if (message) toast.success(message);
     },
@@ -60,6 +62,7 @@ export function useCreateField() {
     mutationFn: adminService.createField,
     onSuccess: (field) => {
       queryClient.invalidateQueries({ queryKey: adminKeys.fields() });
+      queryClient.invalidateQueries({ queryKey: PLATFORM_QUERY_KEYS.fields });
       toast.success('Bidang ditambahkan', { description: field.label });
     },
     onError: (error) => handleApiError(error, 'Bidang gagal ditambahkan. Coba lagi.'),
@@ -97,6 +100,7 @@ export function useSaveSettings() {
     mutationFn: adminService.saveSettings,
     onSuccess: (settings) => {
       queryClient.setQueryData(adminKeys.settings(), settings);
+      queryClient.invalidateQueries({ queryKey: PLATFORM_QUERY_KEYS.settings });
       const changeCount = settings.log[0]?.changes.length ?? 0;
       toast.success('Pengaturan disimpan', { description: `${changeCount} nilai diubah.` });
     },

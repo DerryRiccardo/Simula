@@ -13,7 +13,6 @@ import type {
   ISubmissionRecord,
   IUser,
   TEnrollmentStatus,
-  TNotificationPreferences,
   TShareConsent,
   TShareDefault,
 } from '@/types';
@@ -29,7 +28,6 @@ import { DEMO_EMAILS, DEMO_PASSWORD } from './demoAccounts';
 export interface IMockProfileSettings {
   institution?: string | null;
   linkedinUrl?: string | null;
-  notifications?: TNotificationPreferences;
   shareDefault?: TShareDefault;
 }
 

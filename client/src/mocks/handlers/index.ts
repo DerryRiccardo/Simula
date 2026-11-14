@@ -3,9 +3,15 @@ import type { HttpHandler } from 'msw/http';
 import { shouldMockService, type TApiService } from '@/lib/env';
 import {
   adminCaseHandlers,
+  adminFieldHandlers,
   adminHandlers,
+  adminMemberHandlers,
+  adminOrderHandlers,
+  adminOverviewHandlers,
   adminPartnerHandlers,
   adminReviewHandlers,
+  adminSettingsHandlers,
+  adminTalentPoolHandlers,
 } from './admin';
 import { authHandlers } from './auth';
 import { certificateHandlers } from './certificate';
@@ -29,6 +35,12 @@ const HANDLERS_BY_SERVICE: Record<TApiService, HttpHandler[]> = {
   profile: profileHandlers,
   reviewer: reviewerHandlers,
   admin: adminHandlers,
+  adminOverview: adminOverviewHandlers,
+  adminMembers: adminMemberHandlers,
+  adminOrders: adminOrderHandlers,
+  adminTalentPool: adminTalentPoolHandlers,
+  adminFields: adminFieldHandlers,
+  adminSettings: adminSettingsHandlers,
   adminPartners: adminPartnerHandlers,
   adminReviews: adminReviewHandlers,
   adminCases: adminCaseHandlers,

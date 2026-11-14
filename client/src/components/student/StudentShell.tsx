@@ -10,6 +10,7 @@ import { Button, Popover, PopoverContent, PopoverTrigger } from '@/components/ui
 import { PATHS } from '@/constants/paths';
 import { SITE } from '@/constants/site';
 import { STUDENT_NAV } from '@/constants/studentNav';
+import { useWhatsappUrl } from '@/hooks/usePlatform';
 import { matchesNavHref } from '@/lib/navigation';
 import { CommandSearch } from './CommandSearch';
 import { StudentSidebar } from './StudentSidebar';
@@ -66,6 +67,7 @@ function getBreadcrumb(pathname: string, searchParams: URLSearchParams): IBreadc
 }
 
 function HelpButton() {
+  const whatsappUrl = useWhatsappUrl();
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -88,7 +90,7 @@ function HelpButton() {
           Hubungi IT Support
         </a>
         <a
-          href={SITE.whatsappUrl}
+          href={whatsappUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-ink transition-colors hover:bg-surface-soft"

@@ -8,6 +8,7 @@ import { EmptyState, ErrorState, Skeleton } from '@/components';
 import { Button } from '@/components/ui';
 import { PATHS } from '@/constants/paths';
 import { useAdminCase } from '@/hooks/useAdmin';
+import { usePlatformSettings } from '@/hooks/usePlatform';
 import { formatDateTime } from '@/lib/formatters';
 import type { IAdminCase } from '@/types';
 import { getEmptyCase, toCaseInput } from '../_schema';
@@ -43,9 +44,13 @@ function BuilderSkeleton() {
 /** id null = case baru. */
 export function CaseBuilderView({ id }: { id: string | null }) {
   const { data: adminCase, isLoading, isError, refetch } = useAdminCase(id);
+  const settings = usePlatformSettings();
   const defaultValues = useMemo(
-    () => (adminCase ? toCaseInput(adminCase) : getEmptyCase()),
-    [adminCase]
+    () =>
+      adminCase
+        ? toCaseInput(adminCase)
+        : { ...getEmptyCase(), passingScore: settings.passingScoreAi },
+    [adminCase, settings.passingScoreAi]
   );
 
   return (

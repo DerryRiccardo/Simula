@@ -1,13 +1,16 @@
+'use client';
+
 import Link from 'next/link';
 import { ArrowRight, MessageCircle } from 'lucide-react';
 
 import { PATHS } from '@/constants/paths';
-import { SITE } from '@/constants/site';
+import { useWhatsappUrl } from '@/hooks/usePlatform';
 import type { ICaseStatus } from '@/types';
 
 // Rubrik yang sedang dipakai reviewer, supaya peserta tahu apa yang dinilai selama menunggu.
 export function RubricPanel({ status }: { status: ICaseStatus }) {
   const { rubric, passingScore, caseInfo } = status;
+  const whatsappUrl = useWhatsappUrl();
 
   return (
     <section aria-labelledby="rubric-title" className="rounded-card border border-line bg-white">
@@ -40,7 +43,7 @@ export function RubricPanel({ status }: { status: ICaseStatus }) {
           <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
         </Link>
         <a
-          href={SITE.whatsappUrl}
+          href={whatsappUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1.5 font-medium text-ink-muted transition-colors hover:text-ink"

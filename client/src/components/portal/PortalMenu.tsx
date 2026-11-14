@@ -12,14 +12,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui';
 import { PATHS } from '@/constants/paths';
-import { SITE } from '@/constants/site';
 import { useCurrentUser, useLogout } from '@/hooks/useAuth';
+import { useWhatsappUrl } from '@/hooks/usePlatform';
 import { getInitials } from '@/lib/formatters';
 
 // Menu akun portal reviewer dan admin: satu-satunya bagian interaktif di header portal.
 export function PortalMenu({ roleLabel }: { roleLabel: string }) {
   const { user } = useCurrentUser();
   const logout = useLogout();
+  const whatsappUrl = useWhatsappUrl();
   if (!user) return null;
 
   return (
@@ -48,7 +49,7 @@ export function PortalMenu({ roleLabel }: { roleLabel: string }) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <a href={SITE.whatsappUrl} target="_blank" rel="noopener noreferrer">
+          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
             <MessageCircle />
             Hubungi tim platform
           </a>

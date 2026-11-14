@@ -31,47 +31,10 @@ const run = <T>(action: () => T) => {
   }
 };
 
-export const adminHandlers = [
-  // Ringkasan Dashboard admin: angka utama, butir "Perlu tindakan", dan aktivitas terbaru.
-  http.get(apiPath('/admin/overview'), async () => {
-    await networkDelay();
-    return run(() => adminApi.getOverview());
-  }),
+export const adminHandlers: ReturnType<typeof http.get>[] = [];
 
-  // Member: mahasiswa terdaftar beserta ringkasan aktivitasnya.
-  http.get(apiPath('/admin/members'), async () => {
-    await networkDelay();
-    return run(() => adminApi.listMembers());
-  }),
-
-  http.get(apiPath('/admin/members/:id'), async ({ params }) => {
-    await networkDelay();
-    try {
-      const detail = adminApi.getMember(String(params.id));
-      return detail ? ok(detail) : fail(404, 'Member tidak ditemukan.');
-    } catch (error) {
-      return toFailure(error);
-    }
-  }),
-
-  // Order: transaksi payment gateway, baca saja. Status mengikuti callback gateway.
-  http.get(apiPath('/admin/orders'), async () => {
-    await networkDelay();
-    return run(() => adminApi.listOrders());
-  }),
-
-  // Talent pool: kandidat yang direkomendasikan reviewer. Teruskan hanya bila sudah disetujui.
-  http.get(apiPath('/admin/talent-pool'), async () => {
-    await networkDelay();
-    return run(() => adminApi.listTalentPool());
-  }),
-
-  http.post(apiPath('/admin/talent-pool/:id/share'), async ({ params }) => {
-    await networkDelay();
-    return run(() => adminApi.shareTalent(String(params.id)));
-  }),
-
-  // Bidang studi: data master untuk onboarding, filter katalog, dan pembuat case.
+// Menu Bidang studi: dipisah agar mode campuran bisa memakai backend untuk menu ini saja.
+export const adminFieldHandlers = [
   http.get(apiPath('/admin/fields'), async () => {
     await networkDelay();
     return run(() => adminApi.listFields());
@@ -103,8 +66,10 @@ export const adminHandlers = [
     const { direction } = (await request.json()) as { direction: -1 | 1 };
     return run(() => adminApi.moveField(String(params.key), direction));
   }),
+];
 
-  // Pengaturan platform; setiap perubahan dicatat (siapa, kapan, nilai lama dan baru).
+// Menu Pengaturan: dipisah agar mode campuran bisa memakai backend untuk menu ini saja.
+export const adminSettingsHandlers = [
   http.get(apiPath('/admin/settings'), async () => {
     await networkDelay();
     return run(() => adminApi.getSettings());
@@ -115,6 +80,53 @@ export const adminHandlers = [
     await networkDelay();
     const payload = (await request.json()) as IPlatformSettings;
     return run(() => adminApi.saveSettings(payload));
+  }),
+];
+
+// Dashboard admin: dipisah agar mode campuran bisa memakai backend untuk menu ini saja.
+export const adminOverviewHandlers = [
+  http.get(apiPath('/admin/overview'), async () => {
+    await networkDelay();
+    return run(() => adminApi.getOverview());
+  }),
+];
+
+// Menu Member: dipisah agar mode campuran bisa memakai backend untuk menu ini saja.
+export const adminMemberHandlers = [
+  http.get(apiPath('/admin/members'), async () => {
+    await networkDelay();
+    return run(() => adminApi.listMembers());
+  }),
+
+  http.get(apiPath('/admin/members/:id'), async ({ params }) => {
+    await networkDelay();
+    try {
+      const detail = adminApi.getMember(String(params.id));
+      return detail ? ok(detail) : fail(404, 'Member tidak ditemukan.');
+    } catch (error) {
+      return toFailure(error);
+    }
+  }),
+];
+
+// Menu Order: dipisah agar mode campuran bisa memakai backend untuk menu ini saja.
+export const adminOrderHandlers = [
+  http.get(apiPath('/admin/orders'), async () => {
+    await networkDelay();
+    return run(() => adminApi.listOrders());
+  }),
+];
+
+// Menu Talent pool: dipisah agar mode campuran bisa memakai backend untuk menu ini saja.
+export const adminTalentPoolHandlers = [
+  http.get(apiPath('/admin/talent-pool'), async () => {
+    await networkDelay();
+    return run(() => adminApi.listTalentPool());
+  }),
+
+  http.post(apiPath('/admin/talent-pool/:id/share'), async ({ params }) => {
+    await networkDelay();
+    return run(() => adminApi.shareTalent(String(params.id)));
   }),
 ];
 

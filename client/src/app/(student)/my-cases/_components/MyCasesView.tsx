@@ -14,9 +14,9 @@ import {
 } from '@/components/student';
 import { Button } from '@/components/ui';
 import { STATUS_FILTERS } from '@/constants/enrollmentStatus';
-import { FIELD_FILTER_OPTIONS } from '@/constants/fields';
 import { PATHS } from '@/constants/paths';
 import { useMyEnrollments } from '@/hooks/useLearning';
+import { useActiveFields } from '@/hooks/usePlatform';
 import { useUrlParams } from '@/hooks/useUrlParams';
 import { useUrlSearch } from '@/hooks/useUrlSearch';
 import { parseOption } from '@/lib/parseOption';
@@ -37,10 +37,11 @@ const SORT_OPTIONS: { value: TEnrollmentSort; label: string }[] = [
 ];
 
 export function MyCasesView() {
+  const { filterOptions: fieldFilterOptions } = useActiveFields();
   const { searchParams, setParams } = useUrlParams();
   const tier = parseOption(TIER_TABS, searchParams.get('tier'), 'all');
   const status = parseOption(STATUS_FILTERS, searchParams.get('status'), 'all');
-  const field = parseOption(FIELD_FILTER_OPTIONS, searchParams.get('field'), FILTER_ALL);
+  const field = parseOption(fieldFilterOptions, searchParams.get('field'), FILTER_ALL);
   const sort = parseOption(SORT_OPTIONS, searchParams.get('sort'), 'recent');
   const urlSearch = searchParams.get('search') ?? '';
   const { searchInput, setSearchInput, clearSearch } = useUrlSearch(urlSearch, setParams);
@@ -79,7 +80,7 @@ export function MyCasesView() {
     {
       id: 'field',
       label: 'Bidang',
-      options: FIELD_FILTER_OPTIONS,
+      options: fieldFilterOptions,
       value: field,
       onChange: (value) => setParams({ field: value === FILTER_ALL ? null : value }),
     },

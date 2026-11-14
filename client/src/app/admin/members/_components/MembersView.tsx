@@ -6,9 +6,9 @@ import { Reveal } from '@/components/animated';
 import { EmptyState, ErrorState, Skeleton } from '@/components';
 import { FilterTabs, PageHeading, SearchToolbar } from '@/components/student';
 import { Button } from '@/components/ui';
-import { FIELD_FILTER_OPTIONS } from '@/constants/fields';
 import { useAdminMembers } from '@/hooks/useAdmin';
 import { MEMBER_SORT_OPTIONS, useAdminMemberFilters } from '@/hooks/useAdminMemberFilters';
+import { useActiveFields } from '@/hooks/usePlatform';
 import { formatNumber } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type { IAdminMemberSummary } from '@/types';
@@ -84,6 +84,7 @@ function MembersSkeleton() {
 
 // Member (CONTEXT.md 4.13): mahasiswa terdaftar dan ringkasan aktivitasnya.
 export function MembersView() {
+  const { filterOptions: fieldFilterOptions } = useActiveFields();
   const { data: members, isLoading, isError, refetch } = useAdminMembers();
   const filters = useAdminMemberFilters(members);
 
@@ -121,7 +122,7 @@ export function MembersView() {
                 {
                   id: 'field',
                   label: 'Bidang',
-                  options: FIELD_FILTER_OPTIONS,
+                  options: fieldFilterOptions,
                   value: filters.field,
                   onChange: filters.setField,
                 },
