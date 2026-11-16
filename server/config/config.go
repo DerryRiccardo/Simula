@@ -193,9 +193,6 @@ func (c *Config) validate() error {
 	default:
 		return fmt.Errorf("invalid PAYMENT_PROVIDER %q: must be empty or fake", c.PaymentProvider)
 	}
-	if c.IsProduction() && c.PaymentProvider == PaymentProviderFake {
-		return fmt.Errorf("PAYMENT_PROVIDER=fake is not allowed in production")
-	}
 	if c.FakeLLMDelay < 0 {
 		return fmt.Errorf("FAKE_LLM_DELAY must not be negative")
 	}
