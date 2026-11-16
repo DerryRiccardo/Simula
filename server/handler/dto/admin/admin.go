@@ -42,6 +42,7 @@ type PartnerResponse struct {
 	Name     string `json:"name"`
 	Industry string `json:"industry"`
 	About    string `json:"about"`
+	IsActive bool   `json:"isActive"`
 }
 
 // AdminPartnerResponse adalah IAdminPartner.
@@ -99,7 +100,7 @@ func MapReviewerReqToInput(req ReviewerRequest) adminModule.ReviewerInput {
 
 // MapPartner memetakan mitra.
 func MapPartner(p entity.Partner) PartnerResponse {
-	return PartnerResponse{ID: p.ID, Name: p.Name, Industry: p.Industry, About: p.About}
+	return PartnerResponse{ID: p.ID, Name: p.Name, Industry: p.Industry, About: p.About, IsActive: p.IsActive}
 }
 
 // MapReviewer memetakan reviewer.

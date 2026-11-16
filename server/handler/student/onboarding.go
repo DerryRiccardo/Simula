@@ -34,3 +34,13 @@ func (h *OnboardingHandler) Complete(c *gin.Context) {
 	}
 	response.OK(c, authDto.MapUserToResponse(user))
 }
+
+// MarkTourSeen: PATCH /api/users/me/tour.
+func (h *OnboardingHandler) MarkTourSeen(c *gin.Context) {
+	user, err := h.uc.MarkTourSeen(c.Request.Context())
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	response.OK(c, authDto.MapUserToResponse(user))
+}

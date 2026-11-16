@@ -3,6 +3,7 @@ package admin
 import (
 	"github.com/gin-gonic/gin"
 
+	"github.com/DerryRiccardo/Simula/server/core/entity"
 	adminModule "github.com/DerryRiccardo/Simula/server/core/module/admin"
 	adminDto "github.com/DerryRiccardo/Simula/server/handler/dto/admin"
 	"github.com/DerryRiccardo/Simula/server/pkg/bind"
@@ -62,6 +63,21 @@ func (h *CaseHandler) save(c *gin.Context, id string, isNew bool) {
 	}
 	if isNew {
 		response.Created(c, adminDto.MapAdminCase(detail))
+		return
+	}
+	response.OK(c, adminDto.MapAdminCase(detail))
+}
+
+// SetCaseStatus: PUT /api/admin/cases/:id/status.
+func (h *CaseHandler) SetCaseStatus(c *gin.Context) {
+	var req adminDto.CaseStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		_ = c.Error(bind.Error(err))
+		return
+	}
+	detail, err := h.uc.SetCaseStatus(c.Request.Context(), c.Param("id"), entity.CaseStatus(req.Status))
+	if err != nil {
+		_ = c.Error(err)
 		return
 	}
 	response.OK(c, adminDto.MapAdminCase(detail))

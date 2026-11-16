@@ -77,6 +77,10 @@ func (m *mockPartnerRepo) SetReviewerActive(ctx context.Context, id string, isAc
 	return args.Int(0), args.Error(1)
 }
 
+func (m *mockPartnerRepo) SetPartnerActive(ctx context.Context, id string, isActive bool, now time.Time) error {
+	return m.Called(ctx, id, isActive, now).Error(0)
+}
+
 type fakeHasher struct{}
 
 func (fakeHasher) Hash(password string) (string, error) { return "hashed:" + password, nil }
@@ -134,7 +138,7 @@ func TestCreatePartner(t *testing.T) {
 func TestCreateReviewer(t *testing.T) {
 	t.Run("creates a reviewer and returns the temporary password once", func(t *testing.T) {
 		uc, repo := newPartnerEnv()
-		repo.On("GetPartner", mock.Anything, partnerID).Return(entity.Partner{ID: partnerID}, nil)
+		repo.On("GetPartner", mock.Anything, partnerID).Return(entity.Partner{ID: partnerID, IsActive: true}, nil)
 		var user entity.User
 		var hash string
 		repo.On("CreateReviewer", mock.Anything, mock.Anything, mock.MatchedBy(func(p *entity.ReviewerProfile) bool {
@@ -174,7 +178,7 @@ func TestCreateReviewer(t *testing.T) {
 
 	t.Run("email taken", func(t *testing.T) {
 		uc, repo := newPartnerEnv()
-		repo.On("GetPartner", mock.Anything, partnerID).Return(entity.Partner{ID: partnerID}, nil)
+		repo.On("GetPartner", mock.Anything, partnerID).Return(entity.Partner{ID: partnerID, IsActive: true}, nil)
 		repo.On("CreateReviewer", mock.Anything, mock.Anything, mock.Anything).Return(coreErrors.ErrEmailTaken)
 
 		_, err := uc.CreateReviewer(context.Background(), ReviewerInput{Name: "Andika", Email: "andika@sagara.co.id", PartnerID: partnerID, JobTitle: "Engineer"})

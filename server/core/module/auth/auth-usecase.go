@@ -74,6 +74,7 @@ type AuthUseCase interface {
 	Authenticate(ctx context.Context, accessToken string) (authctx.User, error)
 	Me(ctx context.Context) (entity.User, error)
 	CompleteOnboarding(ctx context.Context, in OnboardingInput) (entity.User, error)
+	MarkTourSeen(ctx context.Context) (entity.User, error)
 	// ChangePassword mengganti kata sandi user yang sedang masuk.
 	ChangePassword(ctx context.Context, in ChangePasswordInput) (entity.User, error)
 	StartGoogleLogin(next string) (GoogleLoginStart, error)

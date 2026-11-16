@@ -10,6 +10,11 @@ import (
 
 // Kontrak pembuat case: client/src/types/admin.ts (IAdminCaseInput, IAdminCase, IAdminCaseSummary).
 
+// CaseStatusRequest adalah body PUT /api/admin/cases/:id/status.
+type CaseStatusRequest struct {
+	Status string `json:"status"`
+}
+
 // CaseTaskPayload adalah satu tugas.
 type CaseTaskPayload struct {
 	Title       string `json:"title"`

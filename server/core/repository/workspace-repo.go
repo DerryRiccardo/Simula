@@ -52,3 +52,8 @@ type Storage interface {
 	// PresignDownload membuat URL GET sementara; browser mengunduhnya dengan nama fileName.
 	PresignDownload(ctx context.Context, key, fileName string, ttl time.Duration) (string, error)
 }
+
+// ObjectReader membaca isi berkas dari object storage (mis. untuk diekstrak saat penilaian AI).
+type ObjectReader interface {
+	GetObject(ctx context.Context, key string, maxBytes int64) ([]byte, string, error)
+}

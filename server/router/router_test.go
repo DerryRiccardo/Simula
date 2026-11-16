@@ -88,6 +88,7 @@ func TestRegister_AccessGroups(t *testing.T) {
 		{Method: "GET", Path: "/api/auth/me", Access: AccessAuthenticated},
 		{Method: "POST", Path: "/api/auth/change-password", Access: AccessAuthenticated},
 		{Method: "PATCH", Path: "/api/users/me/onboarding", Access: AccessStudent},
+		{Method: "PATCH", Path: "/api/users/me/tour", Access: AccessStudent},
 		{Method: "GET", Path: "/api/users/me/profile", Access: AccessStudent},
 		{Method: "PATCH", Path: "/api/users/me/profile", Access: AccessStudent},
 		{Method: "PUT", Path: "/api/users/me/data-sharing", Access: AccessStudent},
@@ -133,6 +134,7 @@ func TestRegister_AccessGroups(t *testing.T) {
 		{Method: "GET", Path: "/api/admin/partners", Access: AccessAdmin},
 		{Method: "POST", Path: "/api/admin/partners", Access: AccessAdmin},
 		{Method: "PUT", Path: "/api/admin/partners/:id", Access: AccessAdmin},
+		{Method: "PUT", Path: "/api/admin/partners/:id/status", Access: AccessAdmin},
 		{Method: "POST", Path: "/api/admin/reviewers", Access: AccessAdmin},
 		{Method: "PUT", Path: "/api/admin/reviewers/:id/assignments", Access: AccessAdmin},
 		{Method: "PUT", Path: "/api/admin/reviewers/:id/status", Access: AccessAdmin},
@@ -146,6 +148,7 @@ func TestRegister_AccessGroups(t *testing.T) {
 		{Method: "GET", Path: "/api/admin/cases/:id", Access: AccessAdmin},
 		{Method: "POST", Path: "/api/admin/cases", Access: AccessAdmin},
 		{Method: "PUT", Path: "/api/admin/cases/:id", Access: AccessAdmin},
+		{Method: "PUT", Path: "/api/admin/cases/:id/status", Access: AccessAdmin},
 		{Method: "POST", Path: "/api/admin/uploads", Access: AccessAdmin},
 	}
 	for _, want := range tests {

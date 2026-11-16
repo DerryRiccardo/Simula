@@ -21,6 +21,8 @@ func newLLM(cfg *config.Config) coreRepo.LLM {
 	switch cfg.LLMProvider {
 	case config.LLMProviderFake:
 		return llm.NewFake(cfg.FakeLLMDelay)
+	case config.LLMProviderGemini:
+		return llm.NewGemini(cfg.GeminiAPIKey, cfg.GeminiModel, cfg.GeminiTimeout)
 	default:
 		log.Warn().Msg("LLM_PROVIDER is not configured; AI grading is disabled")
 		return nil
@@ -28,11 +30,13 @@ func newLLM(cfg *config.Config) coreRepo.LLM {
 }
 
 // newGradingService dipakai worker: menilai per kriteria lalu memfinalkan lewat hook.OnReviewed.
-func newGradingService(cfg *config.Config, db *gorm.DB, client *asynq.Client, model coreRepo.LLM) *sharedModule.GradingService {
+func newGradingService(cfg *config.Config, db *gorm.DB, client *asynq.Client, store coreRepo.ObjectReader, model coreRepo.LLM) *sharedModule.GradingService {
 	hook := newReviewHook(db)
 	return sharedModule.NewGradingService(sharedModule.GradingDeps{
 		Grading:    dbRepo.InitGradingRepo(db),
 		Cases:      dbRepo.InitCaseRepo(db),
+		Files:      dbRepo.InitFileRepo(db),
+		Storage:    store,
 		LLM:        model,
 		Queue:      task.NewGradingQueue(client, cfg.QueueName),
 		OnReviewed: hook.OnReviewed,

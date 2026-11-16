@@ -34,6 +34,7 @@ type UserResponse struct {
 	Email         string   `json:"email"`
 	Role          string   `json:"role"`
 	IsOnboarded   bool     `json:"isOnboarded"`
+	HasSeenTour   bool     `json:"hasSeenTour"`
 	FieldKeys     []string `json:"fieldKeys"`
 	StudentStatus *string  `json:"studentStatus"`
 	Major         *string  `json:"major"`
@@ -75,6 +76,7 @@ func MapUserToResponse(user entity.User) UserResponse {
 		Email:              user.Email,
 		Role:               string(user.Role),
 		IsOnboarded:        user.IsOnboarded,
+		HasSeenTour:        user.HasSeenTour,
 		FieldKeys:          user.FieldKeys(),
 		StudentStatus:      status,
 		Major:              user.Major,

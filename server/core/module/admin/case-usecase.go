@@ -56,6 +56,7 @@ type CaseUseCase interface {
 	// SaveCase membuat (id kosong) atau memperbarui case. isPublish memakai validasi penuh; draft
 	// cukup berjudul dan memenuhi aturan dasar database.
 	SaveCase(ctx context.Context, id string, input entity.AdminCaseInput, isPublish bool) (entity.AdminCaseDetail, error)
+	SetCaseStatus(ctx context.Context, id string, status entity.CaseStatus) (entity.AdminCaseDetail, error)
 	CreateMaterialUpload(ctx context.Context, fileName string, sizeBytes int64) (MaterialUpload, error)
 }
 
@@ -123,6 +124,9 @@ func (uc *caseUseCase) SaveCase(ctx context.Context, id string, input entity.Adm
 			return entity.AdminCaseDetail{}, err
 		}
 		existing = &detail
+		if detail.Case.IsArchived() {
+			return entity.AdminCaseDetail{}, apperror.Conflict("Case yang diarsipkan harus dipulihkan terlebih dahulu sebelum diubah.")
+		}
 		if detail.Case.IsPublished() && !isPublish {
 			return entity.AdminCaseDetail{}, apperror.Conflict(msgCannotUnpublish)
 		}
@@ -173,6 +177,34 @@ func (uc *caseUseCase) SaveCase(ctx context.Context, id string, input entity.Adm
 		return entity.AdminCaseDetail{}, apperror.Internal(err)
 	}
 	return uc.GetCase(ctx, c.ID)
+}
+
+func (uc *caseUseCase) SetCaseStatus(ctx context.Context, id string, status entity.CaseStatus) (entity.AdminCaseDetail, error) {
+	if status != entity.CaseStatusPublished && status != entity.CaseStatusArchived {
+		return entity.AdminCaseDetail{}, apperror.Validation(apperror.FieldError{Field: "status", Message: "Status tidak valid."})
+	}
+	detail, err := uc.GetCase(ctx, id)
+	if err != nil {
+		return entity.AdminCaseDetail{}, err
+	}
+	if detail.Case.Status == entity.CaseStatusDraft {
+		if status == entity.CaseStatusArchived {
+			return entity.AdminCaseDetail{}, apperror.Conflict("Hanya case terbit yang bisa diarsipkan.")
+		}
+		return entity.AdminCaseDetail{}, apperror.Conflict("Gunakan Simpan & Terbitkan untuk menerbitkan draft.")
+	}
+	now := uc.Now()
+	var publishedAt *time.Time
+	if status == entity.CaseStatusPublished && detail.Case.PublishedAt == nil {
+		publishedAt = &now
+	}
+	if err := uc.AdminCases.SetStatus(ctx, detail.Case.ID, status, publishedAt, now); err != nil {
+		if errors.Is(err, coreErrors.ErrCaseNotFound) {
+			return entity.AdminCaseDetail{}, apperror.NotFound(msgCaseNotFound)
+		}
+		return entity.AdminCaseDetail{}, apperror.Internal(err)
+	}
+	return uc.GetCase(ctx, detail.Case.ID)
 }
 
 func (uc *caseUseCase) CreateMaterialUpload(ctx context.Context, fileName string, sizeBytes int64) (MaterialUpload, error) {
@@ -351,12 +383,15 @@ func (uc *caseUseCase) validateReferences(
 	}
 	if in.Tier == entity.TierB2B && in.PartnerID != "" {
 		missing := apperror.FieldError{Field: "partnerId", Message: msgPartnerMissing}
+		keepPartner := existing != nil && existing.Case.PartnerID != nil && *existing.Case.PartnerID == in.PartnerID
 		if _, err := uuid.Parse(in.PartnerID); err != nil {
 			fields = append(fields, missing)
-		} else if _, err := uc.Partners.GetPartner(ctx, in.PartnerID); errors.Is(err, coreErrors.ErrPartnerNotFound) {
+		} else if partner, err := uc.Partners.GetPartner(ctx, in.PartnerID); errors.Is(err, coreErrors.ErrPartnerNotFound) {
 			fields = append(fields, missing)
 		} else if err != nil {
 			return nil, apperror.Internal(err)
+		} else if !keepPartner && !partner.IsActive {
+			fields = append(fields, apperror.FieldError{Field: "partnerId", Message: "Mitra sedang nonaktif."})
 		}
 	}
 	return fields, nil

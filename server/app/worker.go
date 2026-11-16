@@ -12,6 +12,7 @@ import (
 	"github.com/DerryRiccardo/Simula/server/config"
 	authModule "github.com/DerryRiccardo/Simula/server/core/module/auth"
 	studentModule "github.com/DerryRiccardo/Simula/server/core/module/student"
+	coreRepo "github.com/DerryRiccardo/Simula/server/core/repository"
 	"github.com/DerryRiccardo/Simula/server/initializers"
 	"github.com/DerryRiccardo/Simula/server/task"
 )
@@ -31,7 +32,8 @@ func RunWorker(ctx context.Context, cfg *config.Config) error {
 	defer initializers.CloseRedis(rdb)
 
 	authUC := newAuthUseCase(cfg, db, rdb)
-	uploadUC := newUploadUseCase(cfg, db, newStorage(cfg))
+	store := newStorage(cfg)
+	uploadUC := newUploadUseCase(cfg, db, store)
 
 	client := initializers.NewAsynqClient(cfg)
 	defer initializers.CloseAsynqClient(client)
@@ -42,7 +44,8 @@ func RunWorker(ctx context.Context, cfg *config.Config) error {
 	// Task penilaian hanya didaftarkan bila penilai AI dikonfigurasi. Run yang tertinggal
 	// dilanjutkan ResumeStalled begitu worker kembali berjalan dengan penilai aktif.
 	if model := newLLM(cfg); model != nil {
-		entries = append(entries, gradingTaskEntries(newGradingService(cfg, db, client, model))...)
+		objectReader, _ := store.(coreRepo.ObjectReader)
+		entries = append(entries, gradingTaskEntries(newGradingService(cfg, db, client, objectReader, model))...)
 		periodic = append(periodic, periodicTask{cron: task.GradingResumeStalledSchedule, task: task.NewGradingResumeStalledTask()})
 		// Langsung lanjutkan penilaian yang tertinggal saat worker baru menyala, tanpa menunggu jadwal.
 		if _, err := client.Enqueue(task.NewGradingResumeStalledTask(), asynq.Queue(cfg.QueueName), asynq.Unique(time.Minute)); err != nil && !errors.Is(err, asynq.ErrDuplicateTask) {

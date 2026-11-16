@@ -99,6 +99,7 @@ func Register(engine *gin.Engine, h Handlers, mw Middlewares) []Route {
 
 	student := r.group(AccessStudent, mw.Auth, mw.RequireRole(entity.RoleStudent))
 	student.PATCH("/users/me/onboarding", h.Onboarding.Complete)
+	student.PATCH("/users/me/tour", h.Onboarding.MarkTourSeen)
 	student.GET("/users/me/profile", h.Profile.GetProfile)
 	student.PATCH("/users/me/profile", h.Profile.UpdateDetails)
 	student.PUT("/users/me/data-sharing", h.Profile.UpdateShareDefault)
@@ -148,6 +149,7 @@ func Register(engine *gin.Engine, h Handlers, mw Middlewares) []Route {
 	admin.GET("/admin/partners", h.AdminPartner.GetDirectory)
 	admin.POST("/admin/partners", h.AdminPartner.CreatePartner)
 	admin.PUT("/admin/partners/:id", h.AdminPartner.UpdatePartner)
+	admin.PUT("/admin/partners/:id/status", h.AdminPartner.SetPartnerStatus)
 	admin.POST("/admin/reviewers", h.AdminPartner.CreateReviewer)
 	admin.PUT("/admin/reviewers/:id/assignments", h.AdminPartner.SetReviewerCases)
 	admin.PUT("/admin/reviewers/:id/status", h.AdminPartner.SetReviewerStatus)
@@ -161,6 +163,7 @@ func Register(engine *gin.Engine, h Handlers, mw Middlewares) []Route {
 	admin.GET("/admin/cases/:id", h.AdminCase.GetCase)
 	admin.POST("/admin/cases", h.AdminCase.CreateCase)
 	admin.PUT("/admin/cases/:id", h.AdminCase.UpdateCase)
+	admin.PUT("/admin/cases/:id/status", h.AdminCase.SetCaseStatus)
 	admin.POST("/admin/uploads", h.AdminCase.CreateMaterialUpload)
 
 	webhook := r.group(AccessWebhook)

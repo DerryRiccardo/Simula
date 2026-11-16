@@ -144,12 +144,25 @@ type GradingJob struct {
 	Case       Case
 }
 
+// SubmissionAttachment adalah isi berkas submission yang sudah diekstrak untuk dinilai LLM.
+type SubmissionAttachment struct {
+	SlotKey     string
+	FileName    string
+	ContentType string
+	// TextContent diisi untuk berkas teks/kode/CSV atau hasil ekstrak ZIP/DOCX/XLSX/PPTX.
+	TextContent string
+	// RawData dan MimeType diisi untuk PDF atau gambar agar dikirim multimodal ke LLM.
+	RawData  []byte
+	MimeType string
+}
+
 // CriterionEvaluation adalah input LLM untuk menilai satu kriteria. Isi submission adalah data,
 // bukan instruksi.
 type CriterionEvaluation struct {
-	Case      Case
-	Criterion RubricCriterion
-	Content   SubmissionContent
+	Case        Case
+	Criterion   RubricCriterion
+	Content     SubmissionContent
+	Attachments []SubmissionAttachment
 }
 
 // CriterionVerdict adalah output LLM untuk satu kriteria.
@@ -169,4 +182,18 @@ type CriterionResult struct {
 type FeedbackRequest struct {
 	Case    Case
 	Results []CriterionResult
+}
+
+// BatchEvaluation adalah input LLM untuk menilai seluruh kriteria sekaligus beserta feedback
+// dalam satu panggilan API.
+type BatchEvaluation struct {
+	Case        Case
+	Content     SubmissionContent
+	Attachments []SubmissionAttachment
+}
+
+// BatchEvaluationResult adalah output lengkap penilaian satu submission (semua kriteria + feedback).
+type BatchEvaluationResult struct {
+	Verdicts []CriterionVerdict
+	Feedback ReviewFeedback
 }

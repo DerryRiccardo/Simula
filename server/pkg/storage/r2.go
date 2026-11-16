@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"mime"
 	"net/http"
 	"strings"
@@ -102,6 +103,31 @@ func (s *R2) DeleteObject(ctx context.Context, key string) error {
 	return nil
 }
 
+// GetObject mengunduh isi object hingga batas maxBytes (bila > 0) dan mengembalikan content type.
+func (s *R2) GetObject(ctx context.Context, key string, maxBytes int64) ([]byte, string, error) {
+	output, err := s.client.GetObject(ctx, &s3.GetObjectInput{Bucket: aws.String(s.bucket), Key: aws.String(key)})
+	if isNotFound(err) {
+		return nil, "", coreErrors.ErrObjectNotFound
+	}
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to get object: %w", err)
+	}
+	defer output.Body.Close()
+
+	var reader io.Reader = output.Body
+	if maxBytes > 0 {
+		reader = io.LimitReader(output.Body, maxBytes+1)
+	}
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to read object: %w", err)
+	}
+	if maxBytes > 0 && int64(len(data)) > maxBytes {
+		return nil, "", fmt.Errorf("object %s exceeds max size %d bytes", key, maxBytes)
+	}
+	return data, aws.ToString(output.ContentType), nil
+}
+
 // browserHeaders mengambil header bertanda tangan yang harus dikirim browser. Host dan
 // Content-Length diisi browser sendiri dan tidak boleh di-set lewat JavaScript.
 func browserHeaders(signed http.Header) map[string]string {
@@ -145,4 +171,9 @@ func (Disabled) DeleteObject(context.Context, string) error {
 // PresignDownload mengimplementasikan coreRepo.Storage.
 func (Disabled) PresignDownload(context.Context, string, string, time.Duration) (string, error) {
 	return "", coreErrors.ErrStorageDisabled
+}
+
+// GetObject mengimplementasikan coreRepo.ObjectReader.
+func (Disabled) GetObject(context.Context, string, int64) ([]byte, string, error) {
+	return nil, "", coreErrors.ErrStorageDisabled
 }

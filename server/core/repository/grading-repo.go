@@ -49,6 +49,12 @@ type LLM interface {
 	ComposeFeedback(ctx context.Context, in entity.FeedbackRequest) (entity.ReviewFeedback, error)
 }
 
+// BatchLLM adalah kemampuan opsional LLM untuk menilai seluruh kriteria dan menyusun feedback
+// dalam satu kali panggilan API.
+type BatchLLM interface {
+	EvaluateAll(ctx context.Context, in entity.BatchEvaluation) (entity.BatchEvaluationResult, error)
+}
+
 // GradingQueue mengantrekan task penilaian AI. Enqueue ganda untuk langkah yang sama diabaikan.
 type GradingQueue interface {
 	EnqueueCriterion(ctx context.Context, runID string, position int) error

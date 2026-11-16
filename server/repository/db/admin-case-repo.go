@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -124,6 +125,23 @@ func (r *adminCaseRepo) Save(ctx context.Context, save coreRepo.CaseSave) (int, 
 		return 0, fmt.Errorf("failed to save case %s: %w", c.ID, err)
 	}
 	return 0, nil
+}
+
+func (r *adminCaseRepo) SetStatus(
+	ctx context.Context, id string, status entity.CaseStatus, publishedAt *time.Time, now time.Time,
+) error {
+	updates := map[string]any{"status": status, "updated_at": now}
+	if publishedAt != nil {
+		updates["published_at"] = *publishedAt
+	}
+	result := r.db.WithContext(ctx).Model(&entity.Case{}).Where("id = ?", id).Updates(updates)
+	if result.Error != nil {
+		return fmt.Errorf("failed to set status of case %s: %w", id, result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return coreErrors.ErrCaseNotFound
+	}
+	return nil
 }
 
 // releaseOtherPartnerReviewers melepas penugasan reviewer yang bukan dari mitra case (AI case: semua).

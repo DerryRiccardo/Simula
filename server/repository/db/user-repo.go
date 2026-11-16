@@ -108,3 +108,17 @@ func (r *userRepo) CompleteOnboarding(
 		return nil
 	})
 }
+
+func (r *userRepo) MarkTourSeen(ctx context.Context, userID string) error {
+	result := r.db.WithContext(ctx).Model(&entity.User{}).Where("id = ?", userID).Updates(map[string]any{
+		"has_seen_tour": true,
+		"updated_at":    time.Now().UTC(),
+	})
+	if result.Error != nil {
+		return fmt.Errorf("failed to mark tour seen for %s: %w", userID, result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return coreErrors.ErrUserNotFound
+	}
+	return nil
+}

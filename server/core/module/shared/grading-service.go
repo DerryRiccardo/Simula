@@ -24,6 +24,8 @@ const failureMessageMaxRunes = 500
 type GradingDeps struct {
 	Grading coreRepo.GradingRepository
 	Cases   coreRepo.CaseRepository
+	Files   coreRepo.FileRepository
+	Storage coreRepo.ObjectReader
 	LLM     coreRepo.LLM
 	Queue   coreRepo.GradingQueue
 	// OnReviewed memfinalkan hasil (hook.OnReviewed): skor, status, dan sertifikat.
@@ -65,12 +67,24 @@ func (s *GradingService) EvaluateCriterion(ctx context.Context, runID string, po
 	if err != nil {
 		return fmt.Errorf("failed to load case of run %s: %w", runID, err)
 	}
+
+	if batchLLM, ok := s.LLM.(coreRepo.BatchLLM); ok {
+		return s.evaluateBatchAndFinalize(ctx, job, c, batchLLM)
+	}
+
 	criterion, ok := rubricAt(c, position)
 	if !ok {
 		return fmt.Errorf("rubric criterion %d not found for run %s", position, runID)
 	}
+	attachments := loadSubmissionAttachments(
+		ctx,
+		s.Files,
+		s.Storage,
+		job.Enrollment.UserID,
+		job.Submission.SubmissionContent.SlotValues,
+	)
 	verdict, err := s.LLM.EvaluateCriterion(ctx, entity.CriterionEvaluation{
-		Case: c, Criterion: criterion, Content: job.Submission.SubmissionContent,
+		Case: c, Criterion: criterion, Content: job.Submission.SubmissionContent, Attachments: attachments,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to evaluate criterion %d of run %s: %w", position, runID, err)
@@ -119,6 +133,68 @@ func (s *GradingService) ComposeFeedback(ctx context.Context, runID string) erro
 		ReviewerRole: entity.AIReviewerRole,
 		Scores:       scores,
 		Feedback:     feedback,
+		GradingRunID: &runRef,
+	})
+}
+
+func (s *GradingService) evaluateBatchAndFinalize(
+	ctx context.Context,
+	job entity.GradingJob,
+	c entity.Case,
+	batchLLM coreRepo.BatchLLM,
+) error {
+	attachments := loadSubmissionAttachments(
+		ctx,
+		s.Files,
+		s.Storage,
+		job.Enrollment.UserID,
+		job.Submission.SubmissionContent.SlotValues,
+	)
+	result, err := batchLLM.EvaluateAll(ctx, entity.BatchEvaluation{
+		Case:        c,
+		Content:     job.Submission.SubmissionContent,
+		Attachments: attachments,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to batch evaluate run %s: %w", job.Run.ID, err)
+	}
+	if len(result.Verdicts) != len(c.Rubric) {
+		return fmt.Errorf("batch evaluation returned %d verdicts for %d criteria", len(result.Verdicts), len(c.Rubric))
+	}
+	if err := entity.ValidateFeedback(result.Feedback); err != nil {
+		return fmt.Errorf("invalid batch feedback for run %s: %w", job.Run.ID, err)
+	}
+
+	now := s.Now()
+	scores := make([]entity.ReviewCriterionScore, 0, len(c.Rubric))
+	for i, criterion := range c.Rubric {
+		verdict := result.Verdicts[i]
+		if err := entity.ValidateCriterionVerdict(verdict.Level, verdict.Reason); err != nil {
+			return fmt.Errorf("invalid verdict for criterion %d of run %s: %w", i+1, job.Run.ID, err)
+		}
+		if row, ok := criterionAt(job.Run, i+1); ok && row.Status != entity.AIGradingCriterionDone {
+			if err := s.Grading.SaveCriterionResult(ctx, row.ID, verdict, now); err != nil {
+				return err
+			}
+		}
+		scores = append(scores, entity.ReviewCriterionScore{
+			ID:       uuid.NewString(),
+			Position: i + 1,
+			Name:     criterion.Name,
+			Weight:   criterion.Weight,
+			Level:    verdict.Level,
+			Reason:   verdict.Reason,
+		})
+	}
+
+	runRef := job.Run.ID
+	return s.OnReviewed(ctx, entity.ReviewOutcome{
+		EnrollmentID: job.Enrollment.ID,
+		SubmissionID: job.Submission.ID,
+		ReviewerType: entity.ReviewerAI,
+		ReviewerRole: entity.AIReviewerRole,
+		Scores:       scores,
+		Feedback:     result.Feedback,
 		GradingRunID: &runRef,
 	})
 }

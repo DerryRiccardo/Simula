@@ -62,6 +62,21 @@ func (uc *authUseCase) CompleteOnboarding(ctx context.Context, in OnboardingInpu
 	return uc.Me(ctx)
 }
 
+func (uc *authUseCase) MarkTourSeen(ctx context.Context) (entity.User, error) {
+	current, ok := authctx.UserFrom(ctx)
+	if !ok {
+		return entity.User{}, apperror.Unauthenticated("")
+	}
+	err := uc.Users.MarkTourSeen(ctx, current.ID)
+	if errors.Is(err, coreErrors.ErrUserNotFound) {
+		return entity.User{}, apperror.Unauthenticated("")
+	}
+	if err != nil {
+		return entity.User{}, apperror.Internal(fmt.Errorf("failed to mark tour seen: %w", err))
+	}
+	return uc.Me(ctx)
+}
+
 // uniqueTrimmed membuang spasi, nilai kosong, dan duplikat dengan tetap menjaga urutan pilihan.
 func uniqueTrimmed(values []string) []string {
 	result := make([]string, 0, len(values))

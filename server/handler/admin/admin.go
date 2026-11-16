@@ -60,6 +60,21 @@ func (h *PartnerHandler) UpdatePartner(c *gin.Context) {
 	response.OK(c, adminDto.MapPartner(partner))
 }
 
+// SetPartnerStatus: PUT /api/admin/partners/:id/status.
+func (h *PartnerHandler) SetPartnerStatus(c *gin.Context) {
+	var req adminDto.StatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		_ = c.Error(bind.Error(err))
+		return
+	}
+	partner, err := h.uc.SetPartnerStatus(c.Request.Context(), c.Param("id"), req.IsActive)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	response.OK(c, adminDto.MapPartner(partner))
+}
+
 // CreateReviewer: POST /api/admin/reviewers. Respons berisi password sementara (sekali saja).
 func (h *PartnerHandler) CreateReviewer(c *gin.Context) {
 	var req adminDto.ReviewerRequest

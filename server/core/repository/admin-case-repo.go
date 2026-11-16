@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/DerryRiccardo/Simula/server/core/entity"
 )
@@ -30,4 +31,7 @@ type AdminCaseRepository interface {
 	// dari mitra lain dilepas; mengembalikan coreErrors.ErrStatusConflict (dengan jumlahnya) bila
 	// reviewer itu masih memegang submission menunggu di case ini.
 	Save(ctx context.Context, save CaseSave) (blocked int, err error)
+	// SetStatus mengubah status case (mis. published <-> archived). Mengembalikan
+	// coreErrors.ErrCaseNotFound bila case tidak ada.
+	SetStatus(ctx context.Context, id string, status entity.CaseStatus, publishedAt *time.Time, now time.Time) error
 }

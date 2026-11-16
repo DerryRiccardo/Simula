@@ -35,6 +35,7 @@ type CaseStatus string
 const (
 	CaseStatusDraft     CaseStatus = "draft"
 	CaseStatusPublished CaseStatus = "published"
+	CaseStatusArchived  CaseStatus = "archived"
 )
 
 // SearchMaxLength adalah panjang maksimal kata kunci pencarian katalog dan Case Saya.
@@ -70,6 +71,7 @@ type Partner struct {
 	Industry   string
 	About      string
 	LogoFileID *string
+	IsActive   bool
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }
@@ -118,6 +120,11 @@ type Case struct {
 // IsPublished bernilai true bila case tampil di katalog.
 func (c *Case) IsPublished() bool {
 	return c.Status == CaseStatusPublished
+}
+
+// IsArchived bernilai true bila case diarsipkan oleh admin.
+func (c *Case) IsArchived() bool {
+	return c.Status == CaseStatusArchived
 }
 
 // PartnerName mengembalikan nama mitra, atau nil untuk AI case.

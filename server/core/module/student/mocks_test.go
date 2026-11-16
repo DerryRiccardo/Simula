@@ -44,6 +44,10 @@ func (m *mockUserRepo) CompleteOnboarding(ctx context.Context, userID string, fi
 	return m.Called(ctx, userID, fields, status, major).Error(0)
 }
 
+func (m *mockUserRepo) MarkTourSeen(ctx context.Context, userID string) error {
+	return m.Called(ctx, userID).Error(0)
+}
+
 type mockCaseRepo struct {
 	mock.Mock
 }

@@ -65,6 +65,7 @@ type PartnerUseCase interface {
 	GetDirectory(ctx context.Context) (entity.PartnerDirectory, error)
 	CreatePartner(ctx context.Context, input PartnerInput) (entity.Partner, error)
 	UpdatePartner(ctx context.Context, id string, input PartnerInput) (entity.Partner, error)
+	SetPartnerStatus(ctx context.Context, id string, isActive bool) (entity.Partner, error)
 	CreateReviewer(ctx context.Context, input ReviewerInput) (CreatedReviewer, error)
 	SetReviewerCases(ctx context.Context, reviewerID string, caseIDs []string) (entity.ReviewerStat, error)
 	SetReviewerStatus(ctx context.Context, reviewerID string, isActive bool) (entity.ReviewerStat, error)
@@ -108,7 +109,7 @@ func (uc *partnerUseCase) GetDirectory(ctx context.Context) (entity.PartnerDirec
 
 func (uc *partnerUseCase) CreatePartner(ctx context.Context, input PartnerInput) (entity.Partner, error) {
 	now := uc.Now()
-	partner := entity.Partner{ID: uuid.NewString(), CreatedAt: now}
+	partner := entity.Partner{ID: uuid.NewString(), IsActive: true, CreatedAt: now}
 	return uc.savePartner(ctx, partner, input, "")
 }
 
@@ -124,6 +125,25 @@ func (uc *partnerUseCase) UpdatePartner(ctx context.Context, id string, input Pa
 		return entity.Partner{}, apperror.Internal(err)
 	}
 	return uc.savePartner(ctx, partner, input, partner.ID)
+}
+
+func (uc *partnerUseCase) SetPartnerStatus(ctx context.Context, id string, isActive bool) (entity.Partner, error) {
+	if _, err := uuid.Parse(id); err != nil {
+		return entity.Partner{}, apperror.NotFound(msgPartnerNotFound)
+	}
+	if err := uc.Partners.SetPartnerActive(ctx, id, isActive, uc.Now()); errors.Is(err, coreErrors.ErrPartnerNotFound) {
+		return entity.Partner{}, apperror.NotFound(msgPartnerNotFound)
+	} else if err != nil {
+		return entity.Partner{}, apperror.Internal(err)
+	}
+	partner, err := uc.Partners.GetPartner(ctx, id)
+	if errors.Is(err, coreErrors.ErrPartnerNotFound) {
+		return entity.Partner{}, apperror.NotFound(msgPartnerNotFound)
+	}
+	if err != nil {
+		return entity.Partner{}, apperror.Internal(err)
+	}
+	return partner, nil
 }
 
 func (uc *partnerUseCase) savePartner(ctx context.Context, partner entity.Partner, input PartnerInput, exceptID string) (entity.Partner, error) {
@@ -172,10 +192,12 @@ func (uc *partnerUseCase) CreateReviewer(ctx context.Context, input ReviewerInpu
 	}
 	if _, err := uuid.Parse(input.PartnerID); err != nil {
 		fields = append(fields, apperror.FieldError{Field: "partnerId", Message: msgChoosePartner})
-	} else if _, err := uc.Partners.GetPartner(ctx, input.PartnerID); errors.Is(err, coreErrors.ErrPartnerNotFound) {
+	} else if partner, err := uc.Partners.GetPartner(ctx, input.PartnerID); errors.Is(err, coreErrors.ErrPartnerNotFound) {
 		fields = append(fields, apperror.FieldError{Field: "partnerId", Message: msgChoosePartner})
 	} else if err != nil {
 		return CreatedReviewer{}, apperror.Internal(err)
+	} else if !partner.IsActive {
+		fields = append(fields, apperror.FieldError{Field: "partnerId", Message: "Mitra sedang nonaktif."})
 	}
 	if len(fields) > 0 {
 		return CreatedReviewer{}, apperror.Validation(fields...)

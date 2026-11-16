@@ -78,6 +78,7 @@ type User struct {
 	Role          Role
 	IsActive      bool
 	IsOnboarded   bool
+	HasSeenTour   bool
 	StudentStatus *StudentStatus
 	Major         *string
 	Institution   *string

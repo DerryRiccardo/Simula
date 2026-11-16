@@ -49,6 +49,10 @@ func (m *mockAdminCaseRepo) Save(ctx context.Context, save coreRepo.CaseSave) (i
 	return args.Int(0), args.Error(1)
 }
 
+func (m *mockAdminCaseRepo) SetStatus(ctx context.Context, id string, status entity.CaseStatus, publishedAt *time.Time, now time.Time) error {
+	return m.Called(ctx, id, status, publishedAt, now).Error(0)
+}
+
 type mockFieldRepo struct {
 	mock.Mock
 }
@@ -291,7 +295,7 @@ func TestSaveCase_B2BReferencesAndPartnerConflict(t *testing.T) {
 		stored := storedAICase(entity.CaseStatusPublished)
 		stored.Tier = entity.TierB2B
 		env.expectStored(stored, 2, 2)
-		env.partners.On("GetPartner", mock.Anything, partnerID).Return(entity.Partner{ID: partnerID}, nil)
+		env.partners.On("GetPartner", mock.Anything, partnerID).Return(entity.Partner{ID: partnerID, IsActive: true}, nil)
 		env.repo.On("Save", mock.Anything, mock.Anything).Return(2, coreErrors.ErrStatusConflict)
 
 		_, err := env.uc.SaveCase(asAdmin(), adminCaseID, b2bInput(), true)

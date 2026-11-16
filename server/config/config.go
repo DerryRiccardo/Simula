@@ -77,9 +77,12 @@ type Config struct {
 	R2UploadURLTTL    time.Duration `envconfig:"R2_UPLOAD_URL_TTL" default:"15m"`
 
 	// Penilai AI. Kosong = penilaian AI nonaktif (submission AI tetap tersimpan tetapi tidak
-	// dinilai). "fake" memakai penilai palsu yang deterministik, hanya untuk development.
-	LLMProvider  string        `envconfig:"LLM_PROVIDER"`
-	FakeLLMDelay time.Duration `envconfig:"FAKE_LLM_DELAY" default:"2s"`
+	// dinilai). "fake" untuk development; "gemini" memakai Gemini API.
+	LLMProvider   string        `envconfig:"LLM_PROVIDER"`
+	FakeLLMDelay  time.Duration `envconfig:"FAKE_LLM_DELAY" default:"2s"`
+	GeminiAPIKey  string        `envconfig:"GEMINI_API_KEY"`
+	GeminiModel   string        `envconfig:"GEMINI_MODEL" default:"gemini-3.8-flash"`
+	GeminiTimeout time.Duration `envconfig:"GEMINI_TIMEOUT" default:"60s"`
 
 	// Payment gateway checkout B2B. Kosong = checkout nonaktif. "fake" memakai gateway palsu yang
 	// meniru Midtrans (simulasi lewat panel demo), hanya untuk development.
@@ -93,7 +96,8 @@ const (
 
 // Penyedia LLM yang didukung LLM_PROVIDER.
 const (
-	LLMProviderFake = "fake"
+	LLMProviderFake   = "fake"
+	LLMProviderGemini = "gemini"
 )
 
 const minJWTSecretLength = 32
@@ -166,9 +170,20 @@ func (c *Config) validate() error {
 		return fmt.Errorf("R2_UPLOAD_URL_TTL must be positive")
 	}
 	switch c.LLMProvider {
-	case "", LLMProviderFake:
+	case "", LLMProviderFake, LLMProviderGemini:
 	default:
-		return fmt.Errorf("invalid LLM_PROVIDER %q: must be empty or fake", c.LLMProvider)
+		return fmt.Errorf("invalid LLM_PROVIDER %q: must be empty, fake, or gemini", c.LLMProvider)
+	}
+	if c.LLMProvider == LLMProviderGemini {
+		if c.GeminiAPIKey == "" {
+			return fmt.Errorf("GEMINI_API_KEY is required when LLM_PROVIDER=gemini")
+		}
+		if c.GeminiModel == "" {
+			return fmt.Errorf("GEMINI_MODEL must not be empty when LLM_PROVIDER=gemini")
+		}
+		if c.GeminiTimeout <= 0 {
+			return fmt.Errorf("GEMINI_TIMEOUT must be positive")
+		}
 	}
 	if c.IsProduction() && c.LLMProvider == LLMProviderFake {
 		return fmt.Errorf("LLM_PROVIDER=fake is not allowed in production")

@@ -299,6 +299,18 @@ func (r *adminPartnerRepo) SetReviewerActive(ctx context.Context, reviewerID str
 	return 0, nil
 }
 
+func (r *adminPartnerRepo) SetPartnerActive(ctx context.Context, partnerID string, isActive bool, now time.Time) error {
+	result := r.db.WithContext(ctx).Model(&entity.Partner{}).Where("id = ?", partnerID).
+		Updates(map[string]any{"is_active": isActive, "updated_at": now})
+	if result.Error != nil {
+		return fmt.Errorf("failed to set partner %s active: %w", partnerID, result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return coreErrors.ErrPartnerNotFound
+	}
+	return nil
+}
+
 // reviewerAssignment adalah baris tabel reviewer_assignments.
 type reviewerAssignment struct {
 	CaseID     string `gorm:"primaryKey"`

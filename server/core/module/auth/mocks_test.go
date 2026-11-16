@@ -83,6 +83,15 @@ func (r *fakeUserRepo) CompleteOnboarding(_ context.Context, userID string, fiel
 	return nil
 }
 
+func (r *fakeUserRepo) MarkTourSeen(_ context.Context, userID string) error {
+	user, ok := r.users[userID]
+	if !ok {
+		return coreErrors.ErrUserNotFound
+	}
+	user.HasSeenTour = true
+	return nil
+}
+
 type fakeFieldRepo struct {
 	keys map[string]bool
 }

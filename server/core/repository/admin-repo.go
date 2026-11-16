@@ -32,6 +32,9 @@ type AdminPartnerRepository interface {
 	// SetReviewerActive mengaktifkan atau menonaktifkan reviewer. Menonaktifkan ditolak
 	// (coreErrors.ErrStatusConflict, dengan jumlahnya) bila masih ada submission menunggu.
 	SetReviewerActive(ctx context.Context, reviewerID string, isActive bool, now time.Time) (pending int, err error)
+	// SetPartnerActive mengaktifkan atau menonaktifkan mitra. Mengembalikan
+	// coreErrors.ErrPartnerNotFound bila mitra tidak ada.
+	SetPartnerActive(ctx context.Context, partnerID string, isActive bool, now time.Time) error
 }
 
 // AdminReviewRepository melayani menu Penilaian.

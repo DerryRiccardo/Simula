@@ -301,7 +301,7 @@ func BuildStatusEvents(enrollment Enrollment, submissions []Submission) []Status
 }
 
 // AIGradingEstimatePerCriterion dipakai menampilkan perkiraan selesai penilaian AI.
-const AIGradingEstimatePerCriterion = 30 * time.Second
+const AIGradingEstimatePerCriterion = 45 * time.Second
 
 // AIGradingProgress adalah progres penilaian AI di halaman status.
 type AIGradingProgress struct {
