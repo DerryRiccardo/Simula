@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, UserX } from 'lucide-react';
+import { UserX } from 'lucide-react';
 
 import { Reveal } from '@/components/animated';
 import { EmptyState, ErrorState, Skeleton } from '@/components';
@@ -93,14 +93,6 @@ export function MemberDetailView({ id }: { id: string }) {
 
   return (
     <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8">
-      <Link
-        href={PATHS.adminMembers}
-        className="group flex w-fit items-center gap-1.5 text-sm text-ink-muted transition-colors hover:text-ink"
-      >
-        <ArrowLeft className="size-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
-        Member
-      </Link>
-
       {isLoading ? (
         <DetailSkeleton />
       ) : isError ? (

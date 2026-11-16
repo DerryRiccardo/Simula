@@ -85,6 +85,21 @@ export function useCompleteOnboarding(next?: string | null) {
   });
 }
 
+export function useMarkTourSeen() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: authService.markTourSeen,
+    onMutate: () => {
+      queryClient.setQueryData(authKeys.me(), (current: IUser | null | undefined) =>
+        current ? { ...current, hasSeenTour: true } : current
+      );
+    },
+    onSuccess: (user) => {
+      queryClient.setQueryData(authKeys.me(), user);
+    },
+  });
+}
+
 export function useChangePassword(next?: string | null) {
   const onAuthSuccess = useAuthSuccess(next);
   return useMutation({

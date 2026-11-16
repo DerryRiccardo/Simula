@@ -128,6 +128,7 @@ const SEED_USERS: IMockUserRecord[] = [
     password: DEMO_PASSWORD,
     role: 'student',
     isOnboarded: true,
+    hasSeenTour: true,
     fieldKeys: ['backend', 'data'],
     studentStatus: 'final_year',
     major: 'Sistem Informasi',
@@ -139,6 +140,7 @@ const SEED_USERS: IMockUserRecord[] = [
     password: DEMO_PASSWORD,
     role: 'reviewer',
     isOnboarded: true,
+    hasSeenTour: true,
     fieldKeys: ['backend'],
     studentStatus: null,
     major: null,
@@ -151,6 +153,7 @@ const SEED_USERS: IMockUserRecord[] = [
     password: DEMO_PASSWORD,
     role: 'admin',
     isOnboarded: true,
+    hasSeenTour: true,
     fieldKeys: [],
     studentStatus: null,
     major: null,
@@ -185,6 +188,7 @@ const createSeedMembers = (): IMockUserRecord[] =>
     password: crypto.randomUUID(),
     role: 'student',
     isOnboarded: true,
+    hasSeenTour: true,
     fieldKeys: [...fieldKeys],
     studentStatus: 'final_year',
     major,
@@ -198,6 +202,7 @@ const SEED_PARTNERS: IPartner[] = [
     industry: 'E-commerce',
     about:
       'Marketplace dengan jutaan transaksi per bulan. Tim engineering-nya menangani lonjakan traffic besar setiap kampanye flash sale.',
+    isActive: true,
   },
   {
     id: 'p-samudra',
@@ -205,6 +210,7 @@ const SEED_PARTNERS: IPartner[] = [
     industry: 'Logistik',
     about:
       'Penyedia jasa pengiriman antarkota dengan ratusan titik hub di Jawa, Sumatra, dan Sulawesi.',
+    isActive: true,
   },
   {
     id: 'p-kirana',
@@ -212,6 +218,7 @@ const SEED_PARTNERS: IPartner[] = [
     industry: 'Retail',
     about:
       'Jaringan retail gaya hidup dengan toko fisik dan aplikasi belanja yang terus mengembangkan kanal digitalnya.',
+    isActive: true,
   },
   {
     id: 'p-bentala',
@@ -219,6 +226,7 @@ const SEED_PARTNERS: IPartner[] = [
     industry: 'Jasa keuangan',
     about:
       'Perusahaan jasa keuangan yang mendampingi bisnis menengah dalam perencanaan modal dan ekspansi.',
+    isActive: true,
   },
 ];
 
@@ -282,6 +290,7 @@ const createSeedReviewers = (): IMockUserRecord[] =>
     password: crypto.randomUUID(),
     role: 'reviewer',
     isOnboarded: true,
+    hasSeenTour: true,
     fieldKeys: [],
     studentStatus: null,
     major: null,
@@ -931,6 +940,7 @@ export const mockDb = {
       createdAt: new Date().toISOString(),
       role: 'student',
       isOnboarded: false,
+      hasSeenTour: false,
       fieldKeys: [],
       studentStatus: null,
       major: null,
@@ -1036,6 +1046,7 @@ export const mockDb = {
       password: crypto.randomUUID(),
       role: 'reviewer',
       isOnboarded: true,
+      hasSeenTour: true,
       fieldKeys: [],
       studentStatus: null,
       major: null,

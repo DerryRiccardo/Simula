@@ -29,12 +29,11 @@ export function GatewayDialog({ slug, order, onClose }: GatewayDialogProps) {
       <DialogContent>
         <div className="flex items-center gap-2 text-xs font-medium text-ink-subtle">
           <FlaskConical className="size-3.5" />
-          Simulasi payment gateway
+          Sandbox payment gateway
         </div>
         <DialogTitle className="mt-3">Bayar dengan {method.label}</DialogTitle>
         <DialogDescription>
-          Di versi produksi, langkah ini membuka halaman {method.label} dari payment gateway. Di
-          prototype, pilih hasil pembayaran yang ingin didemokan.
+          Pilih status transaksi untuk menyelesaikan proses pembayaran {method.label}.
         </DialogDescription>
 
         <dl className="mt-5 grid gap-2 rounded-control border border-line p-4 text-sm">

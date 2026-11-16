@@ -87,3 +87,17 @@ export function useSaveAdminCase() {
     onError: (error) => handleApiError(error, 'Case gagal disimpan. Coba lagi.'),
   });
 }
+
+export function useSetAdminCaseStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: adminService.setCaseStatus,
+    onSuccess: async (saved, { status }) => {
+      await queryClient.invalidateQueries({ queryKey: adminKeys.all });
+      toast.success(status === 'archived' ? 'Case diarsipkan' : 'Case dipulihkan', {
+        description: saved.title,
+      });
+    },
+    onError: (error) => handleApiError(error, 'Status case gagal diperbarui. Coba lagi.'),
+  });
+}

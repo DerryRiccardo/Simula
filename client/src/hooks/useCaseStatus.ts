@@ -37,7 +37,19 @@ export function useAiGradingCompletion(slug: string, status: TEnrollmentStatus |
       wasGrading.current = true;
       return;
     }
-    if (!wasGrading.current || (status !== 'passed' && status !== 'failed')) return;
+    if (!wasGrading.current) return;
+    if (status === 'in_progress') {
+      wasGrading.current = false;
+      void queryClient.invalidateQueries({ queryKey: learningKeys.all });
+      toast.error('Penilaian AI mengalami kendala', {
+        description:
+          'Submission-mu dikembalikan ke draft dan kuota percobaan tidak berkurang. Silakan kirim ulang.',
+        duration: 8000,
+      });
+      router.replace(PATHS.caseWork(slug));
+      return;
+    }
+    if (status !== 'passed' && status !== 'failed') return;
     wasGrading.current = false;
     void queryClient.invalidateQueries({ queryKey: learningKeys.all });
     if (status === 'passed') {

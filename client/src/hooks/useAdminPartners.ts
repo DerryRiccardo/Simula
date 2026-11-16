@@ -34,6 +34,20 @@ export function useSavePartner() {
   });
 }
 
+export function useSetPartnerStatus() {
+  const invalidate = useInvalidateAdmin();
+  return useMutation({
+    mutationFn: adminService.setPartnerStatus,
+    onSuccess: (partner) => {
+      invalidate();
+      toast.success(partner.isActive ? 'Mitra diaktifkan' : 'Mitra dinonaktifkan', {
+        description: partner.name,
+      });
+    },
+    onError: (error) => handleApiError(error, 'Status mitra gagal diperbarui. Coba lagi.'),
+  });
+}
+
 export function useCreateReviewer() {
   const invalidate = useInvalidateAdmin();
   return useMutation({

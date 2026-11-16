@@ -123,7 +123,7 @@ export function ReviewRow({ item }: { item: IAdminReviewItem }) {
 
       <div className="col-span-2 flex items-center sm:col-span-3 lg:col-span-1 lg:justify-end">
         <Link
-          href={PATHS.adminReview(item.id)}
+          href={`${PATHS.adminReview(item.id)}?tier=${item.tier}`}
           className="inline-flex items-center gap-1 text-sm font-medium text-brand outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-3 focus-visible:after:ring-brand/30"
         >
           Lihat

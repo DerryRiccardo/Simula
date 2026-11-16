@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, CreditCard, Lock, SearchX } from 'lucide-react';
+import { CreditCard, Lock, SearchX } from 'lucide-react';
 
 import { EmptyState, ErrorState, Skeleton } from '@/components';
 import { CaseProgressHeader, SubmittedSummary } from '@/components/student';
@@ -86,14 +86,6 @@ export function WorkView({ slug }: { slug: string }) {
 
   return (
     <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 pb-10">
-      <Link
-        href={PATHS.myCases}
-        className="group flex w-fit items-center gap-1.5 text-sm text-ink-muted transition-colors hover:text-ink"
-      >
-        <ArrowLeft className="size-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
-        Case Saya
-      </Link>
-
       {isLoading ? (
         <WorkSkeleton />
       ) : isError ? (

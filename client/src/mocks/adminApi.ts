@@ -338,6 +338,20 @@ export const adminApi = {
     return listAllCases().find((item) => item.id === id) ?? null;
   },
 
+  setCaseStatus: (id: string, status: 'published' | 'archived'): IAdminCase => {
+    requireAdmin();
+    const existing = listAllCases().find((item) => item.id === id);
+    if (!existing) throw new ApiResponseError(404, 'Case tidak ditemukan.');
+    if (existing.status === 'draft') {
+      throw new ApiResponseError(409, 'Hanya case terbit yang bisa diarsipkan.');
+    }
+    return mockDb.saveAdminCase({
+      ...existing,
+      status,
+      updatedAt: new Date().toISOString(),
+    });
+  },
+
   /** id null = case baru. Terbitkan memakai validasi penuh; draft cukup berjudul. */
   saveCase: (id: string | null, payload: IAdminCaseSavePayload): IAdminCase => {
     requireAdmin();

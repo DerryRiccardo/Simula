@@ -4,6 +4,7 @@ import type { TAdminCaseStatus } from '@/types';
 const STATUS: Record<TAdminCaseStatus, { label: string; className: string }> = {
   published: { label: 'Terbit', className: 'bg-ai-soft text-ai' },
   draft: { label: 'Draft', className: 'bg-surface-soft text-ink-muted' },
+  archived: { label: 'Diarsipkan', className: 'bg-warning-soft text-warning' },
 };
 
 // Tag status case di panel admin; palet sama dengan tag status lain (hijau = selesai/aktif).

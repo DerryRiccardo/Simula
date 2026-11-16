@@ -1,10 +1,10 @@
-import { BadgeCheck, BriefcaseBusiness } from 'lucide-react';
+import Image from 'next/image';
+import { BriefcaseBusiness, Target } from 'lucide-react';
 
 import { REVIEWERS } from '@/app/(marketing)/_data';
 import { Reveal } from '@/components/animated';
 import { Container } from '@/components/layout';
 import { FIELD_BY_KEY } from '@/constants/fields';
-import { getInitials } from '@/lib/formatters';
 import { LANDING_SECTIONS } from '@/constants/navigation';
 import { Highlight, SectionHeading } from './SectionHeading';
 
@@ -29,29 +29,28 @@ export function Reviewers() {
             return (
               <Reveal key={reviewer.id} as="li" delay={index * 0.08}>
                 <article className="group h-full">
-                  {/* Placeholder foto: ganti dengan next/image saat foto reviewer tersedia. */}
-                  <div className="relative aspect-[4/5] overflow-hidden rounded-3xl bg-linear-to-br from-brand-soft via-white to-brand-muted/60">
-                    <div className="absolute inset-0 bg-grid opacity-50" aria-hidden="true" />
-                    <span
-                      className="absolute inset-0 grid place-items-center text-6xl font-semibold tracking-tight text-brand/80 transition-transform duration-500 group-hover:scale-110"
-                      aria-hidden="true"
-                    >
-                      {getInitials(reviewer.name)}
-                    </span>
+                  <div className="relative aspect-[4/5] overflow-hidden rounded-3xl bg-surface-soft">
+                    <Image
+                      src={reviewer.photo}
+                      alt={reviewer.name}
+                      fill
+                      sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+                      className="object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                    />
                     {FieldIcon && (
-                      <span className="absolute top-4 left-4 flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-ink-muted backdrop-blur">
+                      <span className="absolute top-4 left-4 z-10 flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-ink-muted backdrop-blur">
                         <FieldIcon className="size-3.5 text-brand" />
                         {field.label}
                       </span>
                     )}
-                    <div className="absolute inset-x-3 bottom-3 translate-y-3 rounded-2xl bg-white/95 p-3.5 opacity-0 shadow-lg backdrop-blur transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+                    <div className="absolute inset-x-3 bottom-3 z-10 translate-y-3 rounded-2xl bg-white/95 p-3.5 opacity-0 shadow-lg backdrop-blur transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
                       <p className="flex items-center gap-1.5 text-xs text-ink-muted">
                         <BriefcaseBusiness className="size-3.5 text-brand" />
                         {reviewer.experience} di industri
                       </p>
                       <p className="mt-1 flex items-center gap-1.5 text-xs text-ink-muted">
-                        <BadgeCheck className="size-3.5 text-brand" />
-                        Terkalibrasi dengan rubrik
+                        <Target className="size-3.5 shrink-0 text-brand" />
+                        {reviewer.focus}
                       </p>
                     </div>
                   </div>

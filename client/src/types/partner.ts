@@ -9,6 +9,7 @@ export interface IPartner {
   industry: string;
   /** Profil singkat yang tampil di halaman detail case B2B. */
   about: string;
+  isActive: boolean;
 }
 
 export interface IAdminPartner extends IPartner {
@@ -64,7 +65,7 @@ export interface IAdminPartnerDirectory {
   cases: IAdminPartnerCase[];
 }
 
-export type IAdminPartnerInput = Omit<IPartner, 'id'>;
+export type IAdminPartnerInput = Omit<IPartner, 'id' | 'isActive'>;
 
 export interface IAdminReviewerInput {
   name: string;

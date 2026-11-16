@@ -96,7 +96,7 @@ export function DashboardView() {
               </section>
             </div>
 
-            <aside className="lg:sticky lg:top-28 lg:self-start">
+            <aside className="lg:sticky lg:top-28 lg:self-start" data-tour="journey-card">
               <Reveal offset={8} delay={0.08}>
                 <JourneyCard summary={summary} fieldKeys={fieldKeys} />
               </Reveal>

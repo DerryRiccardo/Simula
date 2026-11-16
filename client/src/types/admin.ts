@@ -6,7 +6,7 @@ import type { ICaseBrief, IRevisionRequest, ISubmissionRecord, TSlotKind } from 
 
 // Kontrak data panel admin (prototype/CONTEXT.md 4.11). Semua case dan rubrik dibuat admin.
 
-export type TAdminCaseStatus = 'draft' | 'published';
+export type TAdminCaseStatus = 'draft' | 'published' | 'archived';
 
 export interface IAdminCaseSummary {
   id: string;

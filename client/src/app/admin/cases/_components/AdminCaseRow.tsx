@@ -72,7 +72,7 @@ export function AdminCaseRow({ item }: { item: IAdminCaseSummary }) {
       </div>
       <div className="lg:text-right">
         <Link
-          href={PATHS.adminCaseEdit(item.id)}
+          href={`${PATHS.adminCaseEdit(item.id)}?${item.status === 'draft' ? 'status=draft' : `tier=${item.tier}`}`}
           className="inline-flex items-center gap-1 text-sm font-medium text-brand outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-3 focus-visible:after:ring-brand/30"
         >
           Edit

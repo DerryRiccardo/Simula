@@ -6,7 +6,11 @@ import { Handshake, Plus, SearchX, UserPlus } from 'lucide-react';
 import { ConfirmDialog, EmptyState, ErrorState, Skeleton } from '@/components';
 import { FilterTabs, PageHeading, SearchToolbar } from '@/components/student';
 import { Button } from '@/components/ui';
-import { usePartnerDirectory, useSetReviewerStatus } from '@/hooks/useAdminPartners';
+import {
+  usePartnerDirectory,
+  useSetPartnerStatus,
+  useSetReviewerStatus,
+} from '@/hooks/useAdminPartners';
 import { usePlatformSettings } from '@/hooks/usePlatform';
 import {
   ADMIN_PARTNER_ALL,
@@ -82,6 +86,7 @@ export function PartnersView() {
   const { data: directory, isLoading, isError, refetch } = usePartnerDirectory();
   const filters = useAdminPartnerFilters(directory);
   const setStatus = useSetReviewerStatus();
+  const setPartnerStatus = useSetPartnerStatus();
   const [dialog, setDialog] = useState<TDialog>(null);
   // Target dialog disimpan terpisah agar isi dialog tidak berubah selama animasi menutup.
   const [partnerTarget, setPartnerTarget] = useState<IAdminPartner | null>(null);
@@ -203,6 +208,9 @@ export function PartnersView() {
               <PartnerList
                 partners={filters.partners}
                 onEdit={openPartner}
+                onToggleStatus={(partner) =>
+                  setPartnerStatus.mutate({ id: partner.id, isActive: !partner.isActive })
+                }
                 onShowReviewers={filters.showPartnerReviewers}
               />
             ) : (
@@ -222,7 +230,7 @@ export function PartnersView() {
           <ReviewerFormDialog
             isOpen={dialog === 'reviewer'}
             onOpenChange={(isOpen) => !isOpen && close()}
-            partners={directory.partners}
+            partners={directory.partners.filter((item) => item.isActive)}
             defaultPartnerId={filters.partnerId === ADMIN_PARTNER_ALL ? null : filters.partnerId}
           />
           <ConfirmDialog

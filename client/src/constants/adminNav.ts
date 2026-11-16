@@ -124,7 +124,7 @@ export function findAdminNavMatch(
   for (const section of ADMIN_NAV) {
     for (const item of section.items) {
       if (!isMatch(item, !ADMIN_EXACT_NAV_IDS.includes(item.id))) continue;
-      const child = item.children?.find((entry) => isMatch(entry, false));
+      const child = item.children?.find((entry) => isMatch(entry, true));
       return { section, item, child };
     }
   }

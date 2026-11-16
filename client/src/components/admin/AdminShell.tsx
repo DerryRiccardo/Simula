@@ -34,9 +34,20 @@ function getBreadcrumb(pathname: string, searchParams: URLSearchParams): IBreadc
           : isReviewerAssignment
             ? 'Penugasan'
             : 'Detail';
-    // Penugasan dibuka dari tab Reviewer, jadi "kembali" mengarah ke tab itu.
-    const parentHref = isReviewerAssignment ? `${item.href}?tab=reviewers` : item.href;
-    return [...group, { label: item.label, href: parentHref }, { label: subpage }];
+    if (isReviewerAssignment) {
+      return [
+        ...group,
+        { label: item.label, href: item.href },
+        { label: 'Reviewer', href: `${item.href}?tab=reviewers` },
+        { label: subpage },
+      ];
+    }
+    const items: IBreadcrumbItem[] = [...group, { label: item.label, href: item.href }];
+    if (child) {
+      items.push({ label: child.label, href: child.href });
+    }
+    items.push({ label: subpage });
+    return items;
   }
   return child
     ? [...group, { label: item.label, href: item.href }, { label: child.label }]

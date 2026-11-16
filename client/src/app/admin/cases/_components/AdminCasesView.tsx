@@ -39,6 +39,10 @@ const getHeading = (reviewSlaDays: number) => ({
     title: 'Draft',
     description: 'Case yang belum terbit dan hanya terlihat oleh admin.',
   },
+  archived: {
+    title: 'Arsip',
+    description: 'Case yang diarsipkan dari katalog peserta. Riwayat peserta lama tetap tersimpan.',
+  },
 });
 
 function CaseStats({ cases }: { cases: IAdminCaseSummary[] }) {

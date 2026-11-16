@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, SearchX } from 'lucide-react';
+import { SearchX } from 'lucide-react';
 
 import { EmptyState, ErrorState, Skeleton } from '@/components';
 import { Button } from '@/components/ui';
@@ -42,14 +42,6 @@ export function CaseDetailView({ slug }: { slug: string }) {
 
   return (
     <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 pb-10">
-      <Link
-        href={PATHS.cases}
-        className="group flex w-fit items-center gap-1.5 text-sm text-ink-muted transition-colors hover:text-ink"
-      >
-        <ArrowLeft className="size-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
-        Jelajahi Case
-      </Link>
-
       {isLoading ? (
         <CaseDetailSkeleton />
       ) : isError ? (

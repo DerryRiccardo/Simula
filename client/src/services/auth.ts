@@ -62,4 +62,10 @@ export const authService = {
       (await api.patch<IApiResponse<IUser>>('/users/me/onboarding', payload)).data.data
     );
   },
+  markTourSeen: async () => {
+    if (isMocked()) return (await loadMockApi()).me();
+    return withMockSession(
+      (await api.patch<IApiResponse<IUser>>('/users/me/tour')).data.data
+    );
+  },
 };

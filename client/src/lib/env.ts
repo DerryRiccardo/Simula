@@ -42,5 +42,9 @@ export const env = {
 } as const;
 
 /** true bila layanan ini memakai data tiruan: mock aktif dan layanan tidak dipindah ke backend. */
-export const shouldMockService = (service: TApiService) =>
-  env.isApiMocking && !realServices.includes(service);
+export const shouldMockService = (service: TApiService) => {
+  if (!env.isApiMocking) return false;
+  if (realServices.includes('all') || realServices.includes('*')) return false;
+  if (service.startsWith('admin') && realServices.includes('admin')) return false;
+  return !realServices.includes(service);
+};

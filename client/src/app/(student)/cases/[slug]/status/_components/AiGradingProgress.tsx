@@ -91,21 +91,71 @@ function StepRow({ state, title, meta, activeNote }: StepRowProps) {
   );
 }
 
-const getStepState = (index: number, checked: number): TStepState =>
-  index < checked ? 'done' : index === checked ? 'active' : 'pending';
+const STAGE_ROTATING_NOTES = (rubricNames: string) => [
+  'Memeriksa kelengkapan deliverable terhadap brief case...',
+  rubricNames
+    ? `Mengevaluasi kriteria rubrik: ${rubricNames}.`
+    : 'Mengevaluasi setiap kriteria pada rubrik penilaian...',
+  'Menyusun poin kekuatan, area perbaikan, dan langkah berikutnya...',
+];
 
 interface AiGradingProgressProps {
   status: ICaseStatus;
   progress: IAiGradingProgress;
 }
 
-// Penilaian AI per kriteria rubrik (CONTEXT.md 4.5): bukan spinner kosong, tapi langkah yang
-// sedang diperiksa, supaya peserta tahu penilaian mengikuti rubrik yang sama dengan brief.
+// Tahapan proses penilaian AI (3 tahap ringkas agar responsif untuk penilaian batch 1-request).
 export function AiGradingProgress({ status, progress }: AiGradingProgressProps) {
   const now = useNow();
   const { rubric } = status;
-  const totalSteps = rubric.length + 1;
+  const elapsedSeconds = Math.max(
+    0,
+    Math.floor((now - new Date(progress.startedAt).getTime()) / 1000)
+  );
+  const estimatedMinutes = Math.max(
+    1,
+    Math.round(
+      (new Date(progress.estimatedDoneAt).getTime() - new Date(progress.startedAt).getTime()) /
+        60000
+    )
+  );
   const isOverdue = now > new Date(progress.estimatedDoneAt).getTime();
+
+  const activeStage =
+    progress.checkedCriteria >= rubric.length && rubric.length > 0
+      ? 2
+      : elapsedSeconds < 2 && progress.checkedCriteria === 0
+        ? 0
+        : 1;
+
+  const rotatingNotes = STAGE_ROTATING_NOTES(rubric.map((item) => item.name).join(', '));
+  const stage2Note =
+    rotatingNotes[Math.floor(Math.max(0, elapsedSeconds - 2) / 3) % rotatingNotes.length];
+
+  const stages = [
+    {
+      title: 'Membaca berkas & isi submission',
+      meta: 'Tahap 1/3',
+      activeNote: 'Mengunduh dan mengekstrak isi berkas, tautan, serta catatan yang kamu kirim.',
+    },
+    {
+      title: 'Menilai rubrik & menyusun feedback AI',
+      meta: `${rubric.length} kriteria`,
+      activeNote: stage2Note,
+    },
+    {
+      title: 'Menghitung skor & menerbitkan hasil',
+      meta: 'Tahap 3/3',
+      activeNote: 'Mengakumulasi bobot nilai akhir dan menyiapkan ringkasan hasil penilaian.',
+    },
+  ];
+
+  const progressRatio =
+    activeStage === 0
+      ? 0.2
+      : activeStage === 1
+        ? Math.min(0.85, 0.35 + Math.max(0, elapsedSeconds - 2) * 0.04)
+        : 0.95;
 
   return (
     <section aria-labelledby="grading-title">
@@ -116,8 +166,8 @@ export function AiGradingProgress({ status, progress }: AiGradingProgressProps) 
         AI sedang menilai submission-mu
       </h2>
       <p className="mt-2 max-w-[62ch] text-[0.9375rem] leading-relaxed text-pretty text-ink-muted">
-        Penilaian memakai rubrik yang sama dengan di brief, satu kriteria demi satu kriteria.
-        Halaman ini pindah otomatis ke hasil begitu selesai.
+        Penilaian mengacu pada seluruh kriteria rubrik di brief. Halaman ini akan pindah otomatis ke
+        hasil begitu selesai.
       </p>
 
       <dl className="mt-6 grid grid-cols-3 gap-px overflow-hidden rounded-card border border-line bg-line">
@@ -129,49 +179,44 @@ export function AiGradingProgress({ status, progress }: AiGradingProgressProps) 
         <Fact
           label="Berjalan"
           value={formatElapsed(progress.startedAt, now)}
-          hint={`${Math.min(progress.checkedCriteria + 1, totalSteps)} dari ${totalSteps} tahap`}
+          hint={`Tahap ${activeStage + 1} dari ${stages.length}`}
         />
         <Fact
           label="Selesai sekitar"
           value={formatTime(progress.estimatedDoneAt)}
-          hint={isOverdue ? 'Sedikit lebih lama' : 'Di bawah 1 menit'}
+          hint={isOverdue ? 'Sedikit lebih lama' : `Sekitar ${estimatedMinutes} menit`}
         />
       </dl>
 
       <div className="mt-6 overflow-hidden rounded-card border border-line bg-white">
         {/* Bar progres menggantikan garis bawah header, jadi tidak menempel di sudut kartu. */}
         <div className="relative flex items-baseline justify-between gap-3 px-5 py-4">
-          <h3 className="text-[0.9375rem] md:text-[0.9375rem]">Pemeriksaan rubrik</h3>
+          <h3 className="text-[0.9375rem] md:text-[0.9375rem]">Proses penilaian</h3>
           <span
             className="font-mono text-xs text-ink-subtle tabular-nums"
             aria-live="polite"
             aria-atomic="true"
           >
-            {Math.min(progress.checkedCriteria, rubric.length)} dari {rubric.length} kriteria
+            Tahap {activeStage + 1} dari {stages.length}
           </span>
           <div className="absolute inset-x-0 bottom-0 h-0.5 bg-line" aria-hidden="true">
             <div
               className="h-full origin-left bg-ai transition-transform duration-700 ease-out"
-              style={{ transform: `scaleX(${(progress.checkedCriteria + 0.5) / totalSteps})` }}
+              style={{ transform: `scaleX(${progressRatio})` }}
             />
           </div>
         </div>
 
         <ol className="divide-y divide-line">
-          {rubric.map((criterion, index) => (
+          {stages.map((stage, index) => (
             <StepRow
-              key={criterion.name}
-              state={getStepState(index, progress.checkedCriteria)}
-              title={criterion.name}
-              meta={`Bobot ${criterion.weight}%`}
-              activeNote={`Memeriksa: ${criterion.description}`}
+              key={stage.title}
+              state={index < activeStage ? 'done' : index === activeStage ? 'active' : 'pending'}
+              title={stage.title}
+              meta={stage.meta}
+              activeNote={stage.activeNote}
             />
           ))}
-          <StepRow
-            state={getStepState(rubric.length, progress.checkedCriteria)}
-            title="Menyusun skor dan feedback"
-            activeNote="Menghitung skor akhir dari bobot rubrik, lalu menulis kekuatan, yang perlu ditingkatkan, dan ringkasan skill gap."
-          />
         </ol>
       </div>
     </section>

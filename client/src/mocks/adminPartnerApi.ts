@@ -150,12 +150,14 @@ export const adminPartnerApi = {
       name: input.name.trim(),
       industry: input.industry.trim(),
       about: input.about.trim(),
+      isActive: true,
     });
   },
 
   updatePartner: (id: string, input: IAdminPartnerInput): IPartner => {
     requireAdmin();
-    if (!mockDb.listPartners().some((item) => item.id === id)) {
+    const existing = mockDb.listPartners().find((item) => item.id === id);
+    if (!existing) {
       throw new ApiResponseError(404, 'Mitra tidak ditemukan.');
     }
     validatePartner(input, id);
@@ -164,7 +166,17 @@ export const adminPartnerApi = {
       name: input.name.trim(),
       industry: input.industry.trim(),
       about: input.about.trim(),
+      isActive: existing.isActive,
     });
+  },
+
+  setPartnerStatus: (id: string, isActive: boolean): IPartner => {
+    requireAdmin();
+    const existing = mockDb.listPartners().find((item) => item.id === id);
+    if (!existing) {
+      throw new ApiResponseError(404, 'Mitra tidak ditemukan.');
+    }
+    return mockDb.savePartner({ ...existing, isActive });
   },
 
   /** Di produksi: membuat akun reviewer dan mengirim email undangan untuk mengatur password. */

@@ -152,11 +152,13 @@ export function CommercialSection({ adminCase }: { adminCase: IAdminCase | null 
               {...register('partnerId')}
             >
               <option value="">Pilih mitra</option>
-              {directory.partners.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
+              {directory.partners
+                .filter((item) => item.isActive || item.id === adminCase?.partnerId)
+                .map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.isActive ? item.name : `${item.name} (Nonaktif)`}
+                  </option>
+                ))}
             </NativeSelect>
             {errors.partnerId ? (
               <p id="case-partner-error" className="text-xs text-destructive" role="alert">

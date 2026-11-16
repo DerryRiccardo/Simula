@@ -116,7 +116,7 @@ export function DecisionSummary({
         </>
       ) : (
         <p className="border-t border-line pt-5 text-sm text-ink-muted">
-          Rincian penilaian contoh ini tidak tersimpan di prototype.
+          Rincian penilaian per kriteria tidak tersedia untuk riwayat ini.
         </p>
       )}
     </section>

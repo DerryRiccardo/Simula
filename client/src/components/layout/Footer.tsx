@@ -68,7 +68,7 @@ export function Footer() {
 
       <Container className="flex flex-col gap-3 border-t border-line py-6 text-xs text-ink-subtle sm:flex-row sm:justify-between">
         <p>
-          © {year} {SITE.name}. Prototype.
+          © {year} {SITE.name}.
         </p>
         <p>Dibuat untuk mahasiswa dan fresh graduate Indonesia.</p>
       </Container>

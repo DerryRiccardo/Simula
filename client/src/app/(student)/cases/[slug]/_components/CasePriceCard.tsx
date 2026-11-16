@@ -29,10 +29,38 @@ const getB2bBenefits = (detail: ICaseDetail) => [
   'Berkesempatan masuk daftar prioritas interview mitra',
 ];
 
-function PrimaryAction({ detail }: { detail: ICaseDetail }) {
+function PrimaryAction({
+  detail,
+  isPreview = false,
+}: {
+  detail: ICaseDetail;
+  isPreview?: boolean;
+}) {
   const startCase = useStartCase();
   const whatsappUrl = useWhatsappUrl();
   const isAi = detail.tier === 'ai';
+
+  if (isPreview) {
+    if (isAi) {
+      return (
+        <Button type="button" size="pill-lg" variant="ai" className="cursor-default">
+          Mulai gratis
+        </Button>
+      );
+    }
+
+    return (
+      <div className="grid gap-3">
+        <Button type="button" size="pill-lg" variant="b2b" className="cursor-default">
+          Bayar sekarang
+        </Button>
+        <span className="flex items-center justify-center gap-2 text-sm font-medium text-ink-muted">
+          <MessageCircle className="size-4" strokeWidth={1.75} />
+          Tanya dulu via WhatsApp
+        </span>
+      </div>
+    );
+  }
 
   if (detail.myEnrollment) {
     const meta = ENROLLMENT_STATUS[detail.myEnrollment.status];
@@ -96,7 +124,13 @@ function PrimaryAction({ detail }: { detail: ICaseDetail }) {
   );
 }
 
-export function CasePriceCard({ detail }: { detail: ICaseDetail }) {
+export function CasePriceCard({
+  detail,
+  isPreview = false,
+}: {
+  detail: ICaseDetail;
+  isPreview?: boolean;
+}) {
   const isAi = detail.tier === 'ai';
   const benefits = isAi ? AI_BENEFITS : getB2bBenefits(detail);
 
@@ -118,7 +152,7 @@ export function CasePriceCard({ detail }: { detail: ICaseDetail }) {
           </p>
         </div>
 
-        <PrimaryAction detail={detail} />
+        <PrimaryAction detail={detail} isPreview={isPreview} />
       </div>
 
       <div className="border-t border-line p-5">

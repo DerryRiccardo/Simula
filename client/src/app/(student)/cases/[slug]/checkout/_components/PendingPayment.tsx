@@ -138,11 +138,11 @@ export function PendingPayment({ slug, summary, order }: PendingPaymentProps) {
           <div className="flex items-center gap-2">
             <FlaskConical className="size-4 text-ink-subtle" />
             <h2 id="demo-title" className="text-sm font-medium md:text-sm">
-              Simulasi prototype
+              Konfirmasi pembayaran (Sandbox)
             </h2>
           </div>
           <p className="mt-1 text-sm text-ink-muted">
-            Menggantikan konfirmasi otomatis dari bank. Tidak muncul di versi produksi.
+            Pilih hasil transaksi untuk menguji konfirmasi otomatis dari bank.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Button

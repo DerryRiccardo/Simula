@@ -13,6 +13,7 @@ import { STUDENT_NAV } from '@/constants/studentNav';
 import { useWhatsappUrl } from '@/hooks/usePlatform';
 import { matchesNavHref } from '@/lib/navigation';
 import { CommandSearch } from './CommandSearch';
+import { StudentOnboardingTour } from './StudentOnboardingTour';
 import { StudentSidebar } from './StudentSidebar';
 
 // Shell hanya dirender di client (di balik RequireAuth), jadi aman membaca navigator.
@@ -27,12 +28,35 @@ const CASE_SUBPAGE_LABEL: Record<string, string> = {
   result: 'Hasil',
 };
 
+const NAV_ORIGIN_KEY = 'simula_student_nav_origin';
+const CASE_ORIGIN_PATHS = new Set<string>([PATHS.dashboard, PATHS.cases, PATHS.myCases]);
+
+function findNavEntry(href: string) {
+  for (const section of STUDENT_NAV) {
+    const item = section.items.find((entry) => entry.href === href);
+    if (item) return { section, item };
+  }
+  return null;
+}
+
 /**
- * "Belajar / Jelajahi Case / Detail case / Pengerjaan". Grup menu hanya judul; menu dan halaman
- * detail case di atas halaman aktif bisa diklik untuk kembali.
+ * "Belajar / Jelajahi Case / Detail case / Pengerjaan" (atau "Case Saya" / "Dashboard" sesuai menu
+ * asal pengguna). Grup menu hanya judul; menu dan halaman detail case bisa diklik untuk kembali.
  */
-function getBreadcrumb(pathname: string, searchParams: URLSearchParams): IBreadcrumbItem[] {
+function getBreadcrumb(
+  pathname: string,
+  searchParams: URLSearchParams,
+  caseOriginHref: string | null
+): IBreadcrumbItem[] {
   if (pathname === PATHS.profile) return [{ label: 'Akun' }, { label: 'Profil' }];
+  if (pathname.startsWith('/certificates/')) {
+    return [
+      { label: 'Belajar' },
+      { label: 'Sertifikat Saya', href: PATHS.myCertificates },
+      { label: 'Sertifikat' },
+    ];
+  }
+
   for (const section of STUDENT_NAV) {
     for (const item of section.items) {
       if (pathname === item.href) {
@@ -50,7 +74,14 @@ function getBreadcrumb(pathname: string, searchParams: URLSearchParams): IBreadc
       }
       if (pathname.startsWith(`${item.href}/`)) {
         const [, , slug, subpage] = pathname.split('/');
-        const trail = [{ label: section.title }, { label: item.label, href: item.href }];
+        const origin =
+          item.href === PATHS.cases && caseOriginHref ? findNavEntry(caseOriginHref) : null;
+        const rootSection = origin?.section ?? section;
+        const rootItem = origin?.item ?? item;
+        const trail = [
+          { label: rootSection.title },
+          { label: rootItem.label, href: rootItem.href },
+        ];
         const subpageLabel = CASE_SUBPAGE_LABEL[subpage ?? ''];
         // Halaman turunan case (checkout, pengerjaan, dst.) bisa kembali ke detail case-nya.
         return subpageLabel && slug
@@ -110,6 +141,15 @@ export function StudentShell({ children }: { children: ReactNode }) {
   const searchShortcut = getSearchShortcut();
 
   useEffect(() => {
+    if (CASE_ORIGIN_PATHS.has(pathname)) {
+      window.sessionStorage.setItem(NAV_ORIGIN_KEY, pathname);
+    }
+  }, [pathname]);
+
+  const caseOriginHref =
+    typeof window !== 'undefined' ? window.sessionStorage.getItem(NAV_ORIGIN_KEY) : null;
+
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
@@ -124,11 +164,12 @@ export function StudentShell({ children }: { children: ReactNode }) {
 
   return (
     <DashboardShell
-      breadcrumb={getBreadcrumb(pathname, searchParams)}
+      breadcrumb={getBreadcrumb(pathname, searchParams, caseOriginHref)}
       renderSidebar={(onNavigate) => (
         <StudentSidebar
           onOpenSearch={openSearch}
           searchShortcut={searchShortcut}
+          caseOriginHref={caseOriginHref}
           onNavigate={onNavigate}
         />
       )}
@@ -160,6 +201,7 @@ export function StudentShell({ children }: { children: ReactNode }) {
         <>
           <CommandSearch isOpen={isSearchOpen} onOpenChange={setIsSearchOpen} />
           <HelpButton />
+          <StudentOnboardingTour />
         </>
       }
     >

@@ -8,6 +8,7 @@ export interface IUser {
   email: string;
   role: TRole;
   isOnboarded: boolean;
+  hasSeenTour: boolean;
   fieldKeys: string[];
   studentStatus: TStudentStatus | null;
   major: string | null;

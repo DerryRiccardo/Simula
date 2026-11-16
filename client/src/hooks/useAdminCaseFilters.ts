@@ -25,6 +25,7 @@ export const ADMIN_STATUS_OPTIONS: { value: TAdminCaseStatus | 'all'; label: str
   { value: 'all', label: 'Semua' },
   { value: 'published', label: 'Terbit' },
   { value: 'draft', label: 'Draft' },
+  { value: 'archived', label: 'Diarsipkan' },
 ];
 
 const COMPARATOR: Record<TAdminCaseSort, (a: IAdminCaseSummary, b: IAdminCaseSummary) => number> = {
@@ -71,6 +72,7 @@ export function useAdminCaseFilters(cases: IAdminCaseSummary[] | undefined) {
       all: base.length,
       published: base.filter((item) => item.status === 'published').length,
       draft: base.filter((item) => item.status === 'draft').length,
+      archived: base.filter((item) => item.status === 'archived').length,
     },
     setStatus: (value: TAdminCaseStatus | 'all') =>
       setParams({ status: value === 'all' ? null : value }),

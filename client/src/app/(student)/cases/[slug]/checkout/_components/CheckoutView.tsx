@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, CircleCheck, SearchX, Sparkles } from 'lucide-react';
+import { CircleCheck, SearchX, Sparkles } from 'lucide-react';
 
 import { EmptyState, ErrorState, Skeleton } from '@/components';
 import { Button } from '@/components/ui';
@@ -76,14 +76,6 @@ export function CheckoutView({ slug }: { slug: string }) {
 
   return (
     <div className="mx-auto grid max-w-5xl grid-cols-1 gap-8 pb-10">
-      <Link
-        href={PATHS.caseDetail(slug)}
-        className="group flex w-fit items-center gap-1.5 text-sm text-ink-muted transition-colors hover:text-ink"
-      >
-        <ArrowLeft className="size-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
-        Detail case
-      </Link>
-
       <header>
         <h1 className="text-page-title">Checkout</h1>
         <p className="mt-2 max-w-[60ch] text-[0.9375rem] leading-relaxed text-ink-muted">

@@ -2,12 +2,12 @@
 
 import { useMemo } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, SearchX } from 'lucide-react';
+import { Archive, ArchiveRestore, SearchX } from 'lucide-react';
 
 import { EmptyState, ErrorState, Skeleton } from '@/components';
 import { Button } from '@/components/ui';
 import { PATHS } from '@/constants/paths';
-import { useAdminCase } from '@/hooks/useAdmin';
+import { useAdminCase, useSetAdminCaseStatus } from '@/hooks/useAdmin';
 import { usePlatformSettings } from '@/hooks/usePlatform';
 import { formatDateTime } from '@/lib/formatters';
 import type { IAdminCase } from '@/types';
@@ -16,17 +16,52 @@ import { CaseBuilderForm } from './builder/CaseBuilderForm';
 import { CaseStatusBadge } from '@/components/admin';
 
 function BuilderHeader({ adminCase }: { adminCase: IAdminCase | null }) {
+  const setStatus = useSetAdminCaseStatus();
   return (
     <header className="grid gap-3 border-b border-line pb-6">
       {adminCase && (
-        <div className="flex flex-wrap items-center gap-3">
-          <CaseStatusBadge status={adminCase.status} />
-          <span className="font-mono text-xs text-ink-subtle tabular-nums">
-            Disimpan {formatDateTime(adminCase.updatedAt)}
-          </span>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <CaseStatusBadge status={adminCase.status} />
+            <span className="font-mono text-xs text-ink-subtle tabular-nums">
+              Disimpan {formatDateTime(adminCase.updatedAt)}
+            </span>
+          </div>
+          {adminCase.status !== 'draft' && (
+            <Button
+              type="button"
+              variant="outline"
+              size="pill"
+              disabled={setStatus.isPending}
+              onClick={() =>
+                setStatus.mutate({
+                  id: adminCase.id,
+                  status: adminCase.status === 'archived' ? 'published' : 'archived',
+                })
+              }
+            >
+              {adminCase.status === 'archived' ? (
+                <>
+                  <ArchiveRestore className="size-3.5" />
+                  Pulihkan case
+                </>
+              ) : (
+                <>
+                  <Archive className="size-3.5" />
+                  Arsipkan case
+                </>
+              )}
+            </Button>
+          )}
         </div>
       )}
       <h1 className="text-page-title">{adminCase ? adminCase.title : 'Buat case baru'}</h1>
+      {adminCase?.status === 'archived' && (
+        <p className="rounded-control border border-line bg-surface-soft/60 px-4 py-2.5 text-sm text-ink-muted">
+          Case ini sedang diarsipkan dan disembunyikan dari katalog peserta. Pulihkan terlebih dahulu
+          jika ingin mengubah atau menerbitkannya kembali.
+        </p>
+      )}
     </header>
   );
 }
@@ -55,14 +90,6 @@ export function CaseBuilderView({ id }: { id: string | null }) {
 
   return (
     <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8">
-      <Link
-        href={PATHS.adminCases}
-        className="group flex w-fit items-center gap-1.5 text-sm text-ink-muted transition-colors hover:text-ink"
-      >
-        <ArrowLeft className="size-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
-        Daftar case
-      </Link>
-
       {isLoading ? (
         <BuilderSkeleton />
       ) : isError ? (

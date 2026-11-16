@@ -126,6 +126,14 @@ export const adminService = {
       : await api.post<IApiResponse<IPartner>>('/admin/partners', payload);
     return response.data.data;
   },
+  setPartnerStatus: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+    if (isPartnersMocked()) return (await loadMockApi()).setPartnerStatus(id, isActive);
+    return (
+      await api.put<IApiResponse<IPartner>>(`/admin/partners/${encodeURIComponent(id)}/status`, {
+        isActive,
+      })
+    ).data.data;
+  },
   createReviewer: async (payload: IAdminReviewerInput) => {
     if (isPartnersMocked()) return (await loadMockApi()).createReviewer(payload);
     return (await api.post<IApiResponse<IAdminReviewer>>('/admin/reviewers', payload)).data.data;
@@ -211,6 +219,14 @@ export const adminService = {
       ? await api.put<IApiResponse<IAdminCase>>(`/admin/cases/${encodeURIComponent(id)}`, payload)
       : await api.post<IApiResponse<IAdminCase>>('/admin/cases', payload);
     return response.data.data;
+  },
+  setCaseStatus: async ({ id, status }: { id: string; status: 'published' | 'archived' }) => {
+    if (isCasesMocked()) return (await loadMockApi()).setCaseStatus(id, status);
+    return (
+      await api.put<IApiResponse<IAdminCase>>(`/admin/cases/${encodeURIComponent(id)}/status`, {
+        status,
+      })
+    ).data.data;
   },
   /** Unggah satu berkas materi: minta URL bertanda tangan, lalu PUT langsung ke storage. */
   uploadMaterial: async ({

@@ -99,8 +99,8 @@ export function OrderSheet({ order, isOpen, onOpenChange }: OrderSheetProps) {
             </dl>
 
             <p className="mx-6 mt-2 mb-6 border-t border-line pt-4 text-xs leading-relaxed text-ink-subtle">
-              Status order mengikuti notifikasi payment gateway dan tidak diubah manual dari panel
-              admin. Refund belum tersedia di MVP.
+              Status order diperbarui otomatis mengikuti notifikasi payment gateway dan tidak diubah
+              manual dari panel admin.
             </p>
           </>
         )}

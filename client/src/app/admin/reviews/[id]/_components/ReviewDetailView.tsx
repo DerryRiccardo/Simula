@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, SearchX } from 'lucide-react';
+import { SearchX } from 'lucide-react';
 
 import { Reveal } from '@/components/animated';
 import { EmptyState, ErrorState, Skeleton } from '@/components';
@@ -71,18 +71,9 @@ function DetailSkeleton() {
 // Detail penilaian (CONTEXT.md 4.13): submission, hasil per kriteria, dan aksi admin.
 export function ReviewDetailView({ id }: { id: string }) {
   const { data: detail, isLoading, isError, refetch } = useAdminReview(id);
-  const backHref = detail ? `${PATHS.adminReviews}?tier=${detail.item.tier}` : PATHS.adminReviews;
 
   return (
     <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8">
-      <Link
-        href={backHref}
-        className="group flex w-fit items-center gap-1.5 text-sm text-ink-muted transition-colors hover:text-ink"
-      >
-        <ArrowLeft className="size-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
-        Penilaian
-      </Link>
-
       {isLoading ? (
         <DetailSkeleton />
       ) : isError ? (

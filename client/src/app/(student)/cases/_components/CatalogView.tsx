@@ -115,12 +115,14 @@ export function CatalogView() {
 
       <div className="grid gap-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <FilterTabs
-            ariaLabel="Jenis case"
-            options={TIER_TABS}
-            value={tier}
-            onChange={(value) => setParams({ tier: value === 'all' ? null : value })}
-          />
+          <div data-tour="tier-filter">
+            <FilterTabs
+              ariaLabel="Jenis case"
+              options={TIER_TABS}
+              value={tier}
+              onChange={(value) => setParams({ tier: value === 'all' ? null : value })}
+            />
+          </div>
           <p className="text-sm text-ink-muted lg:text-right">{TIER_NOTE[tier]}</p>
         </div>
 

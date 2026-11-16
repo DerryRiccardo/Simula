@@ -1,5 +1,4 @@
 import {
-  Anchor,
   Award,
   BadgeCheck,
   BarChart3,
@@ -8,23 +7,15 @@ import {
   ClipboardList,
   CreditCard,
   FileSearch,
-  Flame,
   Handshake,
-  HeartPulse,
-  Hexagon,
   Layers,
-  Mountain,
-  Orbit,
   Route,
   ScrollText,
   Send,
-  ShoppingBag,
   Sparkles,
-  Sunrise,
   Target,
   UserCheck,
   UserRoundPlus,
-  Waves,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -40,18 +31,17 @@ export const HERO_TRUST_POINTS = [
   'Sertifikat terverifikasi',
 ] as const;
 
-// PLACEHOLDER: nama perusahaan fiktif untuk prototype. Ganti dengan mitra resmi (dan logonya)
-// sebelum dipublikasikan; jangan memakai nama brand nyata tanpa perjanjian kerja sama.
-export const PARTNERS: { name: string; icon: LucideIcon }[] = [
-  { name: 'Arunika Tech', icon: Sunrise },
-  { name: 'Kirana Retail', icon: ShoppingBag },
-  { name: 'Samudra Logistik', icon: Anchor },
-  { name: 'Bentala Finance', icon: Hexagon },
-  { name: 'Lintas Media', icon: Orbit },
-  { name: 'Nara Health', icon: HeartPulse },
-  { name: 'Cakra Energi', icon: Flame },
-  { name: 'Sagara Commerce', icon: Waves },
-  { name: 'Giri Konstruksi', icon: Mountain },
+export const PARTNERS: { name: string; logo: string }[] = [
+  { name: 'Astral', logo: '/partner/astral.svg' },
+  { name: 'BCAA', logo: '/partner/bcaa.svg' },
+  { name: 'Belibeli', logo: '/partner/belibeli.svg' },
+  { name: 'Danah', logo: '/partner/danah.svg' },
+  { name: 'Halodek', logo: '/partner/halodek.svg' },
+  { name: 'Kopi Memory', logo: '/partner/kopi_memory.svg' },
+  { name: 'Paragone Corp', logo: '/partner/paragonecorp.svg' },
+  { name: 'Sayap', logo: '/partner/sayap.svg' },
+  { name: 'Travelokal', logo: '/partner/travelokal.svg' },
+  { name: 'Univeler', logo: '/partner/univeler.svg' },
 ];
 
 export interface IStat {
@@ -76,43 +66,51 @@ export interface IReviewer {
   role: string;
   company: string;
   experience: string;
+  focus: string;
   fieldKey: string;
+  photo: string;
 }
 
-// PLACEHOLDER: reviewer fiktif untuk prototype. Ganti dengan praktisi mitra asli (dengan izin,
-// beserta foto) sebelum dipublikasikan.
 export const REVIEWERS: IReviewer[] = [
   {
     id: 'r1',
-    name: 'Andika Pratama',
+    name: 'Raditya Wilson',
     role: 'Senior Backend Engineer',
-    company: 'Sagara Commerce',
+    company: 'Belibeli',
     experience: '8 tahun',
+    focus: 'API, arsitektur & skalabilitas',
     fieldKey: 'backend',
+    photo: '/reviewer/raditya_wilson.jpg',
   },
   {
     id: 'r2',
-    name: 'Laras Wibowo',
+    name: 'Drian Chang',
     role: 'Lead Data Analyst',
-    company: 'Samudra Logistik',
+    company: 'Travelokal',
     experience: '7 tahun',
+    focus: 'SQL, analitik & insight bisnis',
     fieldKey: 'data',
+    photo: '/reviewer/drian_chang.jpg',
   },
   {
     id: 'r3',
-    name: 'Yohana Situmorang',
+    name: 'Laras Wibowo',
     role: 'Head of Growth Marketing',
-    company: 'Kirana Retail',
+    company: 'Univeler',
     experience: '10 tahun',
+    focus: 'Strategi kampanye & growth',
     fieldKey: 'marketing',
+    photo: '/reviewer/laras_wibowo.jpg',
   },
   {
     id: 'r4',
-    name: 'Reza Maulana',
+    name: 'Amba Pratama',
     role: 'Finance Manager',
-    company: 'Bentala Finance',
+    company: 'Danah',
     experience: '9 tahun',
+    focus: 'Proyeksi kas & analisis finansial',
     fieldKey: 'finance',
+    photo: '/reviewer/amba_pratama.jpg',
   },
 ];
 

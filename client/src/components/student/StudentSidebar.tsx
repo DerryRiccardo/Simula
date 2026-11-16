@@ -19,10 +19,16 @@ const toBadge = (count: number | undefined) => (count ? count : undefined);
 interface StudentSidebarProps {
   onOpenSearch: () => void;
   searchShortcut: string;
+  caseOriginHref?: string | null;
   onNavigate?: () => void;
 }
 
-export function StudentSidebar({ onOpenSearch, searchShortcut, onNavigate }: StudentSidebarProps) {
+export function StudentSidebar({
+  onOpenSearch,
+  searchShortcut,
+  caseOriginHref,
+  onNavigate,
+}: StudentSidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { data: summary } = useDashboardSummary();
@@ -39,16 +45,28 @@ export function StudentSidebar({ onOpenSearch, searchShortcut, onNavigate }: Stu
     'my-cases-passed': { count: counts?.passed, tone: 'muted' },
   };
 
-  const toSidebarItem = (item: INavItem, isChild: boolean): ISidebarItem => ({
-    id: item.id,
-    label: item.label,
-    icon: item.icon,
-    href: item.href,
-    badge: toBadge(badges[item.id]?.count),
-    badgeTone: badges[item.id]?.tone,
-    isActive: matchesNavHref(item.href, pathname, searchParams, !isChild),
-    children: item.children?.map((child) => toSidebarItem(child, true)),
-  });
+  const isCaseRoute = pathname.startsWith(`${PATHS.cases}/`);
+  const isCertificateRoute = pathname.startsWith('/certificates/');
+
+  const toSidebarItem = (item: INavItem, isChild: boolean): ISidebarItem => {
+    let isActive = matchesNavHref(item.href, pathname, searchParams, !isChild);
+    if (!isChild && isCaseRoute) {
+      isActive = item.href === (caseOriginHref ?? PATHS.cases);
+    } else if (!isChild && isCertificateRoute) {
+      isActive = item.href === PATHS.myCertificates;
+    }
+
+    return {
+      id: item.id,
+      label: item.label,
+      icon: item.icon,
+      href: item.href,
+      badge: toBadge(badges[item.id]?.count),
+      badgeTone: badges[item.id]?.tone,
+      isActive,
+      children: item.children?.map((child) => toSidebarItem(child, true)),
+    };
+  };
 
   const groups: ISidebarGroup[] = [
     {
