@@ -169,6 +169,10 @@ type CriterionEvaluation struct {
 type CriterionVerdict struct {
 	Level  int
 	Reason string
+	// InputTokens dan OutputTokens adalah pemakaian token panggilan ini; 0 bila penyedia tidak
+	// melaporkannya. Token input mencakup yang ditulis ke dan dibaca dari cache.
+	InputTokens  int
+	OutputTokens int
 }
 
 // CriterionResult adalah hasil satu kriteria yang diteruskan ke penyusunan feedback.

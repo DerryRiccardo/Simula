@@ -47,7 +47,11 @@ func RunServer(ctx context.Context, cfg *config.Config) error {
 	// Tanpa penilai AI, queue tetap nil sehingga submit tidak membuat run penilaian.
 	var gradingQueue coreRepo.GradingQueue
 	gradingModel := ""
-	if model := newLLM(cfg); model != nil {
+	model, err := newLLM(cfg)
+	if err != nil {
+		return err
+	}
+	if model != nil {
 		gradingQueue = task.NewGradingQueue(client, cfg.QueueName)
 		gradingModel = model.Model()
 	}

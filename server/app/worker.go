@@ -43,7 +43,11 @@ func RunWorker(ctx context.Context, cfg *config.Config) error {
 	periodic := periodicTasks()
 	// Task penilaian hanya didaftarkan bila penilai AI dikonfigurasi. Run yang tertinggal
 	// dilanjutkan ResumeStalled begitu worker kembali berjalan dengan penilai aktif.
-	if model := newLLM(cfg); model != nil {
+	model, err := newLLM(cfg)
+	if err != nil {
+		return err
+	}
+	if model != nil {
 		objectReader, _ := store.(coreRepo.ObjectReader)
 		entries = append(entries, gradingTaskEntries(newGradingService(cfg, db, client, objectReader, model))...)
 		periodic = append(periodic, periodicTask{cron: task.GradingResumeStalledSchedule, task: task.NewGradingResumeStalledTask()})

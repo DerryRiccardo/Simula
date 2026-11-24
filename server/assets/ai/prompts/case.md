@@ -1,0 +1,20 @@
+<case>
+<title>$title</title>
+<field>$field_label</field>
+<context>
+$context
+</context>
+<tasks>
+$tasks
+</tasks>
+<materials_summary>
+$materials
+</materials_summary>
+<deliverable_slots>
+$slots
+</deliverable_slots>
+<rubric_overview>
+Rubrik case ini punya $criteria_count kriteria. Setiap permintaan hanya menilai satu kriteria.
+$criteria
+</rubric_overview>
+</case>

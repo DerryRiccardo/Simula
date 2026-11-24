@@ -3,6 +3,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
@@ -77,12 +78,17 @@ type Config struct {
 	R2UploadURLTTL    time.Duration `envconfig:"R2_UPLOAD_URL_TTL" default:"15m"`
 
 	// Penilai AI. Kosong = penilaian AI nonaktif (submission AI tetap tersimpan tetapi tidak
-	// dinilai). "fake" untuk development; "gemini" memakai Gemini API.
+	// dinilai). "fake" untuk development; "gemini" memakai Gemini API; "claude" memakai Claude API.
 	LLMProvider   string        `envconfig:"LLM_PROVIDER"`
 	FakeLLMDelay  time.Duration `envconfig:"FAKE_LLM_DELAY" default:"2s"`
 	GeminiAPIKey  string        `envconfig:"GEMINI_API_KEY"`
 	GeminiModel   string        `envconfig:"GEMINI_MODEL" default:"gemini-3.8-flash"`
 	GeminiTimeout time.Duration `envconfig:"GEMINI_TIMEOUT" default:"60s"`
+	// Claude dinilai per kriteria. CLAUDE_EFFORT mengatur kedalaman penalaran (biaya dan waktu).
+	AnthropicAPIKey string        `envconfig:"ANTHROPIC_API_KEY"`
+	ClaudeModel     string        `envconfig:"CLAUDE_MODEL" default:"claude-haiku-5-5"`
+	ClaudeEffort    string        `envconfig:"CLAUDE_EFFORT" default:"low"`
+	ClaudeTimeout   time.Duration `envconfig:"CLAUDE_TIMEOUT" default:"90s"`
 
 	// Payment gateway checkout B2B. Kosong = checkout nonaktif. "fake" memakai gateway palsu yang
 	// meniru Midtrans (simulasi lewat panel demo), hanya untuk development.
@@ -98,6 +104,7 @@ const (
 const (
 	LLMProviderFake   = "fake"
 	LLMProviderGemini = "gemini"
+	LLMProviderClaude = "claude"
 )
 
 const minJWTSecretLength = 32
@@ -132,6 +139,27 @@ func Load() (*Config, error) {
 // IsProduction bernilai true bila APP_ENV=production.
 func (c *Config) IsProduction() bool {
 	return c.AppEnv == AppEnvProduction
+}
+
+func (c *Config) validateClaude() error {
+	if c.LLMProvider != LLMProviderClaude {
+		return nil
+	}
+	if strings.TrimSpace(c.AnthropicAPIKey) == "" {
+		return fmt.Errorf("ANTHROPIC_API_KEY is required when LLM_PROVIDER=claude")
+	}
+	if strings.TrimSpace(c.ClaudeModel) == "" {
+		return fmt.Errorf("CLAUDE_MODEL must not be empty when LLM_PROVIDER=claude")
+	}
+	switch c.ClaudeEffort {
+	case "low", "medium", "high", "xhigh", "max":
+	default:
+		return fmt.Errorf("invalid CLAUDE_EFFORT %q: must be low, medium, high, xhigh, or max", c.ClaudeEffort)
+	}
+	if c.ClaudeTimeout <= 0 {
+		return fmt.Errorf("CLAUDE_TIMEOUT must be positive")
+	}
+	return nil
 }
 
 func (c *Config) validate() error {
@@ -170,9 +198,9 @@ func (c *Config) validate() error {
 		return fmt.Errorf("R2_UPLOAD_URL_TTL must be positive")
 	}
 	switch c.LLMProvider {
-	case "", LLMProviderFake, LLMProviderGemini:
+	case "", LLMProviderFake, LLMProviderGemini, LLMProviderClaude:
 	default:
-		return fmt.Errorf("invalid LLM_PROVIDER %q: must be empty, fake, or gemini", c.LLMProvider)
+		return fmt.Errorf("invalid LLM_PROVIDER %q: must be empty, fake, gemini, or claude", c.LLMProvider)
 	}
 	if c.LLMProvider == LLMProviderGemini {
 		if c.GeminiAPIKey == "" {
@@ -184,6 +212,9 @@ func (c *Config) validate() error {
 		if c.GeminiTimeout <= 0 {
 			return fmt.Errorf("GEMINI_TIMEOUT must be positive")
 		}
+	}
+	if err := c.validateClaude(); err != nil {
+		return err
 	}
 	if c.IsProduction() && c.LLMProvider == LLMProviderFake {
 		return fmt.Errorf("LLM_PROVIDER=fake is not allowed in production")
