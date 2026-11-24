@@ -1,11 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { AlertCircle, Loader2, Lock, MessageCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui';
-import { PATHS } from '@/constants/paths';
 import { PAYMENT_METHOD_BY_VALUE } from '@/constants/payment';
 import { useCurrentUser } from '@/hooks/useAuth';
 import { useCreateOrder } from '@/hooks/useCheckout';
@@ -100,13 +98,7 @@ export function CheckoutForm({ slug, summary }: CheckoutFormProps) {
             {createOrder.isPending ? <Loader2 className="animate-spin" /> : <Lock />}
             {isRetry ? 'Bayar ulang' : 'Bayar'}
           </Button>
-          <div className="flex items-center justify-between gap-3 text-sm">
-            <Link
-              href={PATHS.caseDetail(slug)}
-              className="font-medium text-ink-muted transition-colors hover:text-ink"
-            >
-              Kembali
-            </Link>
+          <div className="flex items-center justify-center text-sm">
             <a
               href={whatsappUrl}
               target="_blank"

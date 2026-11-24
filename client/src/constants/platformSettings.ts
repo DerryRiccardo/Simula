@@ -9,11 +9,9 @@ import { SITE } from './site';
 export const DEFAULT_PLATFORM_SETTINGS: IPlatformSettings = {
   reviewSlaDays: REVIEW_SLA_BUSINESS_DAYS,
   maxRevisions: 2,
-  revisionExtraDays: 3,
   recommendationThreshold: RECOMMENDATION_THRESHOLD,
   passingScoreAi: 60,
   passingScoreB2b: 70,
-  b2bStartWindowDays: 30,
   paymentWindowHours: PAYMENT_WINDOW_HOURS,
   whatsappNumber: SITE.whatsappUrl.replace('https://wa.me/', ''),
 };
@@ -57,14 +55,6 @@ export const SETTING_GROUPS: ISettingGroup[] = [
         max: 5,
       },
       {
-        key: 'revisionExtraDays',
-        label: 'Tambahan tenggat revisi',
-        hint: 'Waktu peserta memperbaiki submission yang dikembalikan.',
-        unit: 'hari',
-        min: 1,
-        max: 14,
-      },
-      {
         key: 'recommendationThreshold',
         label: 'Saran skor rekomendasi interview',
         hint: 'Hanya saran untuk reviewer; keputusan akhir tetap di reviewer.',
@@ -76,7 +66,7 @@ export const SETTING_GROUPS: ISettingGroup[] = [
   },
   {
     id: 'case',
-    title: 'Case dan pengerjaan',
+    title: 'Ambang lulus',
     description: 'Nilai awal saat admin membuat case baru; tiap case tetap bisa diatur sendiri.',
     fields: [
       {
@@ -94,14 +84,6 @@ export const SETTING_GROUPS: ISettingGroup[] = [
         unit: 'poin',
         min: 1,
         max: 100,
-      },
-      {
-        key: 'b2bStartWindowDays',
-        label: 'Batas mulai B2B setelah dibeli',
-        hint: 'Peserta harus klik Mulai mengerjakan sebelum batas ini.',
-        unit: 'hari',
-        min: 7,
-        max: 180,
       },
     ],
   },

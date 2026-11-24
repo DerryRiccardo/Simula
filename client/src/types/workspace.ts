@@ -56,8 +56,6 @@ export interface ICaseBrief {
   rubric: IRubricCriterion[];
   slots: ISubmissionSlot[];
   passingScore: number;
-  /** Lama pengerjaan sejak klik "Mulai mengerjakan". null = tanpa tenggat (AI case). */
-  deadlineDays: number | null;
 }
 
 /** Berkas yang sudah diunggah. fileId dari POST /uploads; nama dan ukuran untuk tampilan. */

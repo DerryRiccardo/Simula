@@ -15,7 +15,6 @@ export const adminCaseSchema = z
     title: required('Judul', 5),
     fieldKey: z.string().min(1, 'Pilih bidang.'),
     level: z.enum(['beginner', 'intermediate', 'advanced']),
-    durationLabel: required('Durasi'),
     summary: z.string().trim().min(20, 'Tulis ringkasan minimal 20 karakter.'),
     about: z.string().trim().min(20, 'Tulis deskripsi minimal 20 karakter.'),
     activities: z.string().refine(hasLine, 'Tulis minimal satu aktivitas.'),
@@ -63,7 +62,6 @@ export const adminCaseSchema = z
       .min(1, 'Tambahkan minimal satu kriteria.'),
     passingScore: z.number().int().min(1, 'Antara 1 dan 100.').max(100, 'Antara 1 dan 100.'),
     price: z.number().int().min(0),
-    deadlineDays: z.number().int().min(0),
     partnerId: z.string(),
     reviewerRole: z.string(),
   })
@@ -79,7 +77,6 @@ export const adminCaseSchema = z
     if (value.tier !== 'b2b') return;
     const b2bRules: [keyof IAdminCaseInput, boolean, string][] = [
       ['price', value.price >= 10_000, 'Harga minimal Rp10.000.'],
-      ['deadlineDays', value.deadlineDays >= 1, 'Tenggat minimal 1 hari.'],
       ['partnerId', value.partnerId !== '', 'Pilih mitra.'],
       ['reviewerRole', value.reviewerRole.trim().length >= 2, 'Peran penilai wajib diisi.'],
     ];
@@ -127,7 +124,6 @@ export const getEmptyCase = (): IAdminCaseInput => ({
   title: '',
   fieldKey: '',
   level: 'beginner',
-  durationLabel: '',
   summary: '',
   about: '',
   activities: '',
@@ -149,7 +145,6 @@ export const getEmptyCase = (): IAdminCaseInput => ({
   rubric: RUBRIC_TEMPLATE,
   passingScore: DEFAULT_PASSING_SCORE.ai,
   price: 0,
-  deadlineDays: 7,
   partnerId: '',
   reviewerRole: '',
 });

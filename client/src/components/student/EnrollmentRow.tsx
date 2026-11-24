@@ -3,29 +3,28 @@ import { ArrowRight } from 'lucide-react';
 
 import { ENROLLMENT_STATUS } from '@/constants/enrollmentStatus';
 import { FIELD_BY_KEY } from '@/constants/fields';
-import { formatDeadline, formatRelative } from '@/lib/formatters';
+import { formatRelative, formatTimeLeft } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type { IEnrollment, TEnrollmentStatus } from '@/types';
 import { StatusBadge } from './Badges';
 
 const TIER_LABEL = { ai: 'AI Case Study', b2b: 'B2B Case Study' } as const;
 const URGENT_STATUSES: TEnrollmentStatus[] = ['revision_requested', 'pending_payment'];
-// B2B yang sudah lunas tetapi belum dimulai: tenggatnya adalah batas mulai (30 hari sejak lunas).
-const DEADLINE_LABEL: Partial<Record<TEnrollmentStatus, string>> = {
-  pending_payment: 'Batas bayar',
-  not_started: 'Batas mulai',
-};
 
-/** Kolom kanan: tenggat bila ada, skor bila sudah dinilai, selain itu waktu pembaruan. */
-function getTimeline({ status, deadlineAt, score, updatedAt }: IEnrollment) {
-  if (score !== null) return { label: 'Skor', value: String(score) };
-  if (deadlineAt) {
-    return { label: DEADLINE_LABEL[status] ?? 'Tenggat', value: formatDeadline(deadlineAt) };
+/** Kolom kanan: batas bayar VA, skor bila sudah dinilai, selain itu waktu pembaruan. */
+function getTimeline({ status, paymentDueAt, score, updatedAt }: IEnrollment) {
+  if (status === 'pending_payment' && paymentDueAt) {
+    const isOverdue = new Date(paymentDueAt) <= new Date();
+    return {
+      label: 'Batas bayar',
+      value: isOverdue ? 'Kedaluwarsa' : `Sisa ${formatTimeLeft(paymentDueAt)}`,
+    };
   }
+  if (score !== null) return { label: 'Skor', value: String(score) };
   return { label: 'Diperbarui', value: formatRelative(updatedAt) };
 }
 
-// Mode tabel hanya di layar sangat lebar (xl); di bawahnya status & tenggat turun ke bawah judul,
+// Mode tabel hanya di layar sangat lebar (xl); di bawahnya status & skor turun ke bawah judul,
 // agar judul case tidak terpotong. Grid ini dipakai bersama header kolom di EnrollmentList.
 export const ENROLLMENT_GRID =
   'xl:grid xl:grid-cols-[minmax(0,1fr)_10rem_8.5rem_10.5rem] xl:items-center xl:gap-6';

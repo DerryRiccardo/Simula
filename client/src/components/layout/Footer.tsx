@@ -26,7 +26,7 @@ const FOOTER_COLUMNS = [
     title: 'Kontak',
     links: [
       { label: SITE.email, href: `mailto:${SITE.email}` },
-      { label: 'Instagram', href: '#' },
+      { label: 'Instagram', href: SITE.instagramUrl },
       { label: 'LinkedIn', href: '#' },
     ],
   },
@@ -55,6 +55,8 @@ export function Footer() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
+                    target={link.href.startsWith('http') ? '_blank' : undefined}
+                    rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
                     className="text-sm text-ink-muted transition-colors hover:text-brand"
                   >
                     {link.label}

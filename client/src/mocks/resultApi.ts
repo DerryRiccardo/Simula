@@ -9,9 +9,6 @@ import type { ICaseDetail, ICaseResult, IEnrollment, IReviewResult } from '@/typ
 
 // Logika halaman hasil untuk mode mock. Dipakai service saat mock aktif dan oleh handler MSW.
 
-/** Tenggat submit ulang B2B setelah belum lulus. Diasumsikan sama dengan tenggat revisi. */
-const RETRY_DAYS = 3;
-
 const isReviewed = (record: IMockEnrollmentRecord) =>
   record.status === 'passed' || record.status === 'failed';
 
@@ -86,7 +83,6 @@ export const resultApi = {
     const isB2b = detail.tier === 'b2b';
     const updated = mockDb.updateEnrollment(enrollmentId, {
       status: 'in_progress',
-      deadlineAt: isB2b ? new Date(Date.now() + RETRY_DAYS * 86_400_000).toISOString() : null,
       score: null,
       review: null,
       draft: null,

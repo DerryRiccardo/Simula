@@ -19,14 +19,16 @@ export function useCaseWorkspace(slug: string) {
   });
 }
 
-/** B2B: mulai mengerjakan, tenggat dihitung sejak saat ini. */
+/** B2B: mulai mengerjakan. Case self-paced, jadi tidak ada tenggat. */
 export function useStartWork() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: workspaceService.start,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: learningKeys.all });
-      toast.success('Case dimulai', { description: 'Tenggat pengerjaan mulai dihitung.' });
+      toast.success('Case dimulai', {
+        description: 'Kerjakan sesuai waktumu, draft tersimpan otomatis.',
+      });
     },
     onError: (error) => handleApiError(error, 'Gagal memulai case. Coba lagi.'),
   });

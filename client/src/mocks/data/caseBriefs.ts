@@ -110,7 +110,6 @@ const B2B_BRIEFS: Record<string, ICaseBrief> = {
       docSlot('tradeoff-memo', 'Trade-off memo', 'Maksimal dua halaman.'),
     ],
     passingScore: 70,
-    deadlineDays: 7,
   },
   'c-b2b-keterlambatan-kirim': {
     context: [
@@ -178,7 +177,6 @@ const B2B_BRIEFS: Record<string, ICaseBrief> = {
       docSlot('deck', 'Deck rekomendasi', 'Maksimal 10 slide.', ['pdf', 'pptx']),
     ],
     passingScore: 70,
-    deadlineDays: 7,
   },
   'c-b2b-checkout-mobile': {
     context: [
@@ -250,7 +248,6 @@ const B2B_BRIEFS: Record<string, ICaseBrief> = {
       docSlot('test-plan', 'Rencana uji pengguna', 'Skenario dan metrik keberhasilan.'),
     ],
     passingScore: 70,
-    deadlineDays: 6,
   },
   'c-b2b-kampanye-peluncuran': {
     context: [
@@ -311,7 +308,6 @@ const B2B_BRIEFS: Record<string, ICaseBrief> = {
       docSlot('creative', 'Contoh materi kampanye', 'Gabungkan dalam satu PDF.', ['pdf']),
     ],
     passingScore: 70,
-    deadlineDays: 6,
   },
   'c-b2b-arus-kas': {
     context: [
@@ -358,7 +354,6 @@ const B2B_BRIEFS: Record<string, ICaseBrief> = {
       docSlot('memo', 'Memo rekomendasi', 'Maksimal dua halaman.'),
     ],
     passingScore: 70,
-    deadlineDays: 5,
   },
 };
 
@@ -399,7 +394,6 @@ function buildAiBrief(detail: ICaseDetail): ICaseBrief {
           ]);
     }),
     passingScore: AI_PASSING_SCORE,
-    deadlineDays: null,
   };
 }
 

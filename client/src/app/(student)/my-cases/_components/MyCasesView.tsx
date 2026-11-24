@@ -32,7 +32,6 @@ const TIER_TABS: { value: TTierFilter; label: string }[] = [
 
 const SORT_OPTIONS: { value: TEnrollmentSort; label: string }[] = [
   { value: 'recent', label: 'Terakhir diperbarui' },
-  { value: 'deadline', label: 'Tenggat terdekat' },
   { value: 'title', label: 'Judul A-Z' },
 ];
 

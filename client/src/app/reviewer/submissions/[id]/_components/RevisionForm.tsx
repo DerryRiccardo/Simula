@@ -112,8 +112,8 @@ export function RevisionForm({ detail }: { detail: IReviewSubmissionDetail }) {
         <Info className="mt-0.5 size-4 shrink-0 text-ink-subtle" />
         <span>
           Pakai ini bila deliverable belum lengkap, tidak sesuai brief, atau tautan dan berkas tidak
-          bisa dibuka. Submission belum dinilai, skor kandidat tidak berkurang, dan tenggatnya
-          bertambah 3 hari. Sisa kesempatan revisi:{' '}
+          bisa dibuka. Submission belum dinilai dan skor kandidat tidak berkurang. Sisa kesempatan
+          revisi:{' '}
           <span className="font-mono font-medium text-ink tabular-nums">
             {remaining} dari {maxRevisions}
           </span>
@@ -161,7 +161,7 @@ export function RevisionForm({ detail }: { detail: IReviewSubmissionDetail }) {
         isOpen={isConfirmOpen}
         onOpenChange={setIsConfirmOpen}
         title={`Kembalikan submission ${item.candidateLabel}?`}
-        description="Status kandidat berubah menjadi Perlu revisi dengan catatanmu, dan tenggat bertambah 3 hari. Submission ulang akan kembali ke antreanmu."
+        description="Status kandidat berubah menjadi Perlu revisi dengan catatanmu. Submission ulang akan kembali ke antreanmu."
         confirmLabel="Ya, kembalikan"
         onConfirm={handleConfirm}
         isPending={requestRevision.isPending}

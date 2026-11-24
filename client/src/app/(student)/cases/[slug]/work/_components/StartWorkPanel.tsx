@@ -1,35 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import { CalendarClock, FileStack, Lock, UserCheck } from 'lucide-react';
+import { FileStack, Lock, UserCheck } from 'lucide-react';
 
 import { ConfirmDialog } from '@/components';
 import { TierBadge } from '@/components/student';
 import { Button } from '@/components/ui';
 import { useStartWork } from '@/hooks/useCaseWork';
-import { formatDate } from '@/lib/formatters';
 import type { IUnlockedWorkspace } from '@/types';
 
-// B2B "Belum dimulai": brief masih terkunci, tenggat baru berjalan setelah klik Mulai (CONTEXT 4.7).
+// B2B "Belum dimulai": brief masih terkunci sampai peserta klik Mulai mengerjakan.
 export function StartWorkPanel({ workspace }: { workspace: IUnlockedWorkspace }) {
   const { caseInfo, brief, enrollment } = workspace;
   const startWork = useStartWork();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const days = brief.deadlineDays ?? 0;
-  // Dihitung saat tombol ditekan, agar tanggal di dialog sesuai waktu klik.
-  const [deadlinePreview, setDeadlinePreview] = useState('');
-
-  const openConfirm = () => {
-    setDeadlinePreview(formatDate(new Date(Date.now() + days * 86_400_000).toISOString()));
-    setIsConfirmOpen(true);
-  };
 
   const facts = [
-    {
-      icon: CalendarClock,
-      label: 'Tenggat',
-      value: `${days} hari sejak kamu menekan Mulai`,
-    },
     {
       icon: FileStack,
       label: 'Deliverable',
@@ -55,8 +41,8 @@ export function StartWorkPanel({ workspace }: { workspace: IUnlockedWorkspace })
           {caseInfo.title}
         </h1>
         <p className="mt-2 max-w-[60ch] text-[0.9375rem] leading-relaxed text-ink-muted">
-          Pembayaran sudah terkonfirmasi. Mulai saat kamu siap, karena tenggat langsung berjalan
-          setelah brief dibuka.
+          Pembayaran sudah terkonfirmasi. Klik Mulai mengerjakan kapan saja saat kamu siap membuka
+          brief lengkapnya.
         </p>
       </div>
 
@@ -86,7 +72,7 @@ export function StartWorkPanel({ workspace }: { workspace: IUnlockedWorkspace })
       </div>
 
       <div>
-        <Button size="pill-lg" className="active:scale-[0.98]" onClick={openConfirm}>
+        <Button size="pill-lg" className="active:scale-[0.98]" onClick={() => setIsConfirmOpen(true)}>
           Mulai mengerjakan
         </Button>
       </div>
@@ -95,13 +81,7 @@ export function StartWorkPanel({ workspace }: { workspace: IUnlockedWorkspace })
         isOpen={isConfirmOpen}
         onOpenChange={setIsConfirmOpen}
         title="Mulai mengerjakan sekarang?"
-        description={
-          <>
-            Tenggat {days} hari dimulai sekarang dan berakhir pada{' '}
-            <span className="font-mono font-medium text-ink">{deadlinePreview}</span>. Tenggat tidak
-            bisa dijeda.
-          </>
-        }
+        description="Brief lengkap, materi pendukung, dan form submission akan terbuka dan bisa dikerjakan sesuai waktumu."
         confirmLabel="Mulai sekarang"
         onConfirm={() =>
           startWork.mutate(enrollment.id, { onSuccess: () => setIsConfirmOpen(false) })

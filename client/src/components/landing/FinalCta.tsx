@@ -26,8 +26,8 @@ export function FinalCta() {
                 Kerjakan case pertamamu <span className="text-brand">hari ini.</span>
               </h2>
               <p className="text-body-lg leading-relaxed text-ink-muted">
-                Pilih bidangmu, kerjakan dalam 2–4 jam, dan dapatkan skor serta feedback langsung.
-                Gratis, tanpa kartu kredit.
+                Pilih bidangmu, kerjakan sesuai waktumu, dan dapatkan skor serta feedback langsung.
+                Mulai sekarang dan bangun bukti nyata untuk portofolio kariermu.
               </p>
               <div className="mt-2 flex flex-wrap justify-center gap-3">
                 <Button asChild size="pill-lg" className="group">

@@ -52,7 +52,7 @@ export function JourneyCard({ summary, fieldKeys }: JourneyCardProps) {
     },
     {
       title: 'Lulus AI Case Study',
-      description: 'Gratis, 2-4 jam. Dapatkan skor dan peta skill gap-mu.',
+      description: 'Gratis dan sesuai waktumu. Dapatkan skor dan peta skill gap-mu.',
       isDone: summary.hasPassedAiCase,
       cta: { label: 'Pilih AI Case', href: `${PATHS.cases}?tier=ai` },
     },

@@ -42,8 +42,7 @@ export function useAiGradingCompletion(slug: string, status: TEnrollmentStatus |
       wasGrading.current = false;
       void queryClient.invalidateQueries({ queryKey: learningKeys.all });
       toast.error('Penilaian AI mengalami kendala', {
-        description:
-          'Submission-mu dikembalikan ke draft dan kuota percobaan tidak berkurang. Silakan kirim ulang.',
+        description: 'Submission-mu dikembalikan ke draft. Silakan kirim ulang.',
         duration: 8000,
       });
       router.replace(PATHS.caseWork(slug));

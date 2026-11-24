@@ -27,7 +27,7 @@ export function RetryPanel({ slug, enrollmentId, tier, canRetry }: RetryPanelPro
         body: 'Kamu punya satu kesempatan submit ulang, sudah termasuk harga case. Isian sebelumnya terisi otomatis.',
         action: 'Submit ulang',
         confirm:
-          'Case kembali ke status Sedang dikerjakan dengan tenggat 3 hari. Kesempatan ini hanya sekali.',
+          'Case kembali ke status Sedang dikerjakan dan bisa kamu kerjakan sesuai waktumu. Kesempatan ini hanya sekali.',
       }
     : {
         title: 'Coba lagi',

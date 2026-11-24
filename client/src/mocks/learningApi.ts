@@ -31,8 +31,8 @@ const ACTIVE_STATUSES: TEnrollmentStatus[] = [...ACTION_STATUSES, 'ai_grading', 
 function toEnrollment(record: IMockEnrollmentRecord): IEnrollment | null {
   const caseSummary = findCaseById(record.caseId);
   if (!caseSummary) return null;
-  const { id, status, deadlineAt, updatedAt, score, certificateId } = record;
-  return { id, caseSummary, status, deadlineAt, updatedAt, score, certificateId };
+  const { id, status, paymentDueAt, updatedAt, score, certificateId } = record;
+  return { id, caseSummary, status, paymentDueAt, updatedAt, score, certificateId };
 }
 
 const isEnrollment = (value: IEnrollment | null): value is IEnrollment => value !== null;
@@ -58,10 +58,6 @@ function getRecommendations(userFields: string[], enrolledIds: Set<string>, pref
 
 function getEnrollmentComparator(sort: TEnrollmentSort) {
   switch (sort) {
-    case 'deadline':
-      // Yang punya tenggat paling dekat lebih dulu; tanpa tenggat di akhir.
-      return (a: IEnrollment, b: IEnrollment) =>
-        (a.deadlineAt ?? '9999').localeCompare(b.deadlineAt ?? '9999') || byUpdatedDesc(a, b);
     case 'title':
       return (a: IEnrollment, b: IEnrollment) =>
         a.caseSummary.title.localeCompare(b.caseSummary.title, 'id');

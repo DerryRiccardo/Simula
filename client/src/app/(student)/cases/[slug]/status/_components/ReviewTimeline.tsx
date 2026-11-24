@@ -19,7 +19,7 @@ function describeEvent(event: IStatusEvent): Pick<ITimelineStep, 'title' | 'deta
     case 'paid':
       return { title: 'Pembayaran terkonfirmasi' };
     case 'started':
-      return { title: 'Mulai mengerjakan', detail: 'Tenggat pengerjaan mulai dihitung.' };
+      return { title: 'Mulai mengerjakan', detail: 'Brief lengkap dan form submission terbuka.' };
     case 'submitted':
       return (event.attempt ?? 1) > 1
         ? { title: 'Submission dikirim ulang', detail: `Percobaan ${event.attempt}` }

@@ -36,8 +36,8 @@ function toEnrollmentOrNull(userId: string, caseId: string): IEnrollment | null 
   const record = findUserEnrollment(userId, caseId);
   const caseSummary = findCaseById(caseId);
   if (!record || !caseSummary) return null;
-  const { id, status, deadlineAt, updatedAt, score, certificateId } = record;
-  return { id, caseSummary, status, deadlineAt, updatedAt, score, certificateId };
+  const { id, status, paymentDueAt, updatedAt, score, certificateId } = record;
+  return { id, caseSummary, status, paymentDueAt, updatedAt, score, certificateId };
 }
 
 /** Order yang lewat batas bayar otomatis kedaluwarsa, seperti yang dilakukan backend. */
@@ -51,11 +51,11 @@ function settle(order: IMockOrderRecord, outcome: TPaymentOutcome) {
   const enrollment = findUserEnrollment(order.userId, order.caseId);
   if (outcome === 'paid') {
     mockDb.updateOrder(order.id, { status: 'paid', paidAt: new Date().toISOString() });
-    // Berhasil → "Belum dimulai"; tenggat baru dihitung saat klik "Mulai mengerjakan".
+    // Berhasil → "Belum dimulai"; peserta mulai kapan saja (self-paced).
     const target =
       enrollment ??
       mockDb.addEnrollment({ userId: order.userId, caseId: order.caseId, status: 'not_started' });
-    mockDb.updateEnrollment(target.id, { status: 'not_started', deadlineAt: null });
+    mockDb.updateEnrollment(target.id, { status: 'not_started', paymentDueAt: null });
     mockDb.addEnrollmentEvent(target.id, { type: 'paid' });
     return;
   }
@@ -132,14 +132,14 @@ export const checkoutApi = {
     // VA: case masuk Case Saya sebagai "Menunggu pembayaran" dengan batas waktu bayar.
     if (option.isVirtualAccount) {
       if (enrollment) {
-        mockDb.updateEnrollment(enrollment.id, { deadlineAt: expiresAt });
+        mockDb.updateEnrollment(enrollment.id, { paymentDueAt: expiresAt });
       } else {
         const created = mockDb.addEnrollment({
           userId: user.id,
           caseId,
           status: 'pending_payment',
         });
-        mockDb.updateEnrollment(created.id, { deadlineAt: expiresAt });
+        mockDb.updateEnrollment(created.id, { paymentDueAt: expiresAt });
       }
     }
     return toOrder(order);

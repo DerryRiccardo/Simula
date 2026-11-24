@@ -33,8 +33,6 @@ export function getCaseContext(caseId: string): { detail: ICaseDetail; brief: IC
 
 /** Batas pengembalian untuk revisi; setelah itu reviewer wajib menilai apa adanya (CONTEXT.md 7). */
 export const MAX_REVISIONS = 2;
-/** Tambahan tenggat setelah submission dikembalikan untuk revisi (CONTEXT.md bagian 7). */
-const REVISION_EXTRA_DAYS = 3;
 
 export const countRevisions = (record: IMockEnrollmentRecord) =>
   (record.events ?? []).filter((event) => event.type === 'revision_requested').length;
@@ -48,7 +46,6 @@ export function applyReview(
   if (!summary) throw new Error('Case tidak ditemukan.');
   const updated = mockDb.updateEnrollment(record.id, {
     status: review.isPassed ? 'passed' : 'failed',
-    deadlineAt: null,
     score: review.totalScore,
     review,
     revision: null,
@@ -72,7 +69,7 @@ export function applyReviewOutcome(
   return applyReview(record, buildDemoReview(brief, outcome, reviewerRole, detail.tier === 'b2b'));
 }
 
-/** Submission belum dinilai: dikembalikan dengan alasan, dan tenggat bertambah 3 hari. */
+/** Submission belum dinilai: dikembalikan dengan alasan untuk diperbaiki peserta. */
 export function applyRevisionRequest(
   record: IMockEnrollmentRecord,
   request: Omit<IRevisionRequest, 'requestedAt'>
@@ -82,7 +79,6 @@ export function applyRevisionRequest(
   }
   const updated = mockDb.updateEnrollment(record.id, {
     status: 'revision_requested',
-    deadlineAt: new Date(Date.now() + REVISION_EXTRA_DAYS * 86_400_000).toISOString(),
     revision: { ...request, requestedAt: new Date().toISOString() },
   });
   mockDb.addEnrollmentEvent(record.id, { type: 'revision_requested' });

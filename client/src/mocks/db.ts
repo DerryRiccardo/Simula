@@ -57,7 +57,8 @@ export interface IMockEnrollmentRecord {
   userId: string;
   caseId: string;
   status: TEnrollmentStatus;
-  deadlineAt: string | null;
+  /** Batas bayar VA untuk status pending_payment. */
+  paymentDueAt: string | null;
   updatedAt: string;
   score: number | null;
   certificateId: string | null;
@@ -318,7 +319,7 @@ const createSeedEnrollments = (): IMockEnrollmentRecord[] => {
       id: 'e-1',
       caseId: 'c-ai-optimasi-api',
       status: 'in_progress',
-      deadlineAt: null,
+      paymentDueAt: null,
       updatedAt: daysFromNow(0),
     },
     {
@@ -326,7 +327,7 @@ const createSeedEnrollments = (): IMockEnrollmentRecord[] => {
       id: 'e-2',
       caseId: 'c-b2b-overselling',
       status: 'revision_requested',
-      deadlineAt: daysFromNow(3),
+      paymentDueAt: null,
       updatedAt: daysFromNow(-1),
       submission: {
         values: {
@@ -362,7 +363,7 @@ const createSeedEnrollments = (): IMockEnrollmentRecord[] => {
       id: 'e-3',
       caseId: 'c-b2b-keterlambatan-kirim',
       status: 'in_review',
-      deadlineAt: null,
+      paymentDueAt: null,
       updatedAt: daysFromNow(-2),
       submission: {
         values: {
@@ -391,7 +392,7 @@ const createSeedEnrollments = (): IMockEnrollmentRecord[] => {
       id: 'e-8',
       caseId: 'c-b2b-kampanye-peluncuran',
       status: 'not_started',
-      deadlineAt: null,
+      paymentDueAt: null,
       updatedAt: daysFromNow(-3),
       events: [{ type: 'paid', at: daysFromNow(-3) }],
     },
@@ -400,7 +401,7 @@ const createSeedEnrollments = (): IMockEnrollmentRecord[] => {
       id: 'e-4',
       caseId: 'c-b2b-checkout-mobile',
       status: 'pending_payment',
-      deadlineAt: daysFromNow(1),
+      paymentDueAt: daysFromNow(1),
       updatedAt: daysFromNow(0),
     },
     {
@@ -408,7 +409,7 @@ const createSeedEnrollments = (): IMockEnrollmentRecord[] => {
       id: 'e-5',
       caseId: 'c-ai-dashboard-retensi',
       status: 'passed',
-      deadlineAt: null,
+      paymentDueAt: null,
       updatedAt: daysFromNow(-12),
       score: 88,
       certificateId: 'CERT-AI-2026-0412',
@@ -419,7 +420,7 @@ const createSeedEnrollments = (): IMockEnrollmentRecord[] => {
       id: 'e-6',
       caseId: 'c-b2b-arus-kas',
       status: 'passed',
-      deadlineAt: null,
+      paymentDueAt: null,
       updatedAt: daysFromNow(-20),
       score: 91,
       certificateId: 'CERT-B2B-2026-0187',
@@ -430,7 +431,7 @@ const createSeedEnrollments = (): IMockEnrollmentRecord[] => {
       id: 'e-7',
       caseId: 'c-ai-prioritas-fitur',
       status: 'failed',
-      deadlineAt: null,
+      paymentDueAt: null,
       updatedAt: daysFromNow(-6),
       score: 54,
     },
@@ -441,7 +442,7 @@ const createSeedEnrollments = (): IMockEnrollmentRecord[] => {
 // demo, jadi tidak muncul di dashboard mahasiswa; reviewer hanya melihatnya sebagai kandidat anonim.
 // PLACEHOLDER: percobaan AI case milik member lain, untuk statistik penilaian AI di panel admin.
 const createSeedMemberAiEnrollments = (): IMockEnrollmentRecord[] => {
-  const base = { deadlineAt: null, certificateId: null, issuedAt: null };
+  const base = { paymentDueAt: null, certificateId: null, issuedAt: null };
   return [
     {
       ...base,
@@ -498,7 +499,7 @@ const createSeedMemberAiEnrollments = (): IMockEnrollmentRecord[] => {
 };
 
 const createSeedCandidateEnrollments = (): IMockEnrollmentRecord[] => {
-  const base = { score: null, certificateId: null, issuedAt: null, deadlineAt: null };
+  const base = { score: null, certificateId: null, issuedAt: null, paymentDueAt: null };
   const declaration = { isLinkPublic: true, isOwnWork: true };
   return [
     {
@@ -757,7 +758,7 @@ function createSeedTalentEnrollments(): IMockEnrollmentRecord[] {
       userId: seed.userId,
       caseId: seed.caseId,
       status: 'passed',
-      deadlineAt: null,
+      paymentDueAt: null,
       updatedAt: reviewedAt,
       score: totalScore,
       certificateId: seed.certificateId,
@@ -978,7 +979,7 @@ export const mockDb = {
     const enrollment: IMockEnrollmentRecord = {
       ...data,
       id: `e-${crypto.randomUUID()}`,
-      deadlineAt: null,
+      paymentDueAt: null,
       updatedAt: new Date().toISOString(),
       score: null,
       certificateId: null,

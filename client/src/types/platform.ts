@@ -46,11 +46,9 @@ export interface IAdminFieldInput {
 export interface IPlatformSettings {
   reviewSlaDays: number;
   maxRevisions: number;
-  revisionExtraDays: number;
   recommendationThreshold: number;
   passingScoreAi: number;
   passingScoreB2b: number;
-  b2bStartWindowDays: number;
   paymentWindowHours: number;
   /** Nomor WhatsApp untuk tombol Bantuan, format internasional tanpa +, mis. 6281234567890. */
   whatsappNumber: string;

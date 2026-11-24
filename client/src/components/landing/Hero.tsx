@@ -11,7 +11,7 @@ import { HeroVisual } from './HeroVisual';
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden pt-28 pb-14 sm:pt-32 lg:pt-40 lg:pb-20">
+    <section className="relative overflow-hidden pt-24 pb-14 sm:pt-28 lg:pt-32 lg:pb-20">
       <div
         className="absolute inset-0 -z-10 bg-grid mask-fade-radial opacity-70"
         aria-hidden="true"
@@ -24,17 +24,7 @@ export function Hero() {
       <Container className="grid items-center gap-16 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
         <div className="flex flex-col items-start">
           <Reveal>
-            <span className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-3 py-1.5 text-xs font-medium text-ink-muted shadow-sm">
-              <span className="relative flex size-2" aria-hidden="true">
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60 motion-reduce:hidden" />
-                <span className="relative inline-flex size-2 rounded-full bg-brand" />
-              </span>
-              Simulasi kerja untuk mahasiswa &amp; fresh graduate
-            </span>
-          </Reveal>
-
-          <Reveal delay={0.08}>
-            <h1 className="mt-6 max-w-xl lg:text-[3.75rem]">
+            <h1 className="max-w-xl lg:text-[3.75rem]">
               Pengalaman kerja nyata,{' '}
               <span className="text-brand">sebelum pekerjaan pertamamu.</span>
             </h1>

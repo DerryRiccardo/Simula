@@ -213,7 +213,7 @@ export const reviewerApi = {
     return draft;
   },
 
-  /** Kembalikan untuk revisi: belum dinilai, skor tidak berkurang, tenggat +3 hari. */
+  /** Kembalikan untuk revisi: belum dinilai dan skor tidak berkurang. */
   requestRevision: (id: string, payload: IRevisionRequestPayload): IReviewQueueItem => {
     const record = getAssignedRecord(id);
     requirePending(record);
