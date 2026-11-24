@@ -31,6 +31,9 @@ const (
 	FileNameMaxLength = 200
 	// DefaultSlotMaxSizeMB dipakai bila slot tidak menentukan ukuran maksimal.
 	DefaultSlotMaxSizeMB = 10
+	// AIGradableMaxSizeMB adalah ukuran berkas terbesar yang isinya dibaca penilai AI. Batas unggah AI
+	// case tidak boleh lebih besar dari ini.
+	AIGradableMaxSizeMB = 10
 	// PendingFileRetention adalah umur berkas pending sebelum dihapus task pembersihan.
 	PendingFileRetention = 24 * time.Hour
 	// PendingFileCleanupBatch membatasi jumlah berkas yang dihapus dalam satu kali task.

@@ -315,7 +315,7 @@ func MapCaseStatusToResponse(s studentModule.CaseStatus) CaseStatusResponse {
 	if !s.CanViewBrief {
 		return response
 	}
-	response.Slots = mapSlots(s.Case.Slots)
+	response.Slots = mapSlots(s.Case.EffectiveSlots())
 	response.Rubric = mapRubric(s.Case.Rubric)
 	response.Submission = mapSubmissionRecord(s.Submission)
 	for _, event := range s.Events {
@@ -379,7 +379,7 @@ func mapBriefWithDownloads(c entity.Case, materialURLs map[string]string) CaseBr
 		Tasks:        make([]TaskResponse, 0, len(c.Tasks)),
 		Materials:    make([]MaterialResponse, 0, len(c.Materials)),
 		Rubric:       mapRubric(c.Rubric),
-		Slots:        mapSlots(c.Slots),
+		Slots:        mapSlots(c.EffectiveSlots()),
 		PassingScore: c.PassingScore,
 		DeadlineDays: c.DeadlineDays,
 	}

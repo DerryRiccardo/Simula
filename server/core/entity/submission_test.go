@@ -108,6 +108,27 @@ func TestSplitSubmissions(t *testing.T) {
 	assert.Equal(t, "a1", history.Latest.ID, "the latest sent attempt, not the open draft")
 }
 
+func TestEffectiveSlot(t *testing.T) {
+	size := 15
+	slot := CaseSlot{SlotKey: "berkas", Kind: SlotKindFile, Formats: StringList{}, MaxSizeMb: &size}
+	text := CaseSlot{SlotKey: "teks", Kind: SlotKindText}
+
+	ai := Case{Tier: TierAI, Slots: []CaseSlot{slot, text}}
+	slots := ai.EffectiveSlots()
+	assert.Equal(t, StringList(DefaultSlotFormats), slots[0].Formats, "empty formats fall back to the defaults")
+	assert.Equal(t, AIGradableMaxSizeMB, *slots[0].MaxSizeMb, "AI case is capped to what the grader reads")
+	assert.Equal(t, text, slots[1])
+	assert.Equal(t, 15, *ai.Slots[0].MaxSizeMb, "stored slot is not modified")
+	assert.Empty(t, ValidateUploadForSlot(slots[0], "lampiran.zip", 10*1024*1024))
+	assert.NotEmpty(t, ValidateUploadForSlot(slots[0], "lampiran.zip", 10*1024*1024+1))
+
+	b2b := Case{Tier: TierB2B}
+	assert.Equal(t, 15, *b2b.EffectiveSlot(slot).MaxSizeMb, "B2B is reviewed by humans")
+	b2bFormats := CaseSlot{Kind: SlotKindFile, Formats: StringList{"pdf"}}
+	assert.Equal(t, StringList{"pdf"}, b2b.EffectiveSlot(b2bFormats).Formats)
+	assert.Equal(t, DefaultSlotMaxSizeMB, *b2b.EffectiveSlot(b2bFormats).MaxSizeMb)
+}
+
 func TestFileRules(t *testing.T) {
 	key := SubmissionObjectKey("enr-1", 2, "design_doc", "file-1", "pdf")
 	assert.Equal(t, "submissions/enr-1/2/design_doc/file-1.pdf", key)

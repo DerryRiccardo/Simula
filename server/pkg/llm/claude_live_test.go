@@ -26,16 +26,12 @@ func TestClaudeLive(t *testing.T) {
 	require.NoError(t, err)
 
 	c := liveCase(t)
+	// Submission sengaja dibuat sedang: dua dari tiga penyebab utama, kode rapi tanpa test.
 	content := entity.SubmissionContent{SlotValues: entity.SlotValues{
 		c.Slots[0].SlotKey: {File: &entity.FileRef{FileName: "proyek.zip"}},
-		c.Slots[1].SlotKey: {Text: "Saya mengukur endpoint dengan autocannon lalu menjalankan EXPLAIN ANALYZE. Query memakai sequential scan pada 50.000 baris karena kolom category tidak berindeks. Saya menambah indeks lewat migrasi dan membatasi kolom sesuai output lama."},
+		c.Slots[1].SlotKey: {Text: liveSummary},
 	}}
-	attachments := []entity.SubmissionAttachment{{
-		SlotKey: c.Slots[0].SlotKey, FileName: "proyek.zip",
-		TextContent: "--- FILE: README.md ---\nAkar masalah: filter category tanpa indeks.\nSebelum: p50 3,8 detik. Sesudah: p50 220 ms (autocannon, 100 koneksi).\n" +
-			"--- FILE: migrations/001.sql ---\nCREATE INDEX idx_products_category ON products(category);\n" +
-			"--- FILE: src/repository.ts ---\nexport const findByCategory = (c: string) => db.query('SELECT id, name, price FROM products WHERE category = $1', [c]);",
-	}}
+	attachments := []entity.SubmissionAttachment{{SlotKey: c.Slots[0].SlotKey, FileName: "proyek.zip", TextContent: liveZip}}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
@@ -56,6 +52,55 @@ func TestClaudeLive(t *testing.T) {
 	t.Logf("feedback: %+v", feedback)
 	t.Logf("skor %d, durasi %s", entity.CalculateScore(scores), time.Since(startedAt).Round(100*time.Millisecond))
 }
+
+const liveSummary = `Saya mengukur endpoint di data uji 50.000 produk dengan autocannon (100 koneksi, 30 detik).
+Penyebab 1: filter LOWER(categories.slug) dan products.category_id tidak memakai index. EXPLAIN ANALYZE menunjukkan sequential scan 50.000 baris, 610 ms.
+Penyebab 2: N+1. Log query menunjukkan satu request kategori menjalankan 2 query per produk (product_images dan reviews), total 8.335 query untuk kategori dapur.
+Perbaikan: index pada products(category_id) dan categories(lower(slug)), lalu gambar utama dan rata-rata rating diambil dengan dua batch query.
+Hasil: p95 3,8 detik menjadi 0,9 detik, dan query per request 8.335 menjadi 3.`
+
+const liveZip = `--- FILE: README.md ---
+# Optimasi endpoint kategori
+Masalah: p95 3,8 detik karena sequential scan dan N+1 ke product_images dan reviews.
+Perubahan: migrasi index dan batch query.
+Hasil: p95 0,9 detik, query per request dari 8.335 menjadi 3 (autocannon, 100 koneksi, 30 detik).
+Menjalankan: npm install, npm run migrate, npm start.
+--- FILE: migrations/001_add_indexes.sql ---
+CREATE INDEX idx_products_category_id ON products (category_id);
+CREATE INDEX idx_categories_lower_slug ON categories (LOWER(slug));
+--- FILE: src/products/repository.ts ---
+export async function findByCategorySlug(slug: string): Promise<Product[]> {
+  return db.query(
+    'SELECT p.* FROM products p JOIN categories c ON c.id = p.category_id WHERE LOWER(c.slug) = LOWER($1) ORDER BY p.created_at DESC',
+    [slug],
+  );
+}
+
+export async function findMainImages(productIds: number[]): Promise<Map<number, string>> {
+  const rows = await db.query(
+    'SELECT DISTINCT ON (product_id) product_id, url FROM product_images WHERE product_id = ANY($1) ORDER BY product_id, position',
+    [productIds],
+  );
+  return new Map(rows.map((row) => [row.product_id, row.url]));
+}
+
+export async function findAverageRatings(productIds: number[]): Promise<Map<number, number>> {
+  const rows = await db.query(
+    'SELECT product_id, AVG(rating) AS average FROM reviews WHERE product_id = ANY($1) GROUP BY product_id',
+    [productIds],
+  );
+  return new Map(rows.map((row) => [row.product_id, Number(row.average)]));
+}
+--- FILE: src/products/service.ts ---
+const PAGE_SIZE = 24;
+
+export async function listProducts(slug: string, page: number): Promise<ProductPage> {
+  const products = await findByCategorySlug(slug);
+  const pageItems = products.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const ids = pageItems.map((product) => product.id);
+  const [images, ratings] = await Promise.all([findMainImages(ids), findAverageRatings(ids)]);
+  return toProductPage(pageItems, images, ratings, products.length, page);
+}`
 
 // liveCase membaca case "optimasi-api-endpoint-produk" dari data seed.
 func liveCase(t *testing.T) entity.Case {
