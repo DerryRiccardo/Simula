@@ -68,7 +68,7 @@ func (r *enrollmentRepo) GetForUser(ctx context.Context, userID, enrollmentID st
 
 func (r *enrollmentRepo) GetByIDForUser(ctx context.Context, userID, enrollmentID string) (entity.Enrollment, error) {
 	var enrollment entity.Enrollment
-	err := r.db.WithContext(ctx).Where("id = ? AND user_id = ?", enrollmentID, userID).Take(&enrollment).Error
+	err := r.db.WithContext(ctx).Select("enrollments.*").Where("id = ? AND user_id = ?", enrollmentID, userID).Take(&enrollment).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return entity.Enrollment{}, coreErrors.ErrEnrollmentNotFound
 	}
@@ -81,6 +81,7 @@ func (r *enrollmentRepo) GetByIDForUser(ctx context.Context, userID, enrollmentI
 func (r *enrollmentRepo) FindWithCertificate(ctx context.Context, userID, caseID string) (entity.Enrollment, error) {
 	var enrollment entity.Enrollment
 	err := r.db.WithContext(ctx).
+		Select("enrollments.*").
 		Preload("Certificate").
 		Where("user_id = ? AND case_id = ?", userID, caseID).
 		Take(&enrollment).Error
@@ -95,7 +96,7 @@ func (r *enrollmentRepo) FindWithCertificate(ctx context.Context, userID, caseID
 
 func (r *enrollmentRepo) FindByUserAndCase(ctx context.Context, userID, caseID string) (entity.Enrollment, error) {
 	var enrollment entity.Enrollment
-	err := r.db.WithContext(ctx).Where("user_id = ? AND case_id = ?", userID, caseID).Take(&enrollment).Error
+	err := r.db.WithContext(ctx).Select("enrollments.*").Where("user_id = ? AND case_id = ?", userID, caseID).Take(&enrollment).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return entity.Enrollment{}, coreErrors.ErrEnrollmentNotFound
 	}
@@ -129,6 +130,7 @@ func (r *enrollmentRepo) Create(ctx context.Context, enrollment *entity.Enrollme
 func (r *enrollmentRepo) GetByIDWithCase(ctx context.Context, enrollmentID string) (entity.Enrollment, error) {
 	var enrollment entity.Enrollment
 	err := r.db.WithContext(ctx).
+		Select("enrollments.*").
 		Preload("Case", func(tx *gorm.DB) *gorm.DB { return tx.Select(caseSummaryColumns) }).
 		Preload("Case.Partner").
 		Where("id = ?", enrollmentID).

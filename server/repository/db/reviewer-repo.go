@@ -34,6 +34,7 @@ func InitReviewerRepo(db *gorm.DB) coreRepo.ReviewerRepository {
 
 func (r *reviewerRepo) visible(ctx context.Context, reviewerID string) *gorm.DB {
 	return r.db.WithContext(ctx).
+		Select("enrollments.*").
 		Joins("JOIN cases ON cases.id = enrollments.case_id").
 		Preload("Case", func(tx *gorm.DB) *gorm.DB { return tx.Select(caseSummaryColumns) }).
 		Preload("Case.Partner").
