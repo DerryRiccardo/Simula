@@ -144,6 +144,30 @@ func (c *Case) SlotByKey(key string) (CaseSlot, bool) {
 	return CaseSlot{}, false
 }
 
+// EffectiveSlot mengembalikan slot dengan aturan unggah yang benar-benar berlaku: format bawaan bila
+// slot tidak menentukan format, dan untuk AI case ukurannya dibatasi ke yang bisa dibaca penilai AI.
+func (c *Case) EffectiveSlot(slot CaseSlot) CaseSlot {
+	if slot.Kind != SlotKindFile {
+		return slot
+	}
+	maxMB := slot.MaxSizeMB()
+	if c.Tier == TierAI {
+		maxMB = min(maxMB, AIGradableMaxSizeMB)
+	}
+	slot.Formats = slot.AllowedFormats()
+	slot.MaxSizeMb = &maxMB
+	return slot
+}
+
+// EffectiveSlots adalah EffectiveSlot untuk semua slot.
+func (c *Case) EffectiveSlots() []CaseSlot {
+	slots := make([]CaseSlot, 0, len(c.Slots))
+	for _, slot := range c.Slots {
+		slots = append(slots, c.EffectiveSlot(slot))
+	}
+	return slots
+}
+
 // CaseTask adalah satu tugas di brief lengkap.
 type CaseTask struct {
 	ID          string

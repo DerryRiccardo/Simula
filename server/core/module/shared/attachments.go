@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/xml"
+	"fmt"
 	"io"
 	"path"
 	"sort"
@@ -18,11 +19,12 @@ import (
 )
 
 const (
-	maxDownloadBytes       = 10 * 1024 * 1024 // 10 MB per berkas submission
-	maxMultimodalBytes     = 4 * 1024 * 1024  // 4 MB untuk PDF/gambar inlineData Gemini
-	maxExtractedTextRunes  = 60000            // Batas teks per lampiran agar hemat token
-	maxZipEntries          = 40               // Maksimal berkas yang dibaca di dalam ZIP
-	maxZipEntryUncompBytes = 2 * 1024 * 1024  // Cegah zip bomb saat membaca entri ZIP
+	maxDownloadBytes       = entity.AIGradableMaxSizeMB * 1024 * 1024 // Sama dengan batas unggah AI case
+	maxPDFBytes            = maxDownloadBytes
+	maxImageBytes          = 15 * 1024 * 1024 / 4 // 3,75 MB, menjadi 5 MB setelah base64
+	maxExtractedTextRunes  = 60000                // Batas teks per lampiran agar hemat token
+	maxZipEntries          = 40                   // Maksimal berkas yang dibaca di dalam ZIP
+	maxZipEntryUncompBytes = 2 * 1024 * 1024      // Cegah zip bomb saat membaca entri ZIP
 )
 
 var textExtensions = map[string]bool{
@@ -30,9 +32,21 @@ var textExtensions = map[string]bool{
 	"sql": true, "py": true, "js": true, "jsx": true, "ts": true, "tsx": true,
 	"go": true, "java": true, "rb": true, "php": true, "rs": true, "c": true,
 	"cpp": true, "h": true, "cs": true, "html": true, "css": true, "scss": true,
-	"yaml": true, "yml": true, "toml": true, "ini": true, "env": true, "sh": true,
+	"yaml": true, "yml": true, "toml": true, "ini": true, "sh": true,
 	"xml": true, "svg": true, "r": true, "ipynb": true,
 }
+
+// secretExtensions dan secretNames adalah berkas yang lazim berisi rahasia. Namanya tetap terlihat,
+// tetapi isinya tidak dikirim ke penilai AI.
+var (
+	secretExtensions = map[string]bool{
+		"env": true, "pem": true, "key": true, "p12": true, "pfx": true, "jks": true, "keystore": true,
+	}
+	secretNames = map[string]bool{
+		"id_rsa": true, "id_dsa": true, "id_ecdsa": true, "id_ed25519": true,
+		".npmrc": true, ".pypirc": true, ".netrc": true, ".pgpass": true, "credentials.json": true,
+	}
+)
 
 var multimodalMimeByExt = map[string]string{
 	"pdf":  "application/pdf",
@@ -104,7 +118,15 @@ func extractAttachment(slotKey, fileName, contentType string, data []byte) entit
 	}
 	ext := entity.FileExtension(fileName)
 
-	if mimeType, ok := multimodalMimeByExt[ext]; ok && len(data) <= maxMultimodalBytes {
+	if isSecretFile(fileName) {
+		att.TextContent = "[Isi berkas tidak dibaca karena lazim berisi rahasia]"
+		return att
+	}
+	if mimeType, ok := multimodalMimeByExt[ext]; ok {
+		if limit := multimodalLimit(mimeType); len(data) > limit {
+			att.TextContent = fmt.Sprintf("[Isi berkas tidak dibaca karena melebihi %.2f MB]", float64(limit)/(1024*1024))
+			return att
+		}
 		att.RawData = data
 		att.MimeType = mimeType
 		return att
@@ -137,6 +159,9 @@ func extractZipText(data []byte) string {
 		}
 		b.WriteString("- ")
 		b.WriteString(f.Name)
+		if isSecretFile(f.Name) {
+			b.WriteString(" (isi tidak dibaca karena lazim berisi rahasia)")
+		}
 		b.WriteByte('\n')
 	}
 
@@ -145,7 +170,7 @@ func extractZipText(data []byte) string {
 		if readCount >= maxZipEntries || utf8.RuneCountInString(b.String()) >= maxExtractedTextRunes {
 			break
 		}
-		if f.FileInfo().IsDir() || shouldSkipZipPath(f.Name) {
+		if f.FileInfo().IsDir() || shouldSkipZipPath(f.Name) || isSecretFile(f.Name) {
 			continue
 		}
 		ext := entity.FileExtension(f.Name)
@@ -243,6 +268,28 @@ func shouldSkipZipPath(name string) bool {
 	}
 	base := path.Base(clean)
 	return strings.HasPrefix(base, "._") || base == ".DS_Store"
+}
+
+func multimodalLimit(mimeType string) int {
+	if mimeType == "application/pdf" {
+		return maxPDFBytes
+	}
+	return maxImageBytes
+}
+
+func isSecretFile(name string) bool {
+	base := strings.ToLower(path.Base(strings.ReplaceAll(name, "\\", "/")))
+	if secretNames[base] || secretExtensions[entity.FileExtension(base)] {
+		return true
+	}
+	if !strings.HasPrefix(base, ".env.") {
+		return false
+	}
+	switch entity.FileExtension(base) {
+	case "example", "sample", "template":
+		return false
+	}
+	return true
 }
 
 func isLikelyText(data []byte) bool {

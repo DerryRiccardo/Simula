@@ -65,11 +65,13 @@ func (r *gradingRepo) SaveCriterionResult(ctx context.Context, criterionID strin
 		result := tx.Model(&criterion).
 			Where("id = ? AND status = ?", criterionID, entity.AIGradingCriterionPending).
 			Updates(map[string]any{
-				"status":       entity.AIGradingCriterionDone,
-				"level":        verdict.Level,
-				"reason":       verdict.Reason,
-				"attempts":     gorm.Expr("attempts + 1"),
-				"completed_at": now,
+				"status":        entity.AIGradingCriterionDone,
+				"level":         verdict.Level,
+				"reason":        verdict.Reason,
+				"attempts":      gorm.Expr("attempts + 1"),
+				"input_tokens":  verdict.InputTokens,
+				"output_tokens": verdict.OutputTokens,
+				"completed_at":  now,
 			})
 		if result.Error != nil || result.RowsAffected == 0 {
 			return result.Error

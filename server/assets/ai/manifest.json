@@ -1,0 +1,12 @@
+{
+  "promptVersion": "reviewer-v1",
+  "files": {
+    "prompts/case.md": "75b75af5b7588cf2d0d0d825c0ac8e84ffd9b576ff4006aa9540a4b978926321",
+    "prompts/criterion.md": "040863882200493fc79b5e7d8acba2d4e778c1f57dbd1ab0cf9f26ca5b825cb1",
+    "prompts/feedback.md": "5f4e1d510b4c9b8036a421fcbb18033a3720a850b58e87e74b065e9a2d773b8c",
+    "prompts/feedback_system.md": "95b628cc102aebc6d1d9638575d7c96ff0ff442d323d9a7dc2c24d2f701e8037",
+    "prompts/system.md": "1c70708a98cdc1b12a34288318ed80a4c176733eb96ba805535e3b46b79529bd",
+    "schemas/criterion_result.schema.json": "b431e1fa885e7d9e86b5780a38e865bc471eeda5400bd7d161a894825c2e236a",
+    "schemas/feedback_result.schema.json": "1312774ff271226fda54bb7df0b1ce7d871a2356e5bd211404d426a21337053a"
+  }
+}

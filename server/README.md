@@ -130,6 +130,8 @@ Kontrak lengkap: [`docs/openapi.yaml`](docs/openapi.yaml).
 ## Penilaian AI
 
 - `LLM_PROVIDER=fake` memakai penilai palsu yang deterministik (isi yang sama selalu mendapat skor yang sama) dengan jeda `FAKE_LLM_DELAY` per langkah agar progres di halaman status terlihat. Ditolak saat `APP_ENV=production`. Integrasi Gemini menyusul.
+- `LLM_PROVIDER=claude` memakai Claude API (`ANTHROPIC_API_KEY`, `CLAUDE_MODEL`, `CLAUDE_EFFORT`, `CLAUDE_TIMEOUT`): satu panggilan per kriteria, lalu satu panggilan feedback. Deskripsi level rubrik ikut dikirim, submission dibaca dari prompt cache mulai kriteria kedua, dan token dicatat di `ai_grading_criteria`.
+- Prompt dan skema output Claude ada di `assets/ai`, disalin dari repo Simula-ML. Jangan diedit langsung: ubah di Simula-ML, lalu `go run ./scripts/syncai -ml <folder Simula-ML>`. Tes gagal bila isinya tidak cocok dengan `manifest.json`.
 - `LLM_PROVIDER` kosong: penilaian AI nonaktif. Submit AI tetap tersimpan dan berhenti di status `ai_grading`; begitu worker menyala dengan penilai aktif, submission itu dinilai otomatis.
 - Alur: submit membuat run di `ai_grading_runs`, lalu worker menilai satu kriteria per task (`grading:evaluate_criterion`), menyusun feedback (`grading:compose_feedback`), dan memfinalkan lewat `hook.OnReviewed`: skor total dihitung server, status menjadi `passed`/`failed`, dan sertifikat terbit bila lulus.
 - Setiap langkah diulang hingga 3 kali. Bila tetap gagal, run ditandai gagal, submission kembali menjadi draft, dan peserta bisa submit ulang tanpa dihitung sebagai percobaan. Task `grading:resume_stalled` (saat worker menyala lalu setiap 5 menit) melanjutkan run yang macet lebih dari 10 menit dan membuatkan run untuk submission yang belum punya.

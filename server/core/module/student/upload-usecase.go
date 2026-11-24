@@ -84,7 +84,7 @@ func (uc *uploadUseCase) CreateUpload(ctx context.Context, in UploadInput) (Uplo
 	if !ok {
 		return UploadTicket{}, apperror.Validation(apperror.FieldError{Field: "slotId", Message: "Slot tidak ditemukan"})
 	}
-	if msg := entity.ValidateUploadForSlot(slot, in.FileName, in.SizeBytes); msg != "" {
+	if msg := entity.ValidateUploadForSlot(c.EffectiveSlot(slot), in.FileName, in.SizeBytes); msg != "" {
 		return UploadTicket{}, apperror.Validation(apperror.FieldError{Field: "file", Message: msg})
 	}
 

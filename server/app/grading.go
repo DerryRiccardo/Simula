@@ -1,6 +1,8 @@
 package app
 
 import (
+	"fmt"
+
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 
@@ -15,15 +17,21 @@ import (
 )
 
 // newLLM memilih penilai sesuai LLM_PROVIDER. Nil berarti penilaian AI nonaktif.
-func newLLM(cfg *config.Config) coreRepo.LLM {
+func newLLM(cfg *config.Config) (coreRepo.LLM, error) {
 	switch cfg.LLMProvider {
 	case config.LLMProviderFake:
-		return llm.NewFake(cfg.FakeLLMDelay)
+		return llm.NewFake(cfg.FakeLLMDelay), nil
 	case config.LLMProviderGemini:
-		return llm.NewGemini(cfg.GeminiAPIKey, cfg.GeminiModel, cfg.GeminiTimeout)
+		return llm.NewGemini(cfg.GeminiAPIKey, cfg.GeminiModel, cfg.GeminiTimeout), nil
+	case config.LLMProviderClaude:
+		model, err := llm.NewClaude(cfg.AnthropicAPIKey, cfg.ClaudeModel, cfg.ClaudeEffort, cfg.ClaudeTimeout)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create claude grader: %w", err)
+		}
+		return model, nil
 	default:
 		log.Warn().Msg("LLM_PROVIDER is not configured; AI grading is disabled")
-		return nil
+		return nil, nil
 	}
 }
 

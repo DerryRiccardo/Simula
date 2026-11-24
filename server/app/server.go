@@ -49,7 +49,11 @@ func RunServer(ctx context.Context, cfg *config.Config) error {
 	// Tanpa penilai AI, queue tetap nil sehingga submit tidak membuat run penilaian.
 	var gradingQueue coreRepo.GradingQueue
 	gradingModel := ""
-	if model := newLLM(cfg); model != nil {
+	model, err := newLLM(cfg)
+	if err != nil {
+		return err
+	}
+	if model != nil {
 		pool := task.NewInProcessGradingQueue(cfg.WorkerConcurrency, cfg.ShutdownTimeout)
 		objectReader, _ := store.(coreRepo.ObjectReader)
 		pool.Start(newGradingService(db, pool, objectReader, model))

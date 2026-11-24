@@ -41,7 +41,8 @@ type ReviewRepository interface {
 	GetBySubmission(ctx context.Context, submissionID string) (entity.Review, error)
 }
 
-// LLM menilai submission terhadap rubrik. Implementasinya penilai palsu (development) atau Gemini.
+// LLM menilai submission terhadap rubrik. Implementasinya penilai palsu (development), Gemini, atau
+// Claude.
 type LLM interface {
 	// Model adalah nama model yang dicatat di ai_grading_runs.
 	Model() string

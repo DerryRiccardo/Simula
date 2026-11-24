@@ -72,7 +72,7 @@ func MapCaseResultToResponse(r studentModule.CaseResult) CaseResultResponse {
 	if !r.CanViewBrief {
 		return response
 	}
-	response.Slots = mapSlots(r.Case.Slots)
+	response.Slots = mapSlots(r.Case.EffectiveSlots())
 	response.Submission = mapSubmissionRecord(r.Submission)
 	if r.Review != nil {
 		review := MapReviewResult(*r.Review)
