@@ -17,8 +17,8 @@ import (
 // caseColumns adalah kolom cases yang ditulis pembuat case (slug, created_by, dan created_at hanya
 // diisi saat dibuat).
 var caseColumns = []string{
-	"tier", "status", "title", "summary", "field_key", "level", "duration_label", "about", "activities",
-	"skills", "prerequisites", "context", "passing_score", "price", "deadline_days", "partner_id",
+	"tier", "status", "title", "summary", "field_key", "level", "about", "activities",
+	"skills", "prerequisites", "context", "passing_score", "price", "partner_id",
 	"reviewer_role", "published_at", "updated_at",
 }
 

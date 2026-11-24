@@ -20,7 +20,18 @@ import (
 // ikut karena butuh berkas di R2.
 //
 //go:embed data/cases.json
-var casesJSON []byte
+var legacyCasesJSON []byte
+
+// ai_cases.json berisi AI Case Study gratis: satu case umum untuk setiap bidang studi. Tidak ada
+// mitra karena AI case diterbitkan platform.
+//
+//go:embed data/ai_cases.json
+var aiCasesJSON []byte
+
+// b2b_cases.json berisi B2B Case Study bersama 10 perusahaan mitra.
+//
+//go:embed data/b2b_cases.json
+var b2bCasesJSON []byte
 
 type seedResult string
 
@@ -33,9 +44,9 @@ const (
 
 // seedCases memasukkan case contoh yang belum ada (dicocokkan lewat slug) sebagai case terbit. Bila
 // refresh bernilai true, case contoh yang sudah ada diganti isinya.
-func seedCases(ctx context.Context, db *gorm.DB, refresh bool) error {
+func seedCases(ctx context.Context, db *gorm.DB, data []byte, refresh bool) error {
 	var cases []entity.Case
-	if err := json.Unmarshal(casesJSON, &cases); err != nil {
+	if err := json.Unmarshal(data, &cases); err != nil {
 		return fmt.Errorf("failed to read seed cases: %w", err)
 	}
 	for i := range cases {

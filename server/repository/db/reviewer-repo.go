@@ -169,7 +169,6 @@ func (r *reviewerRepo) RequestRevision(ctx context.Context, d entity.RevisionDec
 			Updates(map[string]any{
 				"status":               entity.EnrollmentRevisionRequested,
 				"revision_count":       gorm.Expr("revision_count + 1"),
-				"deadline_at":          d.DeadlineAt,
 				"review_due_at":        nil,
 				"assigned_reviewer_id": d.ReviewerID,
 				"updated_at":           d.At,

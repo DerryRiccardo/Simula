@@ -1,7 +1,6 @@
 package app
 
 import (
-	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
 	"github.com/DerryRiccardo/Simula/server/config"
@@ -20,7 +19,7 @@ import (
 )
 
 // newAuthUseCase dipakai server (endpoint) dan worker (task pembersihan sesi).
-func newAuthUseCase(cfg *config.Config, db *gorm.DB, rdb *redis.Client) authModule.AuthUseCase {
+func newAuthUseCase(cfg *config.Config, db *gorm.DB) authModule.AuthUseCase {
 	var googleClient coreRepo.GoogleOAuth
 	if cfg.IsGoogleLoginEnabled() {
 		googleClient = google.NewClient(cfg.GoogleClientID, cfg.GoogleClientSecret, cfg.GoogleRedirectURL)
@@ -29,7 +28,7 @@ func newAuthUseCase(cfg *config.Config, db *gorm.DB, rdb *redis.Client) authModu
 		Users:           dbRepo.InitUserRepo(db),
 		Fields:          dbRepo.InitFieldRepo(db),
 		RefreshTokens:   dbRepo.InitRefreshTokenRepo(db),
-		RateLimiter:     cacheRepo.InitRateLimitRepo(rdb),
+		RateLimiter:     cacheRepo.InitMemoryRateLimitRepo(),
 		Hasher:          password.NewHasher(),
 		AccessTokens:    jwt.NewIssuer(cfg.JWTSecret, cfg.AccessTokenTTL),
 		Google:          googleClient,

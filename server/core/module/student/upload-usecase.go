@@ -76,7 +76,7 @@ func (uc *uploadUseCase) CreateUpload(ctx context.Context, in UploadInput) (Uplo
 	}
 
 	now := uc.Now()
-	enrollment, c, err := loadEditableWork(ctx, uc.Enrollments, uc.Cases, current.ID, in.EnrollmentID, now)
+	enrollment, c, err := loadEditableWork(ctx, uc.Enrollments, uc.Cases, current.ID, in.EnrollmentID)
 	if err != nil {
 		return UploadTicket{}, err
 	}

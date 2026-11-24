@@ -87,7 +87,6 @@ type Case struct {
 	Summary       string
 	FieldKey      string
 	Level         CaseLevel
-	DurationLabel string
 	About         string
 	Activities    StringList
 	Skills        StringList
@@ -95,7 +94,6 @@ type Case struct {
 	Context       StringList
 	PassingScore  int
 	Price         *int
-	DeadlineDays  *int
 	PartnerID     *string
 	ReviewerRole  *string
 	CreatedBy     *string

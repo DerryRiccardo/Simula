@@ -301,7 +301,6 @@ func (uc *reviewUseCase) RequestRevision(ctx context.Context, enrollmentID, reas
 		Reason:       reason,
 		Note:         note,
 		MaxRevisions: settings.MaxRevisions,
-		DeadlineAt:   now.AddDate(0, 0, settings.RevisionExtraDays),
 		At:           now,
 	})
 	if errors.Is(err, coreErrors.ErrStatusConflict) {

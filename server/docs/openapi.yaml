@@ -458,7 +458,7 @@ paths:
             enum: [pending_payment, not_started, in_progress, ai_grading, in_review, revision_requested, passed, failed]
         - { name: field, in: query, schema: { type: string } }
         - { name: search, in: query, schema: { type: string, maxLength: 100 } }
-        - { name: sort, in: query, schema: { type: string, enum: [recent, deadline, title], default: recent } }
+        - { name: sort, in: query, schema: { type: string, enum: [recent, title], default: recent } }
       responses:
         "200":
           description: Enrollment milik user
@@ -601,7 +601,7 @@ paths:
     post:
       tags: [Workspace]
       summary: Mulai mengerjakan case B2B yang sudah dibayar
-      description: Tanpa body. Tenggat = waktu mulai + deadlineDays hari kalender.
+      description: Tanpa body. Case self-paced, jadi tidak ada tenggat pengerjaan.
       operationId: startWork
       security:
         - accessCookie: []
@@ -2171,7 +2171,6 @@ components:
         tier: { type: string, enum: [ai, b2b] }
         fieldKey: { type: string }
         level: { type: string, enum: [beginner, intermediate, advanced] }
-        durationLabel: { type: string }
         deliverableCount: { type: integer }
         partnerName: { type: string, nullable: true }
         price: { type: integer, nullable: true, description: Rupiah; null untuk AI case }
@@ -2226,7 +2225,7 @@ components:
         status:
           type: string
           enum: [pending_payment, not_started, in_progress, ai_grading, in_review, revision_requested, passed, failed]
-        deadlineAt: { type: string, format: date-time, nullable: true }
+        paymentDueAt: { type: string, format: date-time, nullable: true, description: Batas bayar order VA yang masih menunggu (hanya status pending_payment) }
         updatedAt: { type: string, format: date-time }
         score: { type: integer, nullable: true }
         certificateId: { type: string, nullable: true, description: public_id sertifikat yang masih berlaku }
@@ -2517,7 +2516,6 @@ components:
         rubric: { type: array, items: { $ref: "#/components/schemas/RubricCriterion" } }
         slots: { type: array, items: { $ref: "#/components/schemas/SubmissionSlot" } }
         passingScore: { type: integer }
-        deadlineDays: { type: integer, nullable: true }
     Workspace:
       type: object
       properties:
@@ -2876,7 +2874,6 @@ components:
         title: { type: string }
         fieldKey: { type: string }
         level: { type: string, enum: [beginner, intermediate, advanced] }
-        durationLabel: { type: string }
         summary: { type: string }
         about: { type: string }
         activities: { type: string }
@@ -2922,7 +2919,6 @@ components:
               description: { type: string }
         passingScore: { type: integer }
         price: { type: integer, description: 0 untuk AI case }
-        deadlineDays: { type: integer }
         partnerId: { type: string, description: String kosong bila belum dipilih }
         reviewerRole: { type: string }
     AdminCaseSaveRequest:
@@ -3143,21 +3139,17 @@ components:
       required:
         - reviewSlaDays
         - maxRevisions
-        - revisionExtraDays
         - recommendationThreshold
         - passingScoreAi
         - passingScoreB2b
-        - b2bStartWindowDays
         - paymentWindowHours
         - whatsappNumber
       properties:
         reviewSlaDays: { type: integer, minimum: 1, maximum: 15 }
         maxRevisions: { type: integer, minimum: 0, maximum: 5 }
-        revisionExtraDays: { type: integer, minimum: 1, maximum: 14 }
         recommendationThreshold: { type: integer, minimum: 50, maximum: 100 }
         passingScoreAi: { type: integer, minimum: 1, maximum: 100 }
         passingScoreB2b: { type: integer, minimum: 1, maximum: 100 }
-        b2bStartWindowDays: { type: integer, minimum: 7, maximum: 180 }
         paymentWindowHours: { type: integer, minimum: 1, maximum: 72 }
         whatsappNumber: { type: string }
     AdminSettings:

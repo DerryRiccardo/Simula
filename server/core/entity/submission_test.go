@@ -31,20 +31,6 @@ func TestAddBusinessDays(t *testing.T) {
 	}
 }
 
-func TestWorkDeadlineAndPastDeadline(t *testing.T) {
-	start := time.Date(2026, 10, 24, 10, 0, 0, 0, time.UTC)
-	days := 7
-
-	deadline := WorkDeadline(start, &days)
-	require.NotNil(t, deadline)
-	assert.Equal(t, time.Date(2026, 10, 31, 10, 0, 0, 0, time.UTC), *deadline, "calendar days, weekends included")
-	assert.Nil(t, WorkDeadline(start, nil), "AI case has no deadline")
-
-	enrollment := Enrollment{DeadlineAt: deadline}
-	assert.False(t, enrollment.IsPastDeadline(deadline.Add(-time.Second)))
-	assert.True(t, enrollment.IsPastDeadline(*deadline))
-}
-
 func TestSlotValues_RoundTrip(t *testing.T) {
 	values := SlotValues{
 		"memo":   {Text: "Isi memo"},

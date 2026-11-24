@@ -29,12 +29,15 @@ const (
 	PaymentVABNI     PaymentMethod = "va_bni"
 	PaymentQRIS      PaymentMethod = "qris"
 	PaymentGoPay     PaymentMethod = "gopay"
+	PaymentOVO       PaymentMethod = "ovo"
+	PaymentDANA      PaymentMethod = "dana"
+	PaymentShopeePay PaymentMethod = "shopeepay"
 )
 
 // IsValid memeriksa apakah metode dikenal.
 func (m PaymentMethod) IsValid() bool {
 	switch m {
-	case PaymentVABCA, PaymentVAMandiri, PaymentVABNI, PaymentQRIS, PaymentGoPay:
+	case PaymentVABCA, PaymentVAMandiri, PaymentVABNI, PaymentQRIS, PaymentGoPay, PaymentOVO, PaymentDANA, PaymentShopeePay:
 		return true
 	}
 	return false
@@ -49,29 +52,12 @@ func (m PaymentMethod) IsVirtualAccount() bool {
 // AdminFee adalah biaya admin per metode (rupiah), sama dengan constants/payment.ts di client.
 // Harga final selalu dihitung server.
 func (m PaymentMethod) AdminFee() int {
-	if m.IsVirtualAccount() {
-		return 4000
-	}
 	return 0
 }
 
-// Aturan checkout (CONTEXT.md §4.6 dan §7).
-const (
-	// PaymentWindow adalah batas bayar sejak order dibuat.
-	PaymentWindow = 24 * time.Hour
-	// B2BStartWindowDays adalah batas mulai mengerjakan B2B case sejak lunas (hari kalender).
-	B2BStartWindowDays = 30
-)
-
-// StartDeadline adalah batas klik "Mulai mengerjakan" untuk B2B case yang baru lunas.
-func StartDeadline(paidAt time.Time) time.Time {
-	return StartDeadlineWithWindow(paidAt, B2BStartWindowDays)
-}
-
-// StartDeadlineWithWindow menghitung batas mulai dengan jumlah hari dari pengaturan platform.
-func StartDeadlineWithWindow(paidAt time.Time, days int) time.Time {
-	return paidAt.AddDate(0, 0, days)
-}
+// PaymentWindow adalah batas bayar bawaan sejak order dibuat (CONTEXT.md §4.6). Nilai yang
+// berlaku diatur admin di Pengaturan (payment_window_hours).
+const PaymentWindow = 24 * time.Hour
 
 // PaymentDetails adalah instruksi bayar dari payment gateway (kolom payment_details), bentuknya
 // berbeda per metode.

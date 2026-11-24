@@ -42,7 +42,7 @@ func (r *enrollmentRepo) ListByUser(ctx context.Context, userID string, filter c
 	}
 
 	enrollments := make([]entity.Enrollment, 0)
-	err := query.Select("enrollments.*").
+	err := query.Select("enrollments.*, ("+paymentDueAtSubquery+") AS payment_due_at", entity.OrderAwaitingPayment).
 		Order(enrollmentOrder(filter.Sort)).
 		Limit(entity.UnpaginatedListLimit).
 		Find(&enrollments).Error
@@ -142,7 +142,7 @@ func (r *enrollmentRepo) GetByIDWithCase(ctx context.Context, enrollmentID strin
 	return enrollment, nil
 }
 
-func (r *enrollmentRepo) Retry(ctx context.Context, enrollmentID string, deadlineAt *time.Time, now time.Time) error {
+func (r *enrollmentRepo) Retry(ctx context.Context, enrollmentID string, now time.Time) error {
 	result := r.db.WithContext(ctx).Model(&entity.Enrollment{}).
 		Where("id = ? AND status = ?", enrollmentID, entity.EnrollmentFailed).
 		Updates(map[string]any{
@@ -151,7 +151,6 @@ func (r *enrollmentRepo) Retry(ctx context.Context, enrollmentID string, deadlin
 			"last_retried_at": now,
 			"score":           nil,
 			"review_due_at":   nil,
-			"deadline_at":     deadlineAt,
 			"updated_at":      now,
 		})
 	if result.Error != nil {
@@ -163,13 +162,12 @@ func (r *enrollmentRepo) Retry(ctx context.Context, enrollmentID string, deadlin
 	return nil
 }
 
-func (r *enrollmentRepo) ActivatePaid(ctx context.Context, enrollmentID string, startBy, now time.Time) error {
+func (r *enrollmentRepo) ActivatePaid(ctx context.Context, enrollmentID string, now time.Time) error {
 	result := r.db.WithContext(ctx).Model(&entity.Enrollment{}).
 		Where("id = ? AND status = ?", enrollmentID, entity.EnrollmentPendingPayment).
 		Updates(map[string]any{
-			"status":      entity.EnrollmentNotStarted,
-			"deadline_at": startBy,
-			"updated_at":  now,
+			"status":     entity.EnrollmentNotStarted,
+			"updated_at": now,
 		})
 	if result.Error != nil {
 		return fmt.Errorf("failed to activate enrollment %s: %w", enrollmentID, result.Error)
@@ -193,14 +191,13 @@ func (r *enrollmentRepo) SetShareConsent(ctx context.Context, enrollmentID, cons
 	return nil
 }
 
-func (r *enrollmentRepo) Start(ctx context.Context, enrollmentID string, startedAt time.Time, deadlineAt *time.Time) error {
+func (r *enrollmentRepo) Start(ctx context.Context, enrollmentID string, startedAt time.Time) error {
 	result := r.db.WithContext(ctx).Model(&entity.Enrollment{}).
 		Where("id = ? AND status = ?", enrollmentID, entity.EnrollmentNotStarted).
 		Updates(map[string]any{
-			"status":      entity.EnrollmentInProgress,
-			"started_at":  startedAt,
-			"deadline_at": deadlineAt,
-			"updated_at":  startedAt,
+			"status":     entity.EnrollmentInProgress,
+			"started_at": startedAt,
+			"updated_at": startedAt,
 		})
 	if result.Error != nil {
 		return fmt.Errorf("failed to start enrollment %s: %w", enrollmentID, result.Error)
@@ -212,6 +209,12 @@ func (r *enrollmentRepo) Start(ctx context.Context, enrollmentID string, started
 }
 
 // withCase memuat ringkasan case, mitranya, dan sertifikat.
+// paymentDueAtSubquery mengambil batas bayar order yang masih menunggu untuk enrollment
+// "Menunggu pembayaran" (VA). Satu case hanya boleh punya satu order menunggu per peserta.
+const paymentDueAtSubquery = `SELECT o.expires_at FROM orders o
+	WHERE o.enrollment_id = enrollments.id AND o.status = ?
+	ORDER BY o.created_at DESC LIMIT 1`
+
 func withCase(db *gorm.DB) *gorm.DB {
 	return db.
 		Preload("Case", func(tx *gorm.DB) *gorm.DB { return tx.Select(caseSummaryColumns) }).
@@ -221,8 +224,6 @@ func withCase(db *gorm.DB) *gorm.DB {
 
 func enrollmentOrder(sort entity.EnrollmentSort) string {
 	switch sort {
-	case entity.EnrollmentSortDeadline:
-		return "enrollments.deadline_at ASC NULLS LAST, enrollments.updated_at DESC, enrollments.id"
 	case entity.EnrollmentSortTitle:
 		return "cases.title ASC, enrollments.id"
 	default:

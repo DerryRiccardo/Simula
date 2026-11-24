@@ -69,7 +69,7 @@ func upsertPendingEnrollment(tx *gorm.DB, pending *entity.Enrollment) (string, e
 			return "", coreErrors.ErrStatusConflict
 		}
 		err := tx.Model(&entity.Enrollment{}).Where("id = ?", existing.ID).
-			Updates(map[string]any{"deadline_at": pending.DeadlineAt, "updated_at": pending.UpdatedAt}).Error
+			Updates(map[string]any{"updated_at": pending.UpdatedAt}).Error
 		return existing.ID, err
 	case !errors.Is(err, gorm.ErrRecordNotFound):
 		return "", err
@@ -144,6 +144,18 @@ func (r *orderRepo) Settle(ctx context.Context, settlement entity.OrderSettlemen
 		return fmt.Errorf("failed to settle order %s: %w", settlement.OrderID, err)
 	}
 	return nil
+}
+
+func (r *orderRepo) ListOverdueIDs(ctx context.Context, now time.Time, limit int) ([]string, error) {
+	ids := make([]string, 0)
+	err := r.db.WithContext(ctx).Model(&entity.Order{}).
+		Where("status = ? AND expires_at <= ?", entity.OrderAwaitingPayment, now).
+		Order("expires_at").Limit(limit).
+		Pluck("id", &ids).Error
+	if err != nil {
+		return nil, fmt.Errorf("failed to list overdue orders: %w", err)
+	}
+	return ids, nil
 }
 
 func (r *orderRepo) LinkEnrollment(ctx context.Context, orderID, enrollmentID string) error {

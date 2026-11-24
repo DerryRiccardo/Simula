@@ -20,15 +20,14 @@ import (
 )
 
 const (
-	msgOrderNotFound      = "Order tidak ditemukan."
-	msgNoPaymentNeeded    = "Case ini tidak memerlukan pembayaran."
-	msgAlreadyOwned       = "Kamu sudah memiliki case ini."
-	msgOrderNotActive     = "Order ini sudah tidak aktif."
-	msgOrderAwaiting      = "Masih ada pembayaran yang menunggu untuk case ini. Muat ulang halaman."
-	msgInvalidMethod      = "Pilih metode pembayaran yang tersedia."
-	msgInvalidOutcome     = "Hasil simulasi tidak dikenal."
-	msgSimulatorDisabled  = "Simulasi pembayaran tidak tersedia."
-	msgStartWindowExpired = "Batas mulai mengerjakan case ini sudah lewat."
+	msgOrderNotFound     = "Order tidak ditemukan."
+	msgNoPaymentNeeded   = "Case ini tidak memerlukan pembayaran."
+	msgAlreadyOwned      = "Kamu sudah memiliki case ini."
+	msgOrderNotActive    = "Order ini sudah tidak aktif."
+	msgOrderAwaiting     = "Masih ada pembayaran yang menunggu untuk case ini. Muat ulang halaman."
+	msgInvalidMethod     = "Pilih metode pembayaran yang tersedia."
+	msgInvalidOutcome    = "Hasil simulasi tidak dikenal."
+	msgSimulatorDisabled = "Simulasi pembayaran tidak tersedia."
 )
 
 // simulatedStatus memetakan hasil yang dipilih di panel demo ke status transaksi gateway.
@@ -210,7 +209,6 @@ func (uc *checkoutUseCase) saveOrder(ctx context.Context, order *entity.Order) e
 				CaseID:          order.CaseID,
 				Status:          entity.EnrollmentPendingPayment,
 				CandidateNumber: uc.CandidateNumber(),
-				DeadlineAt:      &order.ExpiresAt,
 				CreatedAt:       order.CreatedAt,
 				UpdatedAt:       order.CreatedAt,
 			}

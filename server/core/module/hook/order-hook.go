@@ -19,7 +19,6 @@ import (
 type OrderHookDeps struct {
 	Orders      coreRepo.OrderRepository
 	Enrollments coreRepo.EnrollmentRepository
-	Platform    coreRepo.PlatformRepository
 	// CandidateNumber membuat nomor kandidat anonim; default acak dalam rentang entity.CandidateNumber*.
 	CandidateNumber func() int
 	Now             func() time.Time
@@ -43,16 +42,14 @@ func NewOrderHook(deps OrderHookDeps) *OrderHook {
 	return &OrderHook{OrderHookDeps: deps}
 }
 
-// OnOrderPaid memasukkan case ke Case Saya berstatus "Belum dimulai" dengan batas mulai 30 hari
-// sejak lunas. VA sudah punya enrollment "Menunggu pembayaran"; QRIS/GoPay dibuatkan baru.
+// OnOrderPaid memasukkan case ke Case Saya berstatus "Belum dimulai". Case self-paced, jadi tidak
+// ada batas mulai. VA sudah punya enrollment "Menunggu pembayaran"; QRIS/GoPay dibuatkan baru.
 // Idempoten: enrollment yang sudah aktif dibiarkan.
 func (h *OrderHook) OnOrderPaid(ctx context.Context, order entity.Order) error {
 	if order.Status != entity.OrderPaid || order.PaidAt == nil {
 		return nil
 	}
-	settings := coreRepo.LoadSettings(ctx, h.Platform)
-	startBy := entity.StartDeadlineWithWindow(*order.PaidAt, settings.B2BStartWindowDays)
-	enrollmentID, err := h.activate(ctx, order, startBy)
+	enrollmentID, err := h.activate(ctx, order)
 	if err != nil {
 		return err
 	}
@@ -66,7 +63,7 @@ func (h *OrderHook) OnOrderPaid(ctx context.Context, order entity.Order) error {
 	return nil
 }
 
-func (h *OrderHook) activate(ctx context.Context, order entity.Order, startBy time.Time) (string, error) {
+func (h *OrderHook) activate(ctx context.Context, order entity.Order) (string, error) {
 	now := h.Now()
 	for attempt := 0; attempt < entity.CandidateNumberAttempts; attempt++ {
 		existing, err := h.Enrollments.FindByUserAndCase(ctx, order.UserID, order.CaseID)
@@ -74,7 +71,7 @@ func (h *OrderHook) activate(ctx context.Context, order entity.Order, startBy ti
 			if existing.Status != entity.EnrollmentPendingPayment {
 				return existing.ID, nil
 			}
-			err := h.Enrollments.ActivatePaid(ctx, existing.ID, startBy, now)
+			err := h.Enrollments.ActivatePaid(ctx, existing.ID, now)
 			if err != nil && !errors.Is(err, coreErrors.ErrStatusConflict) {
 				return "", err
 			}
@@ -90,7 +87,6 @@ func (h *OrderHook) activate(ctx context.Context, order entity.Order, startBy ti
 			CaseID:          order.CaseID,
 			Status:          entity.EnrollmentNotStarted,
 			CandidateNumber: h.CandidateNumber(),
-			DeadlineAt:      &startBy,
 			CreatedAt:       now,
 			UpdatedAt:       now,
 		}

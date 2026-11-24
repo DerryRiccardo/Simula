@@ -49,7 +49,6 @@ type CaseSummaryResponse struct {
 	Tier             string  `json:"tier"`
 	FieldKey         string  `json:"fieldKey"`
 	Level            string  `json:"level"`
-	DurationLabel    string  `json:"durationLabel"`
 	DeliverableCount int     `json:"deliverableCount"`
 	PartnerName      *string `json:"partnerName"`
 	Price            *int    `json:"price"`
@@ -100,7 +99,7 @@ type EnrollmentResponse struct {
 	ID            string              `json:"id"`
 	CaseSummary   CaseSummaryResponse `json:"caseSummary"`
 	Status        string              `json:"status"`
-	DeadlineAt    *time.Time          `json:"deadlineAt"`
+	PaymentDueAt  *time.Time          `json:"paymentDueAt"`
 	UpdatedAt     time.Time           `json:"updatedAt"`
 	Score         *int                `json:"score"`
 	CertificateID *string             `json:"certificateId"`
@@ -174,7 +173,6 @@ func MapCaseSummary(c *entity.Case) CaseSummaryResponse {
 		Tier:             string(c.Tier),
 		FieldKey:         c.FieldKey,
 		Level:            string(c.Level),
-		DurationLabel:    c.DurationLabel,
 		DeliverableCount: c.DeliverableCount,
 		PartnerName:      c.PartnerName(),
 		Price:            c.Price,
@@ -231,7 +229,7 @@ func MapEnrollment(e *entity.Enrollment) EnrollmentResponse {
 		ID:            e.ID,
 		CaseSummary:   summary,
 		Status:        string(e.Status),
-		DeadlineAt:    utcPtr(e.DeadlineAt),
+		PaymentDueAt:  utcPtr(e.PaymentDueAt),
 		UpdatedAt:     e.UpdatedAt.UTC(),
 		Score:         e.Score,
 		CertificateID: e.CertificatePublicID(),

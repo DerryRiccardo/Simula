@@ -355,7 +355,7 @@ func validateEnrollmentFilter(f coreRepo.EnrollmentFilter) []apperror.FieldError
 		fields = append(fields, apperror.FieldError{Field: "status", Message: "Status tidak dikenal"})
 	}
 	if !f.Sort.IsValid() {
-		fields = append(fields, apperror.FieldError{Field: "sort", Message: "Harus salah satu dari: recent, deadline, title"})
+		fields = append(fields, apperror.FieldError{Field: "sort", Message: "Harus salah satu dari: recent, title"})
 	}
 	if utf8.RuneCountInString(f.Search) > entity.SearchMaxLength {
 		fields = append(fields, apperror.FieldError{Field: "search", Message: msgSearchTooLong})

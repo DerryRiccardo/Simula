@@ -188,7 +188,7 @@ func TestStartCase(t *testing.T) {
 					Return(entity.Enrollment{}, coreErrors.ErrEnrollmentNotFound).Once()
 				env.enrollments.On("Create", mock.Anything, mock.MatchedBy(func(e *entity.Enrollment) bool {
 					return e.UserID == studentID && e.CaseID == aiCaseID && e.Status == entity.EnrollmentInProgress &&
-						e.CandidateNumber == 1001 && e.StartedAt != nil && e.DeadlineAt == nil
+						e.CandidateNumber == 1001 && e.StartedAt != nil
 				})).Return(nil).Once()
 				env.enrollments.On("GetForUser", mock.Anything, studentID, mock.AnythingOfType("string")).
 					Return(entity.Enrollment{ID: "e1", Status: entity.EnrollmentInProgress}, nil).Once()
@@ -306,13 +306,13 @@ func TestDashboard(t *testing.T) {
 func TestListEnrollments(t *testing.T) {
 	env := newLearningEnv()
 	env.enrollments.On("ListByUser", mock.Anything, studentID,
-		coreRepo.EnrollmentFilter{Status: entity.EnrollmentInReview, Sort: entity.EnrollmentSortDeadline},
+		coreRepo.EnrollmentFilter{Status: entity.EnrollmentInReview, Sort: entity.EnrollmentSortTitle},
 	).Return([]entity.Enrollment{}, nil).Once()
 	env.enrollments.On("ListByUser", mock.Anything, studentID,
 		coreRepo.EnrollmentFilter{Sort: entity.EnrollmentSortRecent},
 	).Return([]entity.Enrollment{}, nil).Once()
 
-	_, err := env.uc.ListEnrollments(asStudent(), EnrollmentListInput{Status: "in_review", Sort: "deadline"})
+	_, err := env.uc.ListEnrollments(asStudent(), EnrollmentListInput{Status: "in_review", Sort: "title"})
 	require.NoError(t, err)
 
 	_, err = env.uc.ListEnrollments(asStudent(), EnrollmentListInput{})

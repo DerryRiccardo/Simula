@@ -104,11 +104,9 @@ func validatePlatformSettings(s entity.PlatformSettings) []apperror.FieldError {
 	rules := []rangeRule{
 		{"reviewSlaDays", s.ReviewSlaDays, 1, 15},
 		{"maxRevisions", s.MaxRevisions, 0, 5},
-		{"revisionExtraDays", s.RevisionExtraDays, 1, 14},
 		{"recommendationThreshold", s.RecommendationThreshold, 50, 100},
 		{"passingScoreAi", s.PassingScoreAI, 1, 100},
 		{"passingScoreB2b", s.PassingScoreB2B, 1, 100},
-		{"b2bStartWindowDays", s.B2BStartWindowDays, 7, 180},
 		{"paymentWindowHours", s.PaymentWindowHours, 1, 72},
 	}
 

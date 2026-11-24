@@ -78,7 +78,6 @@ type AdminCaseInput struct {
 	Title         string
 	FieldKey      string
 	Level         CaseLevel
-	DurationLabel string
 	Summary       string
 	About         string
 	Activities    string
@@ -91,7 +90,6 @@ type AdminCaseInput struct {
 	Rubric        []AdminCaseCriterion
 	PassingScore  int
 	Price         int
-	DeadlineDays  int
 	PartnerID     string
 	ReviewerRole  string
 }

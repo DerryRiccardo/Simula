@@ -22,7 +22,6 @@ import (
 const (
 	msgEnrollmentNotFound = "Case tidak ditemukan di akunmu."
 	msgNotEditable        = "Submission ini sudah terkirim dan tidak bisa diubah."
-	msgDeadlinePassed     = "Tenggat pengerjaan sudah lewat."
 	msgAlreadyStarted     = "Case ini sudah dimulai."
 	msgPaymentRequired    = "Selesaikan pembayaran sebelum mulai mengerjakan."
 	msgFileMissing        = "Berkas tidak ditemukan. Unggah ulang."
@@ -56,7 +55,7 @@ type CaseStatus struct {
 // WorkspaceUseCase melayani halaman pengerjaan dan halaman status peserta.
 type WorkspaceUseCase interface {
 	GetWorkspace(ctx context.Context, slug string) (Workspace, error)
-	// StartWork memulai case B2B yang sudah dibayar; tenggat dihitung sejak saat ini.
+	// StartWork memulai case B2B yang sudah dibayar. Case self-paced, jadi tidak ada tenggat.
 	StartWork(ctx context.Context, enrollmentID string) (entity.Enrollment, error)
 	SaveDraft(ctx context.Context, enrollmentID string, content entity.SubmissionContent) (entity.Submission, error)
 	// Submit mengirim submission: AI menjadi ai_grading, B2B menjadi in_review.
@@ -156,16 +155,7 @@ func (uc *workspaceUseCase) StartWork(ctx context.Context, enrollmentID string) 
 		return entity.Enrollment{}, apperror.Conflict(msgAlreadyStarted)
 	}
 	now := uc.Now()
-	// Untuk not_started, deadline_at adalah batas mulai (30 hari sejak lunas).
-	if enrollment.IsPastDeadline(now) {
-		return entity.Enrollment{}, apperror.Conflict(msgStartWindowExpired)
-	}
-
-	c, err := uc.Cases.GetByID(ctx, enrollment.CaseID)
-	if err != nil {
-		return entity.Enrollment{}, apperror.Internal(err)
-	}
-	err = uc.Enrollments.Start(ctx, enrollment.ID, now, entity.WorkDeadline(now, c.DeadlineDays))
+	err = uc.Enrollments.Start(ctx, enrollment.ID, now)
 	if errors.Is(err, coreErrors.ErrStatusConflict) {
 		return entity.Enrollment{}, apperror.Conflict(msgAlreadyStarted)
 	}
@@ -181,7 +171,7 @@ func (uc *workspaceUseCase) SaveDraft(ctx context.Context, enrollmentID string, 
 		return entity.Submission{}, apperror.Unauthenticated("")
 	}
 	now := uc.Now()
-	enrollment, c, err := loadEditableWork(ctx, uc.Enrollments, uc.Cases, current.ID, enrollmentID, now)
+	enrollment, c, err := loadEditableWork(ctx, uc.Enrollments, uc.Cases, current.ID, enrollmentID)
 	if err != nil {
 		return entity.Submission{}, err
 	}
@@ -224,7 +214,7 @@ func (uc *workspaceUseCase) Submit(ctx context.Context, enrollmentID string, con
 		return entity.Enrollment{}, apperror.Unauthenticated("")
 	}
 	now := uc.Now()
-	enrollment, c, err := loadEditableWork(ctx, uc.Enrollments, uc.Cases, current.ID, enrollmentID, now)
+	enrollment, c, err := loadEditableWork(ctx, uc.Enrollments, uc.Cases, current.ID, enrollmentID)
 	if err != nil {
 		return entity.Enrollment{}, err
 	}
@@ -471,16 +461,13 @@ func reloadEnrollment(ctx context.Context, enrollments coreRepo.EnrollmentReposi
 }
 
 // loadEditableWork memuat enrollment yang masih bisa dikerjakan beserta aturan slot case-nya.
-func loadEditableWork(ctx context.Context, enrollments coreRepo.EnrollmentRepository, cases coreRepo.CaseRepository, userID, enrollmentID string, now time.Time) (entity.Enrollment, entity.Case, error) {
+func loadEditableWork(ctx context.Context, enrollments coreRepo.EnrollmentRepository, cases coreRepo.CaseRepository, userID, enrollmentID string) (entity.Enrollment, entity.Case, error) {
 	enrollment, err := getOwnedEnrollment(ctx, enrollments, userID, enrollmentID)
 	if err != nil {
 		return entity.Enrollment{}, entity.Case{}, err
 	}
 	if !enrollment.IsEditable() {
 		return entity.Enrollment{}, entity.Case{}, apperror.Conflict(msgNotEditable)
-	}
-	if enrollment.IsPastDeadline(now) {
-		return entity.Enrollment{}, entity.Case{}, apperror.Conflict(msgDeadlinePassed)
 	}
 	c, err := cases.GetWithSlotsByID(ctx, enrollment.CaseID)
 	if err != nil {

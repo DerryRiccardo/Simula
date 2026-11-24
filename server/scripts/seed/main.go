@@ -5,10 +5,11 @@
 //
 //	SEED_PASSWORD=<password> go run ./scripts/seed
 //	SEED_PASSWORD=<password> go run ./scripts/seed -refresh-cases
+//	SEED_PASSWORD=<password> go run ./scripts/seed -with-legacy-cases
 //
-// -refresh-cases mengganti isi case contoh yang sudah ada dengan isi cases.json terbaru, selama case
-// itu belum punya enrollment atau order. Seed juga membuat satu enrollment B2B "sudah dibayar"
-// untuk akun mahasiswa, sehingga case itu tidak ikut di-refresh.
+// -refresh-cases mengganti isi case contoh yang sudah ada dengan isi JSON terbaru, selama case itu
+// belum punya enrollment atau order. -with-legacy-cases ikut memasukkan case lama dari cases.json
+// beserta satu enrollment B2B "sudah dibayar" untuk akun mahasiswa (case itu tidak ikut di-refresh).
 package main
 
 import (
@@ -39,14 +40,20 @@ type seedAccount struct {
 	major  string
 }
 
+// Akun mahasiswa dipakai untuk mencoba alur peserta dan enrollment contoh (-with-legacy-cases).
 var accounts = []seedAccount{
-	{name: "Rahma Aulia", email: "mahasiswa@simula.test", role: entity.RoleStudent, fields: []string{"backend", "data"}, major: "Sistem Informasi"},
-	{name: "Andika Pratama", email: "reviewer@simula.test", role: entity.RoleReviewer},
-	{name: "Sinta Maharani", email: "reviewer2@simula.test", role: entity.RoleReviewer},
-	{name: "Bayu Nugroho", email: "reviewer.samudra@simula.test", role: entity.RoleReviewer},
-	{name: "Laras Wulandari", email: "reviewer.kirana@simula.test", role: entity.RoleReviewer},
-	{name: "Hendra Wijaya", email: "reviewer.bentala@simula.test", role: entity.RoleReviewer},
-	{name: "Admin Simula", email: "admin@simula.test", role: entity.RoleAdmin},
+	{name: "Rahma Aulia", email: "rahma.aulia@gmail.com", role: entity.RoleStudent, fields: []string{"backend", "data"}, major: "Sistem Informasi"},
+	{name: "Admin Simula", email: "adminsimula@gmail.com", role: entity.RoleAdmin},
+}
+
+// studentAccount adalah akun mahasiswa pertama di accounts.
+func studentAccount() (seedAccount, bool) {
+	for _, account := range accounts {
+		if account.role == entity.RoleStudent {
+			return account, true
+		}
+	}
+	return seedAccount{}, false
 }
 
 func main() {
@@ -57,6 +64,7 @@ func main() {
 }
 
 func run() error {
+	withLegacyCases := flag.Bool("with-legacy-cases", false, "ikut seed case contoh lama (AI dan B2B fiktif) dari cases.json")
 	refreshCases := flag.Bool("refresh-cases", false, "ganti isi case contoh yang sudah ada dengan isi cases.json")
 	flag.Parse()
 
@@ -100,13 +108,37 @@ func run() error {
 		fmt.Printf("%-9s %-24s %s\n", account.role, account.email, status)
 	}
 
-	if err := seedCases(ctx, db, *refreshCases); err != nil {
+	if err := seedPartners(ctx, db); err != nil {
 		return err
 	}
+	if err := seedReviewerAccounts(ctx, db, users, hash); err != nil {
+		return err
+	}
+	if err := seedCases(ctx, db, aiCasesJSON, *refreshCases); err != nil {
+		return err
+	}
+	if err := seedCases(ctx, db, b2bCasesJSON, *refreshCases); err != nil {
+		return err
+	}
+	if *withLegacyCases {
+		if err := seedCases(ctx, db, legacyCasesJSON, *refreshCases); err != nil {
+			return err
+		}
+	}
+	// Penugasan dibuat setelah case ada, supaya seed pertama pun langsung punya reviewer.
 	if err := seedReviewerAssignments(ctx, db); err != nil {
 		return err
 	}
-	return seedDemoEnrollment(ctx, db, accounts[0].email)
+	if *withLegacyCases {
+		student, ok := studentAccount()
+		if !ok {
+			return errors.New("no student account to own the demo enrollment")
+		}
+		if err := seedDemoEnrollment(ctx, db, student.email); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func seedUser(ctx context.Context, users coreRepo.UserRepository, account seedAccount, hash string) (bool, error) {

@@ -27,6 +27,9 @@ type OrderRepository interface {
 	// "Menunggu pembayaran" bila diminta. Mengembalikan coreErrors.ErrStatusConflict bila order sudah
 	// tidak menunggu.
 	Settle(ctx context.Context, settlement entity.OrderSettlement) error
+	// ListOverdueIDs mengembalikan ID order yang masih menunggu tetapi sudah lewat batas bayar,
+	// paling lama jatuh temponya lebih dulu.
+	ListOverdueIDs(ctx context.Context, now time.Time, limit int) ([]string, error)
 	// LinkEnrollment menghubungkan order lunas ke enrollment-nya.
 	LinkEnrollment(ctx context.Context, orderID, enrollmentID string) error
 	// RecordNotification mencatat notifikasi webhook (termasuk yang signature-nya tidak valid).

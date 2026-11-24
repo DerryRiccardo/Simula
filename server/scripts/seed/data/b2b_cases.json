@@ -1,0 +1,2501 @@
+[
+  {
+    "slug": "belibeli-pesanan-ganda-callback-pembayaran",
+    "title": "Pesanan Ganda akibat Callback Pembayaran yang Dikirim Ulang",
+    "summary": "Callback pembayaran yang dikirim ulang membuat sebagian pesanan Belibeli tercatat dua kali dan stok terpotong ganda. Rancang alur pembayaran yang idempoten.",
+    "tier": "b2b",
+    "fieldKey": "backend",
+    "level": "advanced",
+    "price": 149000,
+    "about": "Saat kampanye 11.11, ratusan pembeli Belibeli melihat dua pesanan untuk satu kali bayar, stok merchant terpotong dua kali, dan beberapa merchant mengirim barang ganda. Kamu diminta menemukan akar masalah di alur callback pembayaran, merancang ulang agar idempoten, dan membuktikannya dengan prototipe di hadapan Senior Backend Engineer Belibeli.",
+    "activities": [
+      "Menelusuri log dan alur order-service, payment-service, dan inventory-service",
+      "Menentukan akar masalah duplikasi pesanan dan stok terpotong ganda",
+      "Merancang idempotency key, state machine order, dan pola outbox",
+      "Membangun prototipe yang tetap benar saat callback dikirim berulang dan bersamaan",
+      "Menyusun rencana migrasi dan pembersihan data pesanan ganda"
+    ],
+    "skills": [
+      "Idempotensi API",
+      "State machine",
+      "Transactional outbox",
+      "Desain sistem terdistribusi",
+      "Penulisan teknis"
+    ],
+    "prerequisites": [
+      "Memahami transaksi dan isolation level database",
+      "Pernah membangun REST API",
+      "Dasar message broker (Kafka atau RabbitMQ)"
+    ],
+    "reviewerRole": "Senior Backend Engineer",
+    "partner": {
+      "name": "Belibeli",
+      "industry": "E-Commerce & Ritel Omnichannel",
+      "about": "Platform perdagangan elektronik dan ritel omnichannel di Indonesia yang menghubungkan brand resmi, merchant lokal, dan konsumen dengan dukungan logistik terintegrasi."
+    },
+    "context": [
+      "Belibeli memproses rata-rata 450.000 pesanan per hari dan bisa mencapai 2,1 juta pesanan pada tanggal kembar. Pembayaran ditangani payment gateway pihak ketiga yang mengirim notifikasi (callback) ke endpoint POST /payments/callback. Dokumentasi gateway menyebut callback dikirim ulang hingga 5 kali bila tidak mendapat respons 200 dalam 10 detik.",
+      "Pada 11.11 lalu, latensi database naik dan endpoint callback sering merespons lebih dari 10 detik. Gateway mengirim ulang callback, dan sering kali dua callback untuk transaksi yang sama diproses bersamaan oleh dua pod berbeda. Hasilnya: 3.870 pesanan tercatat ganda, 1.120 SKU stoknya terpotong dua kali, dan 214 merchant mengirim barang dua kali. Tim CS butuh 9 hari untuk membereskannya, dan biaya pengembalian ongkir ditaksir Rp186 juta.",
+      "Alur saat ini: handler callback membaca order berdasarkan order_id, memeriksa status != 'PAID', lalu dalam satu fungsi memperbarui status menjadi PAID, memotong stok lewat HTTP ke inventory-service, membuat shipment, dan menerbitkan event OrderPaid ke Kafka. Pemeriksaan status dan pembaruan tidak berada dalam satu transaksi, dan event Kafka dikirim di luar transaksi database. Stack: Go, PostgreSQL 15, Kafka, Redis, berjalan di Kubernetes dengan 12 replika order-service.",
+      "Ada juga kasus kebalikannya: 0,4% pesanan sudah dibayar tetapi statusnya tetap 'Menunggu pembayaran' karena event OrderPaid gagal terkirim setelah database berhasil diperbarui.",
+      "Batasan dari Belibeli: (1) callback harus dijawab dalam 2 detik; (2) tidak boleh ada pesanan yang dibayar tetapi tidak diproses; (3) satu pembayaran hanya boleh menghasilkan satu potongan stok dan satu shipment; (4) solusi harus bisa diluncurkan bertahap tanpa downtime. Teknologi bebas, selama alasannya jelas."
+    ],
+    "tasks": [
+      {
+        "title": "Analisis akar masalah dan design doc",
+        "description": "Jelaskan dengan diagram urutan mengapa pesanan ganda dan pesanan 'dibayar tapi tidak diproses' bisa terjadi. Lalu rancang alur baru: idempotency key, transisi status order yang sah, cara memotong stok dan membuat shipment tepat sekali, serta cara event dikirim tanpa hilang (misalnya pola outbox). Bahas perilaku sistem saat database, Kafka, atau inventory-service lambat atau mati."
+      },
+      {
+        "title": "Prototipe dan uji konkurensi",
+        "description": "Bangun prototipe order-service dan endpoint callback yang menerapkan rancanganmu. Sertakan test yang mengirim callback yang sama minimal 50 kali secara bersamaan dan buktikan hasilnya tetap satu pesanan PAID, satu potongan stok, dan satu event. Sertakan juga skenario event broker mati lalu pulih."
+      },
+      {
+        "title": "Rencana migrasi dan pembersihan data",
+        "description": "Susun langkah peluncuran bertahap (feature flag, shadow mode, atau canary), metrik yang dipantau, dan rencana rollback. Tambahkan query atau skrip untuk mendeteksi pesanan ganda yang sudah terjadi beserta usulan penanganannya ke merchant dan pembeli."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "design_doc",
+        "title": "Design doc",
+        "description": "Analisis akar masalah, rancangan alur baru, dan diagram urutan.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx"
+        ],
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "repo_prototipe",
+        "title": "Repositori prototipe",
+        "description": "Repositori publik berisi kode, test konkurensi, dan README cara menjalankan.",
+        "kind": "link",
+        "isRequired": true,
+        "linkHint": "https://github.com/username/belibeli-idempotent-callback"
+      },
+      {
+        "slotKey": "rencana_migrasi",
+        "title": "Rencana migrasi",
+        "description": "Rencana peluncuran, metrik, rollback, dan pembersihan data (1-3 halaman).",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx",
+          "md"
+        ],
+        "maxSizeMb": 5
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Analisis akar masalah",
+        "weight": 20,
+        "description": "Penyebab duplikasi dan event hilang dijelaskan tepat, bukan sekadar gejala.",
+        "levelDescriptions": [
+          "Tidak ada analisis atau penyebab yang disebut keliru.",
+          "Hanya menyebut gejala, misalnya 'callback terkirim dua kali'.",
+          "Menjelaskan check-then-act yang tidak atomik, tetapi tidak membahas event yang hilang.",
+          "Menjelaskan race condition dan dual write dengan diagram yang benar.",
+          "Analisis lengkap dan dikaitkan dengan angka insiden serta konfigurasi retry gateway."
+        ]
+      },
+      {
+        "name": "Desain solusi",
+        "weight": 30,
+        "description": "Rancangan menjamin efek tepat sekali dan memenuhi empat batasan Belibeli.",
+        "levelDescriptions": [
+          "Tidak ada rancangan yang bisa dinilai.",
+          "Solusi umum tanpa detail, misalnya 'pakai lock'.",
+          "Idempotensi callback terjawab, tetapi pengiriman event atau kegagalan komponen belum.",
+          "Idempotensi, transisi status, dan pengiriman event tanpa hilang dirancang dengan jelas.",
+          "Rancangan lengkap, mempertimbangkan beban tanggal kembar, dan menyebut cara memantaunya."
+        ]
+      },
+      {
+        "name": "Prototipe dan pengujian",
+        "weight": 30,
+        "description": "Prototipe berjalan dan test membuktikan hasil tetap benar di bawah konkurensi.",
+        "levelDescriptions": [
+          "Prototipe tidak ada atau tidak bisa dijalankan.",
+          "Prototipe berjalan tetapi tanpa test konkurensi.",
+          "Ada test konkurensi sederhana, tetapi skenario kegagalan belum diuji.",
+          "Test membuktikan satu pesanan, satu potongan stok, dan satu event untuk callback bersamaan.",
+          "Semua skenario termasuk broker mati lalu pulih teruji, terdokumentasi, dan mudah dijalankan ulang."
+        ]
+      },
+      {
+        "name": "Rencana operasional",
+        "weight": 20,
+        "description": "Peluncuran, pemantauan, rollback, dan pembersihan data realistis untuk tim Belibeli.",
+        "levelDescriptions": [
+          "Tidak ada rencana.",
+          "Rencana hanya berupa 'deploy lalu pantau'.",
+          "Ada tahapan peluncuran, tetapi tanpa metrik atau rollback.",
+          "Tahapan, metrik, rollback, dan deteksi data ganda dijelaskan.",
+          "Rencana siap dieksekusi, termasuk komunikasi ke merchant dan pembeli yang terdampak."
+        ]
+      }
+    ],
+    "passingScore": 70
+  },
+  {
+    "slug": "belibeli-halaman-kampanye-lambat-di-hp",
+    "title": "Halaman Kampanye yang Lambat dan Patah-patah di HP Kelas Menengah",
+    "summary": "Halaman kampanye Belibeli butuh lebih dari 6 detik untuk tampil di HP kelas menengah, dan konversinya turun. Audit performanya lalu perbaiki tanpa mengorbankan kebutuhan tim marketing.",
+    "tier": "b2b",
+    "fieldKey": "frontend",
+    "level": "intermediate",
+    "price": 149000,
+    "about": "Tim marketing Belibeli terus menambah banner, carousel, dan widget hitung mundur di halaman kampanye. Hasilnya, halaman itu lambat dibuka di HP kelas menengah yang dipakai mayoritas pembeli, dan scroll terasa patah-patah. Kamu diminta mengaudit, memperbaiki, dan menyusun aturan main performa yang bisa dipegang tim, lalu mempertanggungjawabkannya di hadapan Frontend Engineering Lead Belibeli.",
+    "activities": [
+      "Mengukur Core Web Vitals dengan Lighthouse, WebPageTest, dan data lapangan",
+      "Mencari penyebab LCP, INP, dan CLS yang buruk",
+      "Memperbaiki halaman contoh di repositori starter",
+      "Menyusun performance budget dan checklist untuk tim marketing dan engineering"
+    ],
+    "skills": [
+      "Core Web Vitals",
+      "Optimasi gambar dan font",
+      "Code splitting",
+      "Profiling browser",
+      "Next.js"
+    ],
+    "prerequisites": [
+      "Menguasai React",
+      "Pernah memakai Chrome DevTools",
+      "Dasar Next.js atau framework sejenis"
+    ],
+    "reviewerRole": "Frontend Engineering Lead",
+    "partner": {
+      "name": "Belibeli",
+      "industry": "E-Commerce & Ritel Omnichannel",
+      "about": "Platform perdagangan elektronik dan ritel omnichannel di Indonesia yang menghubungkan brand resmi, merchant lokal, dan konsumen dengan dukungan logistik terintegrasi."
+    },
+    "context": [
+      "78% trafik halaman kampanye Belibeli berasal dari HP Android dengan RAM 3-4 GB, dan 41% di antaranya memakai jaringan 4G yang tidak stabil di luar kota besar. Data lapangan (CrUX) bulan lalu: LCP p75 6,4 detik, INP p75 480 ms, dan CLS 0,31. Ketiganya masuk kategori 'buruk'.",
+      "Pada kampanye gajian terakhir, tingkat bounce halaman kampanye naik dari 38% menjadi 57%, dan konversi dari halaman kampanye ke halaman produk turun 22% dibanding kampanye sebelumnya, padahal anggaran iklan dinaikkan.",
+      "Kondisi halaman: Next.js 13 (pages router) dengan client-side rendering untuk hampir semua section. Ada hero carousel berisi 8 banner JPG berukuran rata-rata 900 KB, 3 font kustom, widget hitung mundur yang re-render setiap 100 ms, grid produk 120 item yang dimuat sekaligus, serta 6 skrip pihak ketiga (analitik, chat, A/B test, retargeting) yang dimuat di <head>. Total JavaScript yang dikirim 1,8 MB.",
+      "Tim marketing tetap butuh banner yang bisa diganti tanpa deploy, hitung mundur, dan A/B test. Starter repo berisi salinan halaman kampanye dengan data tiruan, siap dijalankan dengan npm run dev.",
+      "Target dari Belibeli: LCP di bawah 2,5 detik, INP di bawah 200 ms, dan CLS di bawah 0,1 pada profil 'Moto G Power, Slow 4G' di Lighthouse, tanpa menghapus fitur yang dibutuhkan marketing."
+    ],
+    "tasks": [
+      {
+        "title": "Audit performa",
+        "description": "Ukur kondisi awal starter repo dengan Lighthouse (profil mobile) dan Performance panel. Petakan penyebab LCP, INP, dan CLS beserta buktinya (screenshot trace, waterfall, atau ukuran bundle). Urutkan temuan berdasarkan dampak dan usaha perbaikannya."
+      },
+      {
+        "title": "Perbaikan halaman",
+        "description": "Terapkan perbaikan di starter repo, misalnya gambar responsif dan modern, prioritas gambar LCP, strategi font, pemuatan skrip pihak ketiga yang ditunda, virtualisasi atau pagination grid, serta hitung mundur yang tidak memicu re-render seluruh halaman. Catat angka sebelum dan sesudah untuk setiap perbaikan besar."
+      },
+      {
+        "title": "Performance budget dan panduan tim",
+        "description": "Tulis performance budget (misalnya ukuran JS, gambar, dan jumlah skrip pihak ketiga) beserta cara menegakkannya di CI, plus checklist singkat bahasa non-teknis untuk tim marketing saat menambah banner atau widget."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "laporan_audit",
+        "title": "Laporan audit dan hasil",
+        "description": "Temuan, bukti, perbaikan, serta tabel metrik sebelum dan sesudah.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx"
+        ],
+        "maxSizeMb": 20
+      },
+      {
+        "slotKey": "repo_perbaikan",
+        "title": "Repositori perbaikan",
+        "description": "Fork starter repo berisi perbaikanmu. Sertakan commit yang rapi per perbaikan.",
+        "kind": "link",
+        "isRequired": true,
+        "linkHint": "https://github.com/username/belibeli-campaign-perf"
+      },
+      {
+        "slotKey": "budget_checklist",
+        "title": "Performance budget dan checklist",
+        "description": "Budget, cara penegakan di CI, dan checklist untuk tim marketing.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx",
+          "md"
+        ],
+        "maxSizeMb": 5
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Ketajaman audit",
+        "weight": 25,
+        "description": "Penyebab masalah ditemukan dengan bukti dan diurutkan berdasarkan dampak.",
+        "levelDescriptions": [
+          "Tidak ada audit.",
+          "Hanya menempelkan skor Lighthouse tanpa analisis.",
+          "Menyebut beberapa penyebab tanpa bukti yang jelas.",
+          "Penyebab LCP, INP, dan CLS dijelaskan dengan bukti trace atau waterfall.",
+          "Audit tajam, temuan diprioritaskan dengan alasan dampak dan usaha yang meyakinkan."
+        ]
+      },
+      {
+        "name": "Hasil perbaikan",
+        "weight": 35,
+        "description": "Metrik membaik secara terukur tanpa menghilangkan fitur yang dibutuhkan marketing.",
+        "levelDescriptions": [
+          "Tidak ada perbaikan atau halaman rusak.",
+          "Perbaikan kecil dengan dampak tidak terukur.",
+          "Satu atau dua metrik membaik, tetapi belum mendekati target.",
+          "Sebagian besar target tercapai dan fitur marketing tetap berfungsi.",
+          "Ketiga target tercapai, terdokumentasi sebelum dan sesudah, dan bisa direproduksi."
+        ]
+      },
+      {
+        "name": "Kualitas kode",
+        "weight": 20,
+        "description": "Perubahan rapi, terbaca, dan mudah dirawat tim Belibeli.",
+        "levelDescriptions": [
+          "Kode tidak bisa dipahami.",
+          "Perbaikan berupa tambalan yang sulit dirawat.",
+          "Cukup rapi, tetapi commit dan struktur kurang jelas.",
+          "Kode rapi dengan commit terpisah per perbaikan.",
+          "Kode rapi, ada komponen yang bisa dipakai ulang, dan alasan perubahan tercatat."
+        ]
+      },
+      {
+        "name": "Keberlanjutan",
+        "weight": 20,
+        "description": "Budget dan checklist mencegah halaman kembali lambat di kampanye berikutnya.",
+        "levelDescriptions": [
+          "Tidak ada budget atau panduan.",
+          "Panduan umum yang tidak bisa diukur.",
+          "Ada budget, tetapi tanpa cara penegakan.",
+          "Budget terukur, ada cara penegakan di CI, dan checklist bisa dipahami marketing.",
+          "Budget, penegakan, dan checklist siap dipakai dan disertai contoh kasus nyata."
+        ]
+      }
+    ],
+    "passingScore": 70
+  },
+  {
+    "slug": "halodek-pengingat-obat-tidak-muncul",
+    "title": "Pengingat Minum Obat yang Tidak Muncul di Sebagian HP Android",
+    "summary": "Banyak pasien Halodek melaporkan pengingat minum obat tidak berbunyi, terutama di HP merek tertentu. Temukan penyebabnya dan rancang ulang fitur pengingat yang andal, juga saat offline.",
+    "tier": "b2b",
+    "fieldKey": "mobile",
+    "level": "advanced",
+    "price": 149000,
+    "about": "Fitur pengingat minum obat adalah alasan utama pasien penyakit kronis memakai aplikasi Halodek. Sejak tiga bulan terakhir, ulasan bintang satu tentang 'pengingat tidak bunyi' terus bertambah, dan dokter mitra mengeluhkan pasien yang melewatkan dosis. Kamu diminta mendiagnosis masalah dan merancang ulang fitur ini bersama Mobile Engineering Lead Halodek.",
+    "activities": [
+      "Menganalisis data laporan bug dan distribusi perangkat",
+      "Memahami batasan alarm dan background task di Android modern dan berbagai OEM",
+      "Merancang arsitektur pengingat lokal yang tetap berjalan tanpa internet",
+      "Membangun prototipe dan rencana pengujian lintas perangkat"
+    ],
+    "skills": [
+      "Android background work",
+      "Notifikasi lokal",
+      "Offline-first",
+      "Kotlin atau Flutter",
+      "Pengujian perangkat"
+    ],
+    "prerequisites": [
+      "Pernah membangun aplikasi Android atau Flutter",
+      "Memahami lifecycle aplikasi mobile",
+      "Dasar penyimpanan lokal (Room, SQLite, atau Hive)"
+    ],
+    "reviewerRole": "Mobile Engineering Lead",
+    "partner": {
+      "name": "Halodek",
+      "industry": "Healthtech & Layanan Kesehatan Digital",
+      "about": "Platform ekosistem kesehatan digital di Indonesia yang menghubungkan pasien dengan dokter, apotek, layanan lab, serta asuransi kesehatan secara daring."
+    },
+    "context": [
+      "Aplikasi Halodek punya 4,2 juta pengguna aktif bulanan, 92% di Android. Sekitar 310.000 pasien memakai fitur pengingat obat, sebagian besar pasien hipertensi, diabetes, dan TBC yang wajib minum obat tepat waktu. Pada pasien TBC, dosis yang terlewat bisa membuat pengobatan 6 bulan harus diulang.",
+      "Laporan 'pengingat tidak muncul' naik dari 120 menjadi 1.900 tiket per bulan dalam tiga bulan. 71% laporan berasal dari HP merek-merek dengan penghemat baterai agresif, dan 64% terjadi setelah HP di-restart atau aplikasi tidak dibuka lebih dari 3 hari. Laporan juga meningkat setelah aplikasi menargetkan Android 14.",
+      "Implementasi saat ini: jadwal obat disimpan di server. Setiap pagi aplikasi memanggil API untuk mengambil jadwal hari itu, lalu menjadwalkan notifikasi lewat WorkManager dengan periodic work 15 menit yang memeriksa apakah sudah waktunya minum obat. Bila HP offline pada pagi hari, jadwal hari itu tidak terambil. Belum ada penanganan BOOT_COMPLETED, perubahan zona waktu, maupun izin exact alarm.",
+      "Pasien juga ingin menandai 'sudah minum' langsung dari notifikasi, dan dokter ingin melihat kepatuhan minum obat pasien. Data kepatuhan saat ini hilang bila ditandai saat offline.",
+      "Batasan dari Halodek: pengingat harus muncul paling lambat 1 menit dari jadwal, tetap berjalan tanpa internet hingga 7 hari, tidak menguras baterai, dan mematuhi kebijakan Google Play terkait izin alarm dan notifikasi."
+    ],
+    "tasks": [
+      {
+        "title": "Diagnosis dan rancangan arsitektur",
+        "description": "Jelaskan mengapa implementasi saat ini gagal di skenario yang dilaporkan (penghemat baterai OEM, restart, offline, Android 14). Rancang ulang arsitektur pengingat: penyimpanan jadwal lokal, mekanisme penjadwalan yang tepat untuk tiap kebutuhan, penanganan restart dan perubahan zona waktu, sinkronisasi kepatuhan saat online kembali, serta alur meminta izin yang ramah pasien lansia."
+      },
+      {
+        "title": "Prototipe aplikasi",
+        "description": "Bangun prototipe (Kotlin native atau Flutter) yang bisa menambah jadwal obat, memunculkan pengingat tepat waktu meski offline dan setelah restart, serta menandai 'sudah minum' dari notifikasi. Data kepatuhan yang dicatat offline harus tersinkron tanpa duplikasi saat online."
+      },
+      {
+        "title": "Rencana pengujian lintas perangkat",
+        "description": "Susun matriks pengujian (versi Android, merek dengan penghemat baterai agresif, skenario restart, mode hemat daya, offline lama) beserta hasil uji yang sudah kamu lakukan di emulator atau perangkat nyata, dan metrik yang perlu dipantau setelah rilis."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "dokumen_arsitektur",
+        "title": "Dokumen diagnosis dan arsitektur",
+        "description": "Diagnosis, diagram arsitektur, dan alur izin.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx"
+        ],
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "repo_aplikasi",
+        "title": "Repositori prototipe",
+        "description": "Repositori publik berisi kode dan README cara build. Sertakan video demo singkat bila ada.",
+        "kind": "link",
+        "isRequired": true,
+        "linkHint": "https://github.com/username/halodek-medication-reminder"
+      },
+      {
+        "slotKey": "rencana_uji",
+        "title": "Matriks dan hasil pengujian",
+        "description": "Matriks pengujian beserta hasilnya.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "xlsx",
+          "docx"
+        ],
+        "maxSizeMb": 10
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Ketepatan diagnosis",
+        "weight": 20,
+        "description": "Penyebab kegagalan di tiap skenario dijelaskan sesuai perilaku Android dan OEM.",
+        "levelDescriptions": [
+          "Tidak ada diagnosis.",
+          "Penyebab disebut secara umum, misalnya 'karena baterai'.",
+          "Sebagian skenario dijelaskan dengan benar.",
+          "Semua skenario yang dilaporkan dijelaskan dengan benar dan dikaitkan dengan kode saat ini.",
+          "Diagnosis lengkap dan didukung rujukan dokumentasi resmi serta data laporan."
+        ]
+      },
+      {
+        "name": "Arsitektur",
+        "weight": 30,
+        "description": "Rancangan andal offline, hemat baterai, dan patuh kebijakan Play Store.",
+        "levelDescriptions": [
+          "Tidak ada rancangan.",
+          "Rancangan hanya mengganti satu API tanpa menjawab skenario lain.",
+          "Pengingat offline terjawab, tetapi restart, zona waktu, atau sinkronisasi belum.",
+          "Semua skenario terjawab dengan pilihan mekanisme yang tepat dan alasannya.",
+          "Rancangan lengkap, mempertimbangkan pasien lansia, kebijakan Play, dan pemantauan pasca rilis."
+        ]
+      },
+      {
+        "name": "Prototipe",
+        "weight": 30,
+        "description": "Prototipe berjalan dan membuktikan perilaku yang dirancang.",
+        "levelDescriptions": [
+          "Prototipe tidak ada atau tidak bisa di-build.",
+          "Bisa menjadwalkan pengingat, tetapi gagal saat offline atau setelah restart.",
+          "Berjalan offline, tetapi sinkronisasi kepatuhan belum benar.",
+          "Pengingat andal dan sinkronisasi kepatuhan tanpa duplikasi.",
+          "Semua perilaku berjalan, kode rapi dan teruji, serta ada bukti demo."
+        ]
+      },
+      {
+        "name": "Rencana pengujian",
+        "weight": 20,
+        "description": "Pengujian mencakup variasi perangkat dan skenario yang realistis.",
+        "levelDescriptions": [
+          "Tidak ada rencana pengujian.",
+          "Hanya diuji di satu emulator tanpa skenario khusus.",
+          "Matriks ada, tetapi tidak mencakup OEM atau restart.",
+          "Matriks lengkap dengan hasil uji nyata untuk sebagian besar skenario.",
+          "Matriks lengkap, hasil terdokumentasi, dan ada metrik pemantauan pasca rilis."
+        ]
+      }
+    ],
+    "passingScore": 70
+  },
+  {
+    "slug": "halodek-alur-booking-konsultasi-ditinggalkan",
+    "title": "Pasien Meninggalkan Alur Booking Konsultasi Dokter",
+    "summary": "Hanya 31% pasien yang memulai booking konsultasi di Halodek sampai membayar. Teliti penyebabnya dan rancang ulang alur booking yang lebih mudah, termasuk untuk pasien lansia.",
+    "tier": "b2b",
+    "fieldKey": "uiux",
+    "level": "intermediate",
+    "price": 149000,
+    "about": "Alur booking konsultasi Halodek dibangun bertahap oleh beberapa tim, sehingga kini terdiri dari 7 layar dengan banyak pilihan yang membingungkan. Tim produk melihat banyak pasien berhenti di tengah jalan, terutama pengguna di atas 50 tahun. Kamu diminta meneliti masalahnya dan merancang ulang alur tersebut, lalu mempresentasikannya kepada Principal Product Designer Halodek.",
+    "activities": [
+      "Membaca data funnel dan rekaman sesi pengguna",
+      "Melakukan evaluasi heuristik dan uji usability kecil",
+      "Merancang ulang alur booking dalam bentuk prototipe interaktif",
+      "Menyusun rencana validasi dan metrik keberhasilan"
+    ],
+    "skills": [
+      "Riset pengguna",
+      "Evaluasi heuristik",
+      "Desain interaksi",
+      "Aksesibilitas",
+      "Prototyping Figma"
+    ],
+    "prerequisites": [
+      "Menguasai Figma",
+      "Memahami dasar riset UX",
+      "Pernah membuat user flow"
+    ],
+    "reviewerRole": "Principal Product Designer",
+    "partner": {
+      "name": "Halodek",
+      "industry": "Healthtech & Layanan Kesehatan Digital",
+      "about": "Platform ekosistem kesehatan digital di Indonesia yang menghubungkan pasien dengan dokter, apotek, layanan lab, serta asuransi kesehatan secara daring."
+    },
+    "context": [
+      "Setiap bulan sekitar 520.000 pasien membuka halaman 'Konsultasi Dokter'. Funnel bulan lalu: 100% membuka daftar dokter, 64% memilih dokter, 49% memilih jadwal, 40% mengisi keluhan, 35% sampai di halaman pembayaran, dan hanya 31% yang membayar. Pada pengguna berusia di atas 50 tahun, hanya 18% yang membayar.",
+      "Alur saat ini terdiri dari 7 layar: pilih spesialisasi, daftar dokter (rata-rata 140 dokter tanpa urutan yang jelas), profil dokter, pilih jenis konsultasi (chat, panggilan suara, video, atau kunjungan klinik), pilih jadwal, form keluhan dengan 9 field wajib termasuk unggah foto, lalu pembayaran. Pilihan asuransi baru muncul di layar terakhir.",
+      "Dari 40 rekaman sesi dan 1.200 tiket CS, temuan yang sering muncul: pasien tidak tahu harga sebelum layar pembayaran, bingung bedanya 'panggilan suara' dan 'video', takut salah memilih spesialis, teks terlalu kecil, dan merasa form keluhan terlalu panjang. 23% tiket berbunyi 'saya sudah bayar tapi asuransinya tidak terpakai'.",
+      "Batasan: dokter tetap membutuhkan informasi keluhan minimal (keluhan utama, sejak kapan, dan alergi obat), data kesehatan harus diperlakukan sebagai data sensitif, dan tim engineering hanya bisa mengerjakan perubahan dalam dua sprint (4 minggu).",
+      "Target Halodek: menaikkan konversi booking ke pembayaran dari 31% menjadi minimal 40% dalam satu kuartal, tanpa menaikkan jumlah konsultasi yang salah spesialis."
+    ],
+    "tasks": [
+      {
+        "title": "Riset dan sintesis masalah",
+        "description": "Lakukan evaluasi heuristik terhadap alur saat ini (bisa menggunakan tangkapan layar di materi) dan uji usability kecil dengan minimal 5 orang, sebaiknya termasuk 2 orang berusia di atas 50 tahun. Sintesis temuan menjadi daftar masalah yang diprioritaskan, dikaitkan dengan data funnel."
+      },
+      {
+        "title": "Rancang ulang alur booking",
+        "description": "Rancang alur baru dalam prototipe Figma yang bisa diklik: cara membantu pasien memilih spesialis dan dokter, transparansi harga dan asuransi sejak awal, form keluhan yang lebih ringkas, serta pertimbangan aksesibilitas (ukuran teks, kontras, bahasa yang mudah). Jelaskan keputusan desain utama dan alasannya."
+      },
+      {
+        "title": "Rencana validasi",
+        "description": "Susun rencana validasi sebelum dan sesudah rilis: skenario uji usability, A/B test atau rilis bertahap, metrik utama dan guardrail (misalnya konsultasi salah spesialis), serta prioritas perubahan yang muat dalam dua sprint."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "laporan_riset",
+        "title": "Laporan riset",
+        "description": "Evaluasi heuristik, ringkasan uji usability, dan prioritas masalah.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf"
+        ],
+        "maxSizeMb": 20
+      },
+      {
+        "slotKey": "prototipe_figma",
+        "title": "Prototipe Figma",
+        "description": "Tautan prototipe Figma yang bisa dibuka publik dan diklik.",
+        "kind": "link",
+        "isRequired": true,
+        "linkHint": "https://www.figma.com/proto/..."
+      },
+      {
+        "slotKey": "rasional_validasi",
+        "title": "Rasional desain dan rencana validasi",
+        "description": "Keputusan desain, prioritas dua sprint, dan rencana validasi.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "pptx"
+        ],
+        "maxSizeMb": 20
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Kualitas riset",
+        "weight": 25,
+        "description": "Temuan berbasis bukti dan diprioritaskan dengan jelas.",
+        "levelDescriptions": [
+          "Tidak ada riset.",
+          "Hanya opini pribadi tanpa bukti.",
+          "Ada evaluasi heuristik, tetapi uji usability belum dilakukan atau sangat minim.",
+          "Riset dilakukan sesuai brief dan temuan dikaitkan dengan data funnel.",
+          "Riset tajam, termasuk pengguna lansia, dengan prioritas yang meyakinkan."
+        ]
+      },
+      {
+        "name": "Solusi desain",
+        "weight": 35,
+        "description": "Alur baru menjawab masalah utama dan tetap memenuhi kebutuhan dokter.",
+        "levelDescriptions": [
+          "Tidak ada rancangan.",
+          "Hanya mengganti tampilan tanpa mengubah alur.",
+          "Sebagian masalah terjawab, tetapi ada kebutuhan dokter atau asuransi yang terlewat.",
+          "Masalah utama terjawab dengan alur yang jelas dan konsisten.",
+          "Alur ringkas, menyelesaikan masalah utama, dan solusinya kreatif tetapi realistis."
+        ]
+      },
+      {
+        "name": "Aksesibilitas dan detail interaksi",
+        "weight": 20,
+        "description": "Desain nyaman bagi pasien lansia dan pengguna dengan keterbatasan.",
+        "levelDescriptions": [
+          "Aksesibilitas tidak dipertimbangkan.",
+          "Disebut, tetapi tidak terlihat di desain.",
+          "Ukuran teks dan kontras diperbaiki, tetapi state dan pesan error belum.",
+          "Ukuran, kontras, bahasa, serta state kosong, error, dan loading dirancang.",
+          "Detail interaksi matang dan sesuai pedoman aksesibilitas yang diacu."
+        ]
+      },
+      {
+        "name": "Rencana validasi dan prioritas",
+        "weight": 20,
+        "description": "Rencana realistis untuk dua sprint dengan metrik dan guardrail yang tepat.",
+        "levelDescriptions": [
+          "Tidak ada rencana.",
+          "Hanya menyebut 'diuji ke pengguna'.",
+          "Ada metrik, tetapi tanpa guardrail atau prioritas.",
+          "Metrik, guardrail, dan prioritas dua sprint dijelaskan.",
+          "Rencana siap dijalankan, termasuk ukuran sampel dan kriteria keputusan."
+        ]
+      }
+    ],
+    "passingScore": 70
+  },
+  {
+    "slug": "travelokal-pembatalan-hotel-melonjak",
+    "title": "Tingkat Pembatalan Pemesanan Hotel yang Melonjak",
+    "summary": "Pembatalan pemesanan hotel di Travelokal naik dari 14% menjadi 23% dalam enam bulan. Analisis datanya, temukan pendorong utamanya, dan bangun model risiko pembatalan.",
+    "tier": "b2b",
+    "fieldKey": "data",
+    "level": "advanced",
+    "price": 149000,
+    "about": "Pembatalan yang tinggi merugikan Travelokal dua kali: komisi hilang dan hotel mitra kehilangan kamar yang sebenarnya bisa dijual. Beberapa hotel mulai mengurangi alokasi kamar untuk Travelokal. Kamu diminta mencari penyebab kenaikan pembatalan dari data pemesanan, membangun model yang memprediksi risiko pembatalan, dan menyampaikan rekomendasinya kepada Lead Data Analyst Travelokal.",
+    "activities": [
+      "Membersihkan dan mengeksplorasi dataset pemesanan hotel",
+      "Mengidentifikasi segmen dan faktor pendorong pembatalan",
+      "Membangun dan mengevaluasi model prediksi risiko pembatalan",
+      "Menerjemahkan hasil analisis menjadi rekomendasi bisnis"
+    ],
+    "skills": [
+      "SQL",
+      "Python (pandas, scikit-learn)",
+      "Analisis eksploratif",
+      "Klasifikasi",
+      "Data storytelling"
+    ],
+    "prerequisites": [
+      "Menguasai SQL dasar dan menengah",
+      "Pernah memakai Python untuk analisis data",
+      "Memahami evaluasi model klasifikasi"
+    ],
+    "reviewerRole": "Lead Data Analyst",
+    "partner": {
+      "name": "Travelokal",
+      "industry": "Travel & Lifestyle Tech",
+      "about": "Platform perjalanan dan gaya hidup di Asia Tenggara yang menyediakan pemesanan tiket transportasi, akomodasi, aktivitas wisata, serta layanan finansial perjalanan."
+    },
+    "context": [
+      "Materi berisi dataset anonim 180.000 pemesanan hotel selama 12 bulan dengan kolom: tanggal pesan, tanggal check-in, lama menginap, kota, tipe properti, harga per malam, kebijakan pembatalan (gratis, sebagian, tidak bisa batal), metode pembayaran (bayar sekarang, bayar di hotel, paylater), kanal (aplikasi, web, afiliasi), status member, jumlah pemesanan sebelumnya, promo yang dipakai, dan status akhir (selesai, dibatalkan, no-show).",
+      "Tingkat pembatalan naik dari 14% di bulan Januari menjadi 23% di bulan Juni. Dalam periode yang sama, Travelokal meluncurkan opsi 'bayar di hotel' untuk lebih banyak properti, memperluas kerja sama afiliasi, dan menjalankan promo 'Pesan Sekarang, Batal Gratis' setiap akhir pekan.",
+      "Tim revenue punya dugaan berbeda-beda: ada yang menyalahkan promo, ada yang menyalahkan kanal afiliasi, dan ada yang menduga pemesan melakukan 'booking cadangan' untuk liburan panjang. Belum ada yang menguji dugaan itu dengan data.",
+      "Kebutuhan bisnis: (1) memahami pendorong utama kenaikan pembatalan; (2) skor risiko pembatalan per pemesanan saat pemesanan dibuat, agar tim bisa menyesuaikan kebijakan atau memberi insentif pelunasan; (3) rekomendasi yang tidak menurunkan konversi pemesanan lebih dari 2 poin persentase.",
+      "Catatan data: sekitar 3% baris punya harga kosong, ada pemesanan uji coba internal yang harus dibuang (email berakhiran @travelokal.test), dan kolom status perlu didefinisikan ulang karena no-show tercatat terpisah."
+    ],
+    "tasks": [
+      {
+        "title": "Analisis eksploratif",
+        "description": "Bersihkan data, dokumentasikan keputusan pembersihan, lalu analisis pembatalan per segmen (kebijakan pembatalan, metode bayar, kanal, lead time, promo, kota, dan musim). Uji setiap dugaan tim revenue dan tunjukkan faktor mana yang paling menjelaskan kenaikan dari 14% ke 23%."
+      },
+      {
+        "title": "Model risiko pembatalan",
+        "description": "Bangun model yang memprediksi kemungkinan pembatalan hanya dari informasi yang tersedia saat pemesanan dibuat (hindari data leakage). Bandingkan minimal dua pendekatan, jelaskan metrik evaluasi yang kamu pilih dan alasannya, serta tentukan ambang skor yang masuk akal untuk dipakai tim bisnis."
+      },
+      {
+        "title": "Rekomendasi bisnis",
+        "description": "Sajikan 3-5 rekomendasi yang bisa diuji (misalnya penyesuaian kebijakan untuk segmen berisiko tinggi atau insentif pelunasan), estimasi dampaknya terhadap pembatalan dan konversi, serta rencana eksperimen untuk membuktikannya. Sajikan dalam bentuk deck untuk manajemen."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "notebook",
+        "title": "Notebook analisis dan model",
+        "description": "Notebook atau repositori berisi pembersihan data, analisis, dan model yang bisa dijalankan ulang.",
+        "kind": "link",
+        "isRequired": true,
+        "linkHint": "https://github.com/username/travelokal-cancellation"
+      },
+      {
+        "slotKey": "deck_rekomendasi",
+        "title": "Deck temuan dan rekomendasi",
+        "description": "Maksimal 15 slide untuk manajemen Travelokal.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "pptx"
+        ],
+        "maxSizeMb": 20
+      },
+      {
+        "slotKey": "ringkasan_eksekutif",
+        "title": "Ringkasan eksekutif",
+        "description": "Ringkasan temuan utama dan rekomendasi dalam satu halaman.",
+        "kind": "text",
+        "isRequired": true
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Pengolahan dan analisis data",
+        "weight": 30,
+        "description": "Data dibersihkan dengan benar dan analisis menjawab pertanyaan bisnis.",
+        "levelDescriptions": [
+          "Data tidak diolah atau analisis keliru.",
+          "Analisis deskriptif tanpa pembersihan yang benar.",
+          "Data dibersihkan, tetapi dugaan tim revenue belum diuji dengan tepat.",
+          "Dugaan diuji dan pendorong utama kenaikan pembatalan teridentifikasi dengan bukti.",
+          "Analisis tajam, memisahkan korelasi dan kemungkinan sebab, serta mengukur kontribusi tiap faktor."
+        ]
+      },
+      {
+        "name": "Pemodelan",
+        "weight": 30,
+        "description": "Model bebas leakage, dievaluasi dengan metrik yang tepat, dan bisa dipakai bisnis.",
+        "levelDescriptions": [
+          "Tidak ada model.",
+          "Model ada tetapi memakai data yang bocor atau dievaluasi dengan akurasi saja.",
+          "Model benar, tetapi pilihan metrik dan ambang belum dijelaskan.",
+          "Dua pendekatan dibandingkan dengan metrik tepat dan ambang yang beralasan.",
+          "Model kuat, interpretasinya jelas, dan keterbatasannya dijelaskan dengan jujur."
+        ]
+      },
+      {
+        "name": "Rekomendasi",
+        "weight": 25,
+        "description": "Rekomendasi spesifik, terukur, dan memperhatikan batas penurunan konversi.",
+        "levelDescriptions": [
+          "Tidak ada rekomendasi.",
+          "Rekomendasi umum yang tidak berhubungan dengan temuan.",
+          "Rekomendasi terkait temuan, tetapi tanpa estimasi dampak.",
+          "Rekomendasi spesifik dengan estimasi dampak dan rencana eksperimen.",
+          "Rekomendasi tajam, mempertimbangkan hotel mitra, dan siap diuji."
+        ]
+      },
+      {
+        "name": "Komunikasi",
+        "weight": 15,
+        "description": "Temuan disajikan jelas untuk audiens manajemen.",
+        "levelDescriptions": [
+          "Sulit dipahami.",
+          "Banyak istilah teknis tanpa penjelasan.",
+          "Cukup jelas, tetapi alur cerita lemah.",
+          "Alur jelas, visual tepat, dan ringkasan eksekutif padat.",
+          "Sangat meyakinkan dan bisa langsung dipakai dalam rapat manajemen."
+        ]
+      }
+    ],
+    "passingScore": 70
+  },
+  {
+    "slug": "travelokal-reschedule-tiket-mandiri",
+    "title": "Fitur Reschedule Tiket Pesawat Mandiri yang Membanjiri CS",
+    "summary": "Permintaan reschedule tiket pesawat menyumbang 34% tiket CS Travelokal. Susun PRD fitur reschedule mandiri beserta prioritas, metrik, dan rencana peluncurannya.",
+    "tier": "b2b",
+    "fieldKey": "product",
+    "level": "intermediate",
+    "price": 149000,
+    "about": "Saat ini pengguna Travelokal yang ingin mengganti jadwal penerbangan harus menghubungi CS, menunggu rata-rata 2 hari, dan sering mendapat informasi biaya yang berbeda-beda. Tim produk diminta menghadirkan reschedule mandiri di aplikasi, tetapi aturan setiap maskapai berbeda. Kamu berperan sebagai product manager yang menyusun PRD dan rencana peluncurannya bersama Senior Product Manager Travelokal.",
+    "activities": [
+      "Menganalisis data tiket CS dan aturan reschedule maskapai",
+      "Menentukan masalah, sasaran pengguna, dan ruang lingkup MVP",
+      "Menulis PRD lengkap dengan user story dan kriteria penerimaan",
+      "Menyusun prioritas, metrik keberhasilan, dan rencana rilis bertahap"
+    ],
+    "skills": [
+      "Penulisan PRD",
+      "Prioritisasi",
+      "Definisi metrik",
+      "Analisis stakeholder",
+      "Perencanaan rilis"
+    ],
+    "prerequisites": [
+      "Memahami siklus pengembangan produk digital",
+      "Pernah membuat user story",
+      "Dasar analisis data dengan spreadsheet"
+    ],
+    "reviewerRole": "Senior Product Manager",
+    "partner": {
+      "name": "Travelokal",
+      "industry": "Travel & Lifestyle Tech",
+      "about": "Platform perjalanan dan gaya hidup di Asia Tenggara yang menyediakan pemesanan tiket transportasi, akomodasi, aktivitas wisata, serta layanan finansial perjalanan."
+    },
+    "context": [
+      "Travelokal menjual sekitar 1,6 juta tiket pesawat per bulan dari 14 maskapai. Setiap bulan masuk sekitar 96.000 tiket CS, 34% di antaranya permintaan reschedule. Waktu penyelesaian rata-rata 46 jam, dan skor kepuasan untuk kategori ini hanya 2,9 dari 5. Biaya CS per tiket ditaksir Rp27.000.",
+      "Proses saat ini: pengguna mengisi form di aplikasi, agen CS mengecek aturan tarif di sistem maskapai secara manual, menghitung selisih harga dan biaya reschedule, lalu mengirim penawaran lewat email. 18% penawaran kedaluwarsa karena harga berubah sebelum pengguna membayar.",
+      "Aturan maskapai berbeda-beda: 6 maskapai menyediakan API reschedule, 5 hanya lewat sistem GDS dengan aturan tarif yang kompleks, dan 3 hanya bisa lewat email ke maskapai. Sebagian tarif promo tidak bisa di-reschedule sama sekali. Tiket pulang-pergi dan tiket dengan beberapa penumpang menambah kerumitan.",
+      "Pemangku kepentingan: tim CS ingin beban turun, tim finance khawatir selisih harga dan refund salah hitung, tim partnership menjaga hubungan dengan maskapai, dan tim engineering hanya punya satu squad (5 engineer) selama satu kuartal.",
+      "Target kuartal ini dari manajemen: menurunkan tiket CS kategori reschedule minimal 40% tanpa menaikkan selisih pembayaran yang salah hitung."
+    ],
+    "tasks": [
+      {
+        "title": "Analisis masalah dan ruang lingkup",
+        "description": "Dari data di materi, petakan jenis permintaan reschedule, maskapai, dan tipe tiket yang paling banyak dan paling mudah diotomatisasi. Tentukan ruang lingkup MVP yang realistis untuk satu squad dalam satu kuartal, beserta apa yang sengaja tidak dikerjakan dan alasannya."
+      },
+      {
+        "title": "PRD",
+        "description": "Tulis PRD berisi latar belakang, masalah, sasaran, persona, user story dengan kriteria penerimaan, alur utama dan alur alternatif (harga berubah, tiket tidak bisa di-reschedule, pembayaran gagal), kebutuhan non-fungsional, dependensi ke maskapai, serta risiko dan mitigasinya."
+      },
+      {
+        "title": "Metrik dan rencana rilis",
+        "description": "Tentukan metrik utama, metrik pendukung, dan guardrail beserta cara mengukurnya. Susun rencana rilis bertahap (maskapai atau persentase pengguna mana lebih dulu), kriteria lanjut atau berhenti, serta rencana komunikasi ke tim CS dan finance."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "prd",
+        "title": "PRD",
+        "description": "Dokumen PRD lengkap.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx"
+        ],
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "analisis_prioritas",
+        "title": "Analisis dan prioritas",
+        "description": "Spreadsheet atau dokumen analisis data tiket dan matriks prioritas.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "xlsx",
+          "pdf"
+        ],
+        "maxSizeMb": 10
+      },
+      {
+        "slotKey": "rencana_rilis",
+        "title": "Metrik dan rencana rilis",
+        "description": "Ringkasan metrik dan rencana rilis bertahap.",
+        "kind": "text",
+        "isRequired": true
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Pemahaman masalah",
+        "weight": 20,
+        "description": "Masalah dan peluang dipetakan berdasarkan data, bukan asumsi.",
+        "levelDescriptions": [
+          "Masalah tidak dipahami.",
+          "Hanya mengulang brief.",
+          "Data dipakai, tetapi segmentasinya dangkal.",
+          "Masalah dipetakan per maskapai dan tipe tiket dengan dukungan data.",
+          "Analisis tajam dan menemukan peluang yang tidak tersurat di brief."
+        ]
+      },
+      {
+        "name": "Ruang lingkup dan prioritas",
+        "weight": 25,
+        "description": "MVP realistis untuk satu squad dan berdampak besar pada target.",
+        "levelDescriptions": [
+          "Tidak ada ruang lingkup yang jelas.",
+          "Semua fitur dimasukkan tanpa prioritas.",
+          "Ada prioritas, tetapi belum realistis untuk kapasitas tim.",
+          "MVP realistis, berdampak, dan hal yang ditunda dijelaskan.",
+          "Prioritas sangat tajam dengan estimasi dampak terhadap target 40%."
+        ]
+      },
+      {
+        "name": "Kualitas PRD",
+        "weight": 35,
+        "description": "PRD lengkap, jelas, dan bisa langsung dipakai tim engineering dan desain.",
+        "levelDescriptions": [
+          "PRD tidak ada.",
+          "PRD berupa daftar fitur tanpa detail.",
+          "User story ada, tetapi alur alternatif dan kriteria penerimaan kurang.",
+          "PRD lengkap dengan alur alternatif, kriteria penerimaan, dan risiko.",
+          "PRD sangat matang, mempertimbangkan semua pemangku kepentingan dan kasus sulit."
+        ]
+      },
+      {
+        "name": "Metrik dan peluncuran",
+        "weight": 20,
+        "description": "Metrik, guardrail, dan rilis bertahap terukur dan bisa dieksekusi.",
+        "levelDescriptions": [
+          "Tidak ada metrik.",
+          "Metrik umum, misalnya 'kepuasan naik'.",
+          "Metrik jelas, tetapi tanpa guardrail atau rencana rilis.",
+          "Metrik, guardrail, dan rilis bertahap dengan kriteria lanjut atau berhenti.",
+          "Rencana siap dieksekusi, termasuk komunikasi ke CS dan finance."
+        ]
+      }
+    ],
+    "passingScore": 70
+  },
+  {
+    "slug": "univeler-peluncuran-isi-ulang-cac-membengkak",
+    "title": "Peluncuran Kemasan Isi Ulang yang Biaya Akuisisinya Membengkak",
+    "summary": "Kampanye digital sabun cair isi ulang Univeler menghabiskan anggaran dua kali lipat dari target per pembeli. Diagnosis funnel-nya dan susun strategi growth 90 hari.",
+    "tier": "b2b",
+    "fieldKey": "marketing",
+    "level": "advanced",
+    "price": 149000,
+    "about": "Univeler meluncurkan kemasan isi ulang sabun cair yang lebih murah dan ramah lingkungan, dijual eksklusif di marketplace dan toko resmi online. Setelah 8 minggu, penjualan di bawah target dan biaya per pembeli baru (CAC) jauh di atas batas. Kamu diminta mendiagnosis kampanye dan menyusun strategi growth 90 hari di hadapan Head of Growth Marketing Univeler.",
+    "activities": [
+      "Membaca data performa iklan, funnel marketplace, dan riset konsumen",
+      "Mendiagnosis titik bocor funnel dan masalah pesan kampanye",
+      "Menyusun strategi growth 90 hari beserta alokasi anggaran",
+      "Merancang eksperimen dan dashboard pemantauan"
+    ],
+    "skills": [
+      "Analisis funnel",
+      "Performance marketing",
+      "Perencanaan anggaran",
+      "Desain eksperimen",
+      "Positioning produk"
+    ],
+    "prerequisites": [
+      "Memahami metrik pemasaran digital (CTR, CVR, CAC, ROAS)",
+      "Dasar spreadsheet",
+      "Pernah membuat rencana kampanye"
+    ],
+    "reviewerRole": "Head of Growth Marketing",
+    "partner": {
+      "name": "Univeler",
+      "industry": "FMCG Multinasional",
+      "about": "Perusahaan barang konsumsi multinasional dengan jaringan manufaktur, distribusi, dan pemasaran produk nutrisi, kebersihan, serta perawatan tubuh di seluruh Indonesia."
+    },
+    "context": [
+      "Kemasan isi ulang 750 ml dijual Rp32.900, 28% lebih murah per mililiter dibanding botol biasa, dan menghasilkan 60% lebih sedikit plastik. Target 8 minggu pertama: 120.000 unit dengan CAC maksimal Rp18.000 per pembeli baru. Realisasi: 46.000 unit dengan CAC Rp39.500, dari total belanja iklan Rp1,4 miliar.",
+      "Data funnel gabungan: 38 juta impresi, CTR 0,9%, 52% pengunjung halaman produk tidak menggulir melewati gambar pertama, add-to-cart 6,1%, dan checkout 2,3%. 63% ulasan bintang 1-3 menyebut 'kemasan bocor saat pengiriman', dan 21% bertanya 'apakah isinya sama dengan yang botol'.",
+      "Pesan kampanye utama adalah 'Selamatkan Bumi, Mulai dari Kamar Mandi'. Survei 1.500 konsumen di materi menunjukkan alasan utama membeli isi ulang adalah hemat (58%), lalu praktis (19%), dan baru kemudian lingkungan (14%). 71% anggaran dialokasikan ke iklan video awareness, hanya 12% ke iklan di dalam marketplace.",
+      "Kompetitor utama sedang menjalankan promo beli 2 gratis 1 untuk produk isi ulang mereka. Tim supply chain sudah memperbaiki kemasan pada batch ketiga, tetapi ulasan lama tetap terlihat.",
+      "Anggaran 90 hari ke depan Rp2,1 miliar, dengan target 300.000 unit dan CAC maksimal Rp20.000. Tim tidak boleh menurunkan harga di bawah Rp29.900."
+    ],
+    "tasks": [
+      {
+        "title": "Diagnosis kampanye",
+        "description": "Dari data di materi, identifikasi masalah utama di setiap tahap funnel (pesan, kanal, halaman produk, ulasan, harga dan promo). Hitung dampak setiap masalah terhadap CAC dan urutkan berdasarkan dampaknya."
+      },
+      {
+        "title": "Strategi growth 90 hari",
+        "description": "Susun strategi berisi positioning dan pesan baru, pembagian anggaran per kanal dan per fase, perbaikan halaman produk dan penanganan ulasan, serta respons terhadap promo kompetitor. Sertakan proyeksi unit dan CAC beserta asumsinya."
+      },
+      {
+        "title": "Rencana eksperimen dan dashboard",
+        "description": "Rancang 3-5 eksperimen prioritas (hipotesis, variabel, metrik, ukuran sampel, durasi) dan sketsa dashboard mingguan untuk memantau apakah strategi berjalan."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "deck_strategi",
+        "title": "Deck diagnosis dan strategi",
+        "description": "Maksimal 20 slide untuk manajemen marketing.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "pptx"
+        ],
+        "maxSizeMb": 25
+      },
+      {
+        "slotKey": "model_anggaran",
+        "title": "Model anggaran dan proyeksi",
+        "description": "Spreadsheet alokasi anggaran, proyeksi unit, dan CAC beserta asumsi.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "xlsx"
+        ],
+        "maxSizeMb": 10
+      },
+      {
+        "slotKey": "rencana_eksperimen",
+        "title": "Rencana eksperimen",
+        "description": "Daftar eksperimen dan sketsa dashboard.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx"
+        ],
+        "maxSizeMb": 10
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Diagnosis berbasis data",
+        "weight": 25,
+        "description": "Masalah funnel ditemukan dan diukur dampaknya dengan data.",
+        "levelDescriptions": [
+          "Tidak ada diagnosis.",
+          "Diagnosis berupa opini tanpa data.",
+          "Beberapa masalah teridentifikasi, tetapi tanpa ukuran dampak.",
+          "Masalah utama teridentifikasi dan diukur dampaknya terhadap CAC.",
+          "Diagnosis tajam dan menghubungkan pesan, kanal, ulasan, dan harga secara utuh."
+        ]
+      },
+      {
+        "name": "Strategi",
+        "weight": 35,
+        "description": "Strategi menjawab diagnosis dan realistis terhadap anggaran serta batasan harga.",
+        "levelDescriptions": [
+          "Tidak ada strategi.",
+          "Strategi umum yang bisa dipakai produk apa pun.",
+          "Strategi terkait diagnosis, tetapi alokasi anggaran lemah.",
+          "Strategi jelas, alokasi anggaran beralasan, dan batasan dipatuhi.",
+          "Strategi tajam, berbeda dari kompetitor, dan proyeksinya meyakinkan."
+        ]
+      },
+      {
+        "name": "Proyeksi dan angka",
+        "weight": 20,
+        "description": "Model anggaran konsisten dan asumsinya masuk akal.",
+        "levelDescriptions": [
+          "Tidak ada angka.",
+          "Angka ada tetapi tidak konsisten.",
+          "Model konsisten, tetapi asumsinya tidak dijelaskan.",
+          "Model konsisten dengan asumsi yang masuk akal dan terdokumentasi.",
+          "Model lengkap dengan skenario pesimis, dasar, dan optimis."
+        ]
+      },
+      {
+        "name": "Eksperimen dan pengukuran",
+        "weight": 20,
+        "description": "Eksperimen terfokus dan bisa memberi keputusan yang jelas.",
+        "levelDescriptions": [
+          "Tidak ada eksperimen.",
+          "Eksperimen tanpa hipotesis atau metrik.",
+          "Hipotesis dan metrik ada, tetapi desainnya lemah.",
+          "Eksperimen terdesain baik dan dashboard memantau metrik yang tepat.",
+          "Eksperimen siap dijalankan dengan kriteria keputusan dan ukuran sampel yang tepat."
+        ]
+      }
+    ],
+    "passingScore": 70
+  },
+  {
+    "slug": "paragone-krisis-ulasan-viral-produk-palsu",
+    "title": "Krisis Ulasan Viral akibat Produk Skincare Palsu di Marketplace",
+    "summary": "Video viral tentang iritasi kulit setelah memakai serum Paragone ternyata berasal dari produk palsu. Susun respons krisis dan strategi memulihkan kepercayaan brand.",
+    "tier": "b2b",
+    "fieldKey": "marketing",
+    "level": "intermediate",
+    "price": 149000,
+    "about": "Sebuah video berisi wajah kemerahan setelah memakai serum unggulan Paragone ditonton 4,8 juta kali dalam 3 hari. Investigasi awal menunjukkan serum itu dibeli dari toko tidak resmi dan kemungkinan besar palsu, tetapi publik sudah terlanjur percaya produk asli berbahaya. Kamu diminta menyusun respons krisis dan rencana pemulihan brand bersama Brand Marketing Manager Paragone Corp.",
+    "activities": [
+      "Memetakan kronologi isu, sentimen, dan pemangku kepentingan",
+      "Menyusun pernyataan resmi dan pesan untuk tiap kanal",
+      "Merancang kampanye edukasi produk asli dan kanal pembelian resmi",
+      "Menetapkan metrik pemulihan kepercayaan"
+    ],
+    "skills": [
+      "Komunikasi krisis",
+      "Manajemen brand",
+      "Social listening",
+      "Copywriting",
+      "Perencanaan kampanye"
+    ],
+    "prerequisites": [
+      "Memahami dasar brand management",
+      "Terbiasa dengan media sosial dan marketplace",
+      "Mampu menulis dengan jelas dan empatik"
+    ],
+    "reviewerRole": "Brand Marketing Manager",
+    "partner": {
+      "name": "Paragone Corp",
+      "industry": "FMCG Kosmetik & Perawatan Diri",
+      "about": "Perusahaan manufaktur dan distribusi produk kecantikan serta perawatan diri terkemuka di Indonesia dengan portofolio brand lokal yang didukung riset dan inovasi."
+    },
+    "context": [
+      "Serum niacinamide 5% adalah produk terlaris brand skincare Paragone, terjual 220.000 botol per bulan. Pada hari Senin, seorang kreator dengan 600.000 pengikut mengunggah video wajah kemerahan setelah memakai serum tersebut. Dalam 72 jam video itu ditonton 4,8 juta kali, ada 31.000 komentar, dan tagar terkait masuk trending.",
+      "Hasil social listening di materi: sentimen negatif naik dari 6% menjadi 47%. Penjualan di toko resmi turun 38% dalam 4 hari. Tim CS menerima 2.700 pesan, 40% menanyakan apakah produk aman, dan 18% meminta refund untuk produk yang dibeli di toko resmi.",
+      "Tim QA menemukan nomor batch di video tidak pernah diproduksi, kemasannya punya perbedaan font dan segel, dan toko tempat pembelian menjual harga 45% di bawah harga resmi. Ada 170 toko tidak resmi di marketplace yang menjual produk serupa. Tim legal sedang menyiapkan laporan ke marketplace, tetapi belum bisa memastikan semuanya palsu.",
+      "Risiko: menyalahkan kreator bisa memperburuk situasi, dan menyatakan produk 'palsu' tanpa bukti resmi bisa berujung masalah hukum. Sebagian kecil pengguna produk asli juga memang melaporkan kulit sensitif, yang wajar terjadi pada pemakaian awal niacinamide.",
+      "Paragone ingin pernyataan resmi keluar dalam 24 jam, sentimen negatif kembali di bawah 15% dalam 30 hari, dan penjualan toko resmi pulih dalam 60 hari."
+    ],
+    "tasks": [
+      {
+        "title": "Peta isu dan strategi respons",
+        "description": "Susun kronologi, peta pemangku kepentingan (konsumen, kreator, marketplace, BPOM, mitra retail, karyawan), dan prinsip respons. Jelaskan apa yang boleh dan tidak boleh disampaikan dalam 24 jam pertama, termasuk cara berkomunikasi dengan kreator."
+      },
+      {
+        "title": "Materi komunikasi",
+        "description": "Tulis pernyataan resmi, balasan template untuk CS dan komentar media sosial, FAQ keamanan produk, serta panduan mengenali produk asli. Sesuaikan nada untuk setiap kanal."
+      },
+      {
+        "title": "Rencana pemulihan 60 hari",
+        "description": "Rancang kampanye edukasi dan pemulihan kepercayaan (misalnya cek keaslian, kolaborasi dengan dermatolog atau kreator, program tukar produk), langkah bersama marketplace, anggaran kasar, serta metrik mingguan untuk memantau pemulihan."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "strategi_respons",
+        "title": "Peta isu dan strategi respons",
+        "description": "Kronologi, peta pemangku kepentingan, dan prinsip respons.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx"
+        ],
+        "maxSizeMb": 10
+      },
+      {
+        "slotKey": "pernyataan_resmi",
+        "title": "Pernyataan resmi",
+        "description": "Teks pernyataan resmi yang siap diunggah di media sosial brand.",
+        "kind": "text",
+        "isRequired": true
+      },
+      {
+        "slotKey": "rencana_pemulihan",
+        "title": "Materi komunikasi dan rencana pemulihan",
+        "description": "Template balasan, FAQ, panduan keaslian, dan rencana 60 hari.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "pptx"
+        ],
+        "maxSizeMb": 25
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Analisis situasi",
+        "weight": 20,
+        "description": "Isu, risiko, dan pemangku kepentingan dipetakan dengan tepat.",
+        "levelDescriptions": [
+          "Tidak ada analisis.",
+          "Hanya mengulang brief.",
+          "Pemangku kepentingan dipetakan, tetapi risiko hukum dan reputasi kurang dibahas.",
+          "Situasi, risiko, dan pemangku kepentingan dipetakan dengan jelas.",
+          "Analisis tajam dan mengantisipasi perkembangan isu berikutnya."
+        ]
+      },
+      {
+        "name": "Kualitas komunikasi",
+        "weight": 35,
+        "description": "Pesan empatik, jujur, aman secara hukum, dan sesuai kanal.",
+        "levelDescriptions": [
+          "Materi tidak ada atau berisiko memperburuk krisis.",
+          "Pesan defensif atau menyalahkan pihak lain.",
+          "Pesan cukup baik, tetapi nada tidak konsisten antar kanal.",
+          "Pesan empatik, jujur, dan disesuaikan dengan setiap kanal.",
+          "Materi siap terbit, sangat meyakinkan, dan menghindari klaim berisiko."
+        ]
+      },
+      {
+        "name": "Rencana pemulihan",
+        "weight": 30,
+        "description": "Langkah pemulihan kreatif, realistis, dan menjawab akar masalah produk palsu.",
+        "levelDescriptions": [
+          "Tidak ada rencana.",
+          "Rencana hanya berupa iklan tambahan.",
+          "Rencana ada, tetapi tidak menjawab masalah produk palsu.",
+          "Rencana menjawab kepercayaan dan produk palsu dengan langkah yang realistis.",
+          "Rencana kuat dan menjadikan krisis peluang edukasi pembelian resmi."
+        ]
+      },
+      {
+        "name": "Metrik",
+        "weight": 15,
+        "description": "Keberhasilan pemulihan bisa diukur sesuai target Paragone.",
+        "levelDescriptions": [
+          "Tidak ada metrik.",
+          "Metrik tidak terkait target.",
+          "Metrik terkait target, tetapi cara mengukurnya tidak jelas.",
+          "Metrik mingguan jelas dan sesuai target 30 dan 60 hari.",
+          "Metrik lengkap dengan pemicu tindakan bila pemulihan meleset."
+        ]
+      }
+    ],
+    "passingScore": 70
+  },
+  {
+    "slug": "danah-cashback-qris-dan-proyeksi-kas",
+    "title": "Program Cashback QRIS yang Menggerus Kas Perusahaan",
+    "summary": "Program cashback QRIS Danah sukses menaikkan transaksi, tetapi biaya promonya membuat runway kas turun drastis. Hitung unit economics-nya dan susun skenario proyeksi kas.",
+    "tier": "b2b",
+    "fieldKey": "finance",
+    "level": "advanced",
+    "price": 149000,
+    "about": "Danah menjalankan program cashback 20% untuk pembayaran QRIS di merchant UMKM. Jumlah transaksi naik tiga kali lipat, tetapi tim finance melihat runway kas tinggal 11 bulan dari sebelumnya 20 bulan. Direksi harus memutuskan apakah program dilanjutkan, diubah, atau dihentikan. Kamu diminta menyiapkan analisis untuk keputusan itu bersama Finance Manager Danah.",
+    "activities": [
+      "Menghitung unit economics per transaksi dan per pengguna",
+      "Menganalisis retensi kohort pengguna yang didapat dari promo",
+      "Membangun model proyeksi kas 18 bulan dengan beberapa skenario",
+      "Menyusun rekomendasi untuk direksi"
+    ],
+    "skills": [
+      "Unit economics",
+      "Financial modeling",
+      "Analisis kohort",
+      "Proyeksi arus kas",
+      "Presentasi ke direksi"
+    ],
+    "prerequisites": [
+      "Menguasai Excel atau Google Sheets tingkat menengah",
+      "Memahami laporan arus kas",
+      "Dasar analisis kohort"
+    ],
+    "reviewerRole": "Finance Manager",
+    "partner": {
+      "name": "Danah",
+      "industry": "Fintech & Dompet Digital",
+      "about": "Perusahaan teknologi finansial yang menyediakan infrastruktur dompet digital, pembayaran QRIS, transfer dana, dan layanan keuangan inklusif bagi masyarakat dan UMKM."
+    },
+    "context": [
+      "Program cashback 20% (maksimal Rp10.000 per transaksi, 5 kali per pengguna per minggu) berjalan sejak 4 bulan lalu. Transaksi QRIS bulanan naik dari 9 juta menjadi 27 juta, dan pengguna aktif bulanan naik dari 2,4 juta menjadi 4,1 juta. Rata-rata nilai transaksi Rp38.000.",
+      "Pendapatan Danah dari QRIS adalah MDR 0,3% yang dibayar merchant, dibagi dengan acquirer dan switching sehingga porsi Danah 0,18%. Biaya pemrosesan per transaksi rata-rata Rp210. Biaya cashback bulan lalu Rp41 miliar, sementara kas di bank Rp520 miliar dan biaya operasional tetap Rp27 miliar per bulan.",
+      "Data kohort di materi menunjukkan 62% pengguna yang bergabung lewat promo tidak bertransaksi lagi setelah jatah cashback mingguan habis, dan hanya 14% yang masih aktif di bulan ketiga tanpa promo. Ada indikasi 4% transaksi adalah transaksi fiktif antara pengguna dan merchant yang bekerja sama untuk mengambil cashback.",
+      "Sebagian pengguna yang bertahan mulai memakai produk lain dengan margin lebih tinggi: bayar tagihan (margin Rp1.500 per transaksi) dan paylater (margin bersih rata-rata 2,1% per bulan dari saldo). Investor menargetkan Danah mencapai EBITDA positif dalam 24 bulan.",
+      "Opsi yang sedang dipertimbangkan direksi: (A) lanjutkan apa adanya, (B) turunkan cashback menjadi 10% maksimal Rp5.000, (C) cashback hanya untuk pengguna baru selama 30 hari pertama, atau (D) hentikan total. Kamu boleh mengusulkan opsi lain."
+    ],
+    "tasks": [
+      {
+        "title": "Unit economics",
+        "description": "Hitung kontribusi margin per transaksi QRIS dengan dan tanpa cashback, biaya akuisisi efektif per pengguna yang bertahan, serta nilai pengguna (LTV) dengan memperhitungkan produk lain. Jelaskan semua asumsi dan dampak transaksi fiktif."
+      },
+      {
+        "title": "Model proyeksi kas",
+        "description": "Bangun model proyeksi kas bulanan 18 bulan untuk opsi A sampai D (dan opsi usulanmu bila ada), lengkap dengan runway, titik kas terendah, dan analisis sensitivitas terhadap retensi serta tingkat transaksi fiktif."
+      },
+      {
+        "title": "Rekomendasi untuk direksi",
+        "description": "Susun memo maksimal 2 halaman berisi rekomendasi, alasan finansial dan strategis, risiko, serta indikator yang perlu dipantau setiap bulan setelah keputusan diambil."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "model_keuangan",
+        "title": "Model keuangan",
+        "description": "Spreadsheet unit economics dan proyeksi kas dengan rumus yang bisa ditelusuri.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "xlsx"
+        ],
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "memo_direksi",
+        "title": "Memo untuk direksi",
+        "description": "Memo rekomendasi maksimal 2 halaman.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx"
+        ],
+        "maxSizeMb": 5
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Unit economics",
+        "weight": 30,
+        "description": "Perhitungan per transaksi dan per pengguna benar dan lengkap.",
+        "levelDescriptions": [
+          "Tidak ada perhitungan.",
+          "Perhitungan keliru atau komponen utama terlewat.",
+          "Perhitungan per transaksi benar, tetapi LTV atau CAC efektif belum.",
+          "Margin, CAC efektif, dan LTV dihitung benar dengan asumsi jelas.",
+          "Analisis lengkap termasuk dampak fraud dan produk lain, dengan asumsi yang teruji."
+        ]
+      },
+      {
+        "name": "Model proyeksi kas",
+        "weight": 30,
+        "description": "Model akurat, mudah ditelusuri, dan membandingkan skenario dengan adil.",
+        "levelDescriptions": [
+          "Tidak ada model.",
+          "Model hanya untuk satu skenario atau rumusnya rusak.",
+          "Beberapa skenario ada, tetapi tanpa sensitivitas.",
+          "Semua skenario lengkap dengan runway dan sensitivitas.",
+          "Model rapi, mudah diaudit, dan sensitivitasnya menunjukkan variabel paling kritis."
+        ]
+      },
+      {
+        "name": "Rekomendasi",
+        "weight": 25,
+        "description": "Rekomendasi tegas, didukung angka, dan memperhitungkan target investor.",
+        "levelDescriptions": [
+          "Tidak ada rekomendasi.",
+          "Rekomendasi tanpa dasar angka.",
+          "Rekomendasi didukung angka, tetapi risikonya tidak dibahas.",
+          "Rekomendasi jelas, didukung angka, dan risikonya dibahas.",
+          "Rekomendasi tajam, kreatif, dan memberi jalan menuju EBITDA positif."
+        ]
+      },
+      {
+        "name": "Komunikasi",
+        "weight": 15,
+        "description": "Memo ringkas dan mudah dipahami direksi non-finance.",
+        "levelDescriptions": [
+          "Tidak bisa dipahami.",
+          "Terlalu teknis dan panjang.",
+          "Cukup jelas, tetapi poin utama tidak menonjol.",
+          "Ringkas dan poin utama langsung terlihat.",
+          "Sangat jelas dan siap dibawa ke rapat direksi."
+        ]
+      }
+    ],
+    "passingScore": 70
+  },
+  {
+    "slug": "danah-downtime-saat-tanggal-gajian",
+    "title": "Downtime Berulang Setiap Tanggal Gajian",
+    "summary": "Aplikasi Danah lambat dan sempat mati 47 menit saat lonjakan transaksi tanggal 25. Rancang ulang proses deploy, autoscaling, dan pemantauan agar layanan tetap stabil.",
+    "tier": "b2b",
+    "fieldKey": "devops",
+    "level": "advanced",
+    "price": 149000,
+    "about": "Setiap tanggal gajian, transaksi di Danah naik hingga 4 kali lipat. Dalam tiga bulan terakhir terjadi tiga insiden besar, salah satunya mati total 47 menit karena deploy manual dilakukan bersamaan dengan lonjakan trafik. Kamu diminta menganalisis insiden dan merancang pipeline, strategi scaling, dan observability yang lebih baik bersama Staff DevOps Engineer Danah.",
+    "activities": [
+      "Membaca laporan insiden, metrik, dan konfigurasi infrastruktur",
+      "Merancang pipeline CI/CD dengan strategi rilis bertahap",
+      "Merancang autoscaling dan uji beban menjelang tanggal gajian",
+      "Menyusun SLO, alert, dan runbook insiden"
+    ],
+    "skills": [
+      "CI/CD",
+      "Kubernetes",
+      "Autoscaling",
+      "Observability",
+      "Incident management"
+    ],
+    "prerequisites": [
+      "Memahami Docker dan dasar Kubernetes",
+      "Pernah memakai GitHub Actions atau GitLab CI",
+      "Dasar Linux dan jaringan"
+    ],
+    "reviewerRole": "Staff DevOps Engineer",
+    "partner": {
+      "name": "Danah",
+      "industry": "Fintech & Dompet Digital",
+      "about": "Perusahaan teknologi finansial yang menyediakan infrastruktur dompet digital, pembayaran QRIS, transfer dana, dan layanan keuangan inklusif bagi masyarakat dan UMKM."
+    },
+    "context": [
+      "Danah menjalankan 34 microservice di Kubernetes (managed) pada satu region cloud dengan dua availability zone. Trafik normal 1.800 request per detik, dan pada tanggal 25 sampai 28 bisa mencapai 7.500 request per detik, dengan puncak antara pukul 11.00 dan 13.00.",
+      "Insiden terbesar: pada tanggal 25 pukul 11.40, engineer men-deploy versi baru transfer-service secara manual dengan kubectl apply. Versi itu punya migrasi database yang mengunci tabel transfers selama 6 menit. Pod lama dimatikan sebelum pod baru siap, connection pool database penuh, dan layanan pembayaran ikut lumpuh. Total downtime 47 menit, 380.000 transaksi gagal, dan tiket CS naik 9 kali lipat.",
+      "Kondisi saat ini: build image dilakukan di laptop engineer, tidak ada staging yang menyerupai produksi, HPA hanya memakai CPU dengan minimum 3 pod, tidak ada readiness probe di 19 service, alert dikirim lewat email untuk lebih dari 200 aturan sehingga sering diabaikan, dan tidak ada SLO tertulis.",
+      "Regulator mewajibkan laporan insiden besar dalam 24 jam dan menargetkan ketersediaan layanan pembayaran minimal 99,9% per bulan. Tim DevOps hanya 4 orang, sedangkan ada 9 squad produk yang men-deploy.",
+      "Danah ingin: tidak ada deploy manual ke produksi dalam 2 bulan, deploy bisa dibatalkan otomatis bila error naik, layanan siap menahan 3 kali lipat trafik normal, dan alert yang benar-benar perlu ditindaklanjuti."
+    ],
+    "tasks": [
+      {
+        "title": "Analisis insiden",
+        "description": "Tulis post-mortem tanpa menyalahkan individu (blameless) untuk insiden 47 menit: kronologi, akar masalah teknis dan proses, faktor yang memperparah, serta tindakan perbaikan beserta prioritasnya."
+      },
+      {
+        "title": "Pipeline dan strategi rilis",
+        "description": "Bangun contoh pipeline CI/CD (GitHub Actions atau GitLab CI) untuk satu service di repositori starter: build, test, scan keamanan image, deploy ke staging, lalu canary atau blue-green ke produksi dengan rollback otomatis berdasarkan metrik. Sertakan aturan aman untuk migrasi database dan jendela pembekuan deploy menjelang tanggal gajian."
+      },
+      {
+        "title": "Scaling, SLO, dan runbook",
+        "description": "Rancang konfigurasi autoscaling (metrik apa, batas minimum dan maksimum, pre-scaling terjadwal), rencana uji beban sebelum tanggal gajian, SLO dan error budget untuk layanan pembayaran, aturan alert yang dipangkas, serta runbook untuk insiden layanan pembayaran."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "post_mortem",
+        "title": "Post-mortem insiden",
+        "description": "Dokumen post-mortem blameless.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx",
+          "md"
+        ],
+        "maxSizeMb": 10
+      },
+      {
+        "slotKey": "repo_pipeline",
+        "title": "Repositori pipeline dan manifest",
+        "description": "Repositori berisi workflow CI/CD, manifest Kubernetes atau Helm, dan konfigurasi autoscaling.",
+        "kind": "link",
+        "isRequired": true,
+        "linkHint": "https://github.com/username/danah-release-pipeline"
+      },
+      {
+        "slotKey": "slo_runbook",
+        "title": "SLO, alert, dan runbook",
+        "description": "Dokumen SLO, error budget, daftar alert, rencana uji beban, dan runbook.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx",
+          "md"
+        ],
+        "maxSizeMb": 10
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Analisis insiden",
+        "weight": 20,
+        "description": "Post-mortem menemukan akar masalah teknis dan proses tanpa menyalahkan individu.",
+        "levelDescriptions": [
+          "Tidak ada analisis.",
+          "Menyalahkan engineer yang men-deploy.",
+          "Akar masalah teknis ditemukan, tetapi masalah proses terlewat.",
+          "Akar masalah teknis dan proses dibahas dengan tindakan perbaikan yang jelas.",
+          "Post-mortem matang, tindakan diprioritaskan, dan memenuhi kebutuhan laporan regulator."
+        ]
+      },
+      {
+        "name": "Pipeline dan rilis",
+        "weight": 35,
+        "description": "Pipeline berjalan, aman, dan mencegah deploy berbahaya mencapai pengguna.",
+        "levelDescriptions": [
+          "Pipeline tidak ada atau tidak berjalan.",
+          "Pipeline hanya build dan deploy langsung ke produksi.",
+          "Ada staging dan test, tetapi tanpa rilis bertahap atau rollback.",
+          "Rilis bertahap dengan rollback otomatis dan aturan migrasi yang aman.",
+          "Pipeline lengkap, aman, terdokumentasi, dan mudah dipakai 9 squad."
+        ]
+      },
+      {
+        "name": "Scaling dan keandalan",
+        "weight": 25,
+        "description": "Rancangan scaling dan uji beban menjamin layanan tahan lonjakan tanggal gajian.",
+        "levelDescriptions": [
+          "Tidak dibahas.",
+          "Hanya menambah jumlah pod.",
+          "Autoscaling diperbaiki, tetapi tanpa uji beban atau probe.",
+          "Autoscaling, probe, pre-scaling, dan uji beban dirancang dengan baik.",
+          "Rancangan matang termasuk batas database dan dependensi lain yang bisa menjadi bottleneck."
+        ]
+      },
+      {
+        "name": "Observability",
+        "weight": 20,
+        "description": "SLO, alert, dan runbook membuat tim bisa bereaksi cepat dan tepat.",
+        "levelDescriptions": [
+          "Tidak ada.",
+          "Menambah alert tanpa merapikan yang lama.",
+          "SLO ada, tetapi alert dan runbook belum terkait.",
+          "SLO, error budget, alert berbasis gejala, dan runbook saling terkait.",
+          "Observability matang dan realistis untuk tim berisi 4 orang."
+        ]
+      }
+    ],
+    "passingScore": 70
+  },
+  {
+    "slug": "bcaa-selisih-settlement-merchant-qris",
+    "title": "Selisih Rekonsiliasi Settlement Merchant QRIS di Akhir Bulan",
+    "summary": "Setiap tutup buku, BCAA menemukan selisih ratusan juta rupiah antara data transaksi QRIS, dana settlement merchant, dan buku besar. Telusuri penyebabnya dan rancang proses rekonsiliasi yang rapi.",
+    "tier": "b2b",
+    "fieldKey": "accounting",
+    "level": "intermediate",
+    "price": 149000,
+    "about": "Unit merchant acquiring BCAA memproses jutaan transaksi QRIS per bulan. Saat tutup buku, tim akuntansi selalu menemukan selisih antara laporan switching, dana yang disetor ke merchant, dan saldo akun penampungan di buku besar. Tim butuh 6 hari kerja untuk menjelaskannya, dan auditor mulai mempertanyakannya. Kamu diminta menelusuri selisih dan merancang proses rekonsiliasi bersama Accounting & Tax Lead BCAA.",
+    "activities": [
+      "Melakukan rekonsiliasi tiga arah dari data contoh",
+      "Mengklasifikasikan penyebab selisih",
+      "Menyusun jurnal penyesuaian dan perlakuan pajaknya",
+      "Merancang proses dan kontrol rekonsiliasi harian"
+    ],
+    "skills": [
+      "Rekonsiliasi",
+      "Jurnal penyesuaian",
+      "Akuntansi pendapatan fee",
+      "PPN atas jasa",
+      "Pengendalian internal"
+    ],
+    "prerequisites": [
+      "Memahami siklus akuntansi dan jurnal",
+      "Menguasai Excel (VLOOKUP atau XLOOKUP, pivot)",
+      "Dasar perpajakan PPN"
+    ],
+    "reviewerRole": "Accounting & Tax Lead",
+    "partner": {
+      "name": "BCAA",
+      "industry": "Perbankan & Layanan Keuangan",
+      "about": "Bank swasta terkemuka di Indonesia yang berfokus pada layanan perbankan transaksi, pembiayaan korporasi, perbankan digital, dan ekosistem pembayaran ritel."
+    },
+    "context": [
+      "BCAA memproses 14 juta transaksi QRIS per bulan dari 85.000 merchant. Dana transaksi masuk ke akun penampungan, lalu disetor ke rekening merchant setiap hari kerja (H+1) setelah dipotong MDR. Atas MDR, BCAA mengakui pendapatan fee dan memungut PPN.",
+      "Materi berisi data contoh satu bulan untuk 300 merchant: laporan transaksi dari switching (14.200 baris), file settlement yang dikirim ke merchant, mutasi akun penampungan, dan saldo buku besar. Pada tutup buku terakhir, selisih neto Rp412 juta, tetapi selisih bruto (jumlah absolut) mencapai Rp1,9 miliar.",
+      "Dugaan sumber selisih dari tim operasional: transaksi pukul 23.00-24.00 yang tercatat di tanggal berbeda oleh switching dan bank (cut-off), refund yang diproses manual, transaksi gagal yang terlanjur disetor, settlement yang tertunda karena rekening merchant diblokir, serta pembulatan MDR per transaksi versus per total harian.",
+      "Saat ini rekonsiliasi dilakukan bulanan oleh 3 staf dengan spreadsheet besar, tidak ada aging untuk pos yang belum terekonsiliasi, dan jurnal koreksi sering dicatat tanpa dokumen pendukung. Auditor eksternal mencatat temuan 'pengendalian rekonsiliasi akun penampungan kurang memadai'.",
+      "BCAA ingin selisih yang belum terjelaskan di bawah 0,01% dari volume, rekonsiliasi harian, dan tutup buku selesai dalam 2 hari kerja."
+    ],
+    "tasks": [
+      {
+        "title": "Rekonsiliasi tiga arah",
+        "description": "Lakukan rekonsiliasi antara laporan switching, file settlement, dan buku besar untuk data contoh. Klasifikasikan setiap selisih ke kategori penyebabnya, beserta nilai dan jumlah transaksinya. Tunjukkan berapa selisih yang masih belum bisa dijelaskan."
+      },
+      {
+        "title": "Jurnal penyesuaian dan pajak",
+        "description": "Susun jurnal penyesuaian untuk setiap kategori selisih yang perlu dikoreksi, termasuk dampaknya terhadap pendapatan fee dan PPN keluaran. Jelaskan perlakuan untuk refund dan transaksi gagal yang terlanjur disetor."
+      },
+      {
+        "title": "Rancangan proses dan kontrol",
+        "description": "Rancang proses rekonsiliasi harian: aturan pencocokan otomatis, penanganan cut-off, aging pos terbuka, batas toleransi, pemisahan tugas, dokumen pendukung untuk jurnal koreksi, dan laporan untuk manajemen dan auditor."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "kertas_kerja",
+        "title": "Kertas kerja rekonsiliasi",
+        "description": "Spreadsheet rekonsiliasi, klasifikasi selisih, dan jurnal penyesuaian.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "xlsx"
+        ],
+        "maxSizeMb": 25
+      },
+      {
+        "slotKey": "dokumen_proses",
+        "title": "Rancangan proses dan kontrol",
+        "description": "Dokumen proses rekonsiliasi harian beserta kontrolnya, dilengkapi flowchart.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx"
+        ],
+        "maxSizeMb": 10
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Ketepatan rekonsiliasi",
+        "weight": 35,
+        "description": "Selisih ditemukan dan diklasifikasikan dengan benar.",
+        "levelDescriptions": [
+          "Rekonsiliasi tidak dilakukan.",
+          "Hanya menghitung selisih total.",
+          "Sebagian kategori selisih teridentifikasi dengan benar.",
+          "Hampir semua selisih terklasifikasi dengan nilai yang benar.",
+          "Rekonsiliasi lengkap, selisih tak terjelaskan minimal, dan metodenya bisa diulang."
+        ]
+      },
+      {
+        "name": "Jurnal dan perpajakan",
+        "weight": 25,
+        "description": "Jurnal penyesuaian dan perlakuan PPN benar dan didukung penjelasan.",
+        "levelDescriptions": [
+          "Tidak ada jurnal.",
+          "Jurnal keliru secara prinsip.",
+          "Jurnal benar untuk sebagian kasus, PPN belum tepat.",
+          "Jurnal dan dampak PPN benar untuk semua kategori.",
+          "Jurnal benar, rapi, dan disertai dasar kebijakan akuntansi serta pajaknya."
+        ]
+      },
+      {
+        "name": "Proses dan kontrol",
+        "weight": 30,
+        "description": "Proses harian realistis dan menjawab temuan auditor.",
+        "levelDescriptions": [
+          "Tidak ada rancangan.",
+          "Rancangan hanya memindahkan proses bulanan menjadi harian.",
+          "Ada aturan pencocokan, tetapi kontrol dan aging belum.",
+          "Pencocokan, aging, toleransi, dan pemisahan tugas dirancang jelas.",
+          "Proses lengkap, terukur, dan langsung menjawab temuan auditor."
+        ]
+      },
+      {
+        "name": "Dokumentasi",
+        "weight": 10,
+        "description": "Kertas kerja dan dokumen mudah ditelusuri oleh pihak lain.",
+        "levelDescriptions": [
+          "Sulit ditelusuri.",
+          "Banyak angka tanpa sumber.",
+          "Cukup rapi, sebagian sumber tidak jelas.",
+          "Rapi dan setiap angka bisa ditelusuri.",
+          "Siap diperiksa auditor tanpa penjelasan tambahan."
+        ]
+      }
+    ],
+    "passingScore": 70
+  },
+  {
+    "slug": "bcaa-bug-nominal-transfer-lolos-ke-produksi",
+    "title": "Bug Nominal Transfer yang Lolos ke Produksi",
+    "summary": "Sebuah rilis aplikasi mobile banking BCAA membuat nominal transfer berubah saat format angka tertentu dipakai. Analisis kebocoran pengujian dan susun strategi QA untuk fitur transfer.",
+    "tier": "b2b",
+    "fieldKey": "qa",
+    "level": "intermediate",
+    "price": 149000,
+    "about": "Rilis versi 7.4 aplikasi mobile banking BCAA menyebabkan nominal transfer salah tersimpan ketika pengguna menempelkan angka dengan titik pemisah ribuan. Bug ditemukan pengguna, bukan tim QA. Kamu diminta menganalisis mengapa bug lolos, merancang test case untuk fitur transfer, dan menyusun strategi QA rilis bersama QA Engineering Lead BCAA.",
+    "activities": [
+      "Menganalisis laporan bug dan proses pengujian sebelum rilis",
+      "Menyusun test case berbasis risiko untuk fitur transfer",
+      "Membuat contoh otomasi pengujian untuk alur kritis",
+      "Merancang strategi QA dan kriteria rilis"
+    ],
+    "skills": [
+      "Desain test case",
+      "Pengujian berbasis risiko",
+      "Boundary value analysis",
+      "Otomasi pengujian",
+      "Bug reporting"
+    ],
+    "prerequisites": [
+      "Memahami siklus pengembangan perangkat lunak",
+      "Dasar teknik desain test case",
+      "Pernah memakai satu alat otomasi (misalnya Playwright, Appium, atau Postman)"
+    ],
+    "reviewerRole": "QA Engineering Lead",
+    "partner": {
+      "name": "BCAA",
+      "industry": "Perbankan & Layanan Keuangan",
+      "about": "Bank swasta terkemuka di Indonesia yang berfokus pada layanan perbankan transaksi, pembiayaan korporasi, perbankan digital, dan ekosistem pembayaran ritel."
+    },
+    "context": [
+      "Versi 7.4 memperbarui komponen input nominal agar mendukung tempel (paste) dari aplikasi lain. Bila pengguna menempelkan 'Rp1.500.000' dengan pengaturan bahasa perangkat Inggris, nilai yang tersimpan menjadi 1,5 (satu koma lima rupiah) atau 1.500 tergantung versi Android. Pada iOS, '1.500.000,50' terbaca 1.500.000.050.",
+      "Dalam 9 jam sebelum rilis ditarik, 2.140 transfer terdampak: sebagian besar gagal karena nominal di bawah minimum, tetapi 63 transfer berhasil dengan nominal yang lebih besar dari maksud pengguna, dengan total kelebihan Rp1,2 miliar. Tim operasional harus melakukan koreksi dan menghubungi penerima satu per satu.",
+      "Proses QA saat ini: 1.400 test case manual di spreadsheet, regresi penuh butuh 5 hari sehingga sering dipangkas; otomasi hanya mencakup login dan cek saldo; pengujian dilakukan di 4 perangkat dengan bahasa Indonesia; dan tidak ada pengujian khusus untuk paste, locale, atau aksesibilitas. Rilis dilakukan setiap 2 minggu.",
+      "Fitur transfer mencakup transfer sesama BCAA, antarbank (BI-FAST dan online), transfer terjadwal, dan transfer ke e-wallet, masing-masing dengan batas minimum, maksimum, biaya, dan jam layanan berbeda. Materi berisi spesifikasi fitur dan laporan bug lengkap.",
+      "BCAA ingin bug kritis pada transaksi uang tidak pernah lolos lagi, tanpa memperlambat siklus rilis 2 minggu."
+    ],
+    "tasks": [
+      {
+        "title": "Analisis kebocoran",
+        "description": "Jelaskan mengapa bug ini lolos dari sisi kebutuhan, desain, pengembangan, dan pengujian. Tulis laporan bug yang baik untuk kasus ini (langkah reproduksi, lingkungan, hasil yang diharapkan dan aktual, tingkat keparahan, dan dampak)."
+      },
+      {
+        "title": "Test case berbasis risiko",
+        "description": "Susun test case untuk input nominal dan alur transfer dengan teknik equivalence partitioning, boundary value, dan decision table: format angka, locale, paste, batas nominal, biaya, jam layanan, koneksi terputus, dan transaksi ganda. Prioritaskan berdasarkan risiko."
+      },
+      {
+        "title": "Otomasi dan strategi rilis",
+        "description": "Buat contoh otomasi untuk minimal 5 test case kritis (UI atau API, menggunakan alat pilihanmu terhadap aplikasi atau API contoh di materi). Lalu susun strategi QA: piramida pengujian, regresi minimum per rilis, matriks perangkat dan locale, kriteria rilis (entry dan exit criteria), dan rencana rilis bertahap."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "analisis_bug",
+        "title": "Analisis kebocoran dan laporan bug",
+        "description": "Analisis penyebab lolos dan laporan bug.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx"
+        ],
+        "maxSizeMb": 10
+      },
+      {
+        "slotKey": "test_case",
+        "title": "Kumpulan test case",
+        "description": "Spreadsheet test case beserta prioritas risikonya.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "xlsx",
+          "csv"
+        ],
+        "maxSizeMb": 10
+      },
+      {
+        "slotKey": "repo_otomasi",
+        "title": "Repositori otomasi dan strategi QA",
+        "description": "Repositori berisi skrip otomasi, README, dan dokumen strategi QA.",
+        "kind": "link",
+        "isRequired": true,
+        "linkHint": "https://github.com/username/bcaa-transfer-qa"
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Analisis kebocoran",
+        "weight": 20,
+        "description": "Penyebab lolosnya bug dijelaskan menyeluruh dan laporan bug berkualitas.",
+        "levelDescriptions": [
+          "Tidak ada analisis.",
+          "Menyalahkan satu pihak tanpa analisis proses.",
+          "Penyebab teknis jelas, tetapi celah proses terlewat.",
+          "Penyebab teknis dan proses dibahas, laporan bug lengkap.",
+          "Analisis tajam dengan rekomendasi pencegahan di setiap tahap."
+        ]
+      },
+      {
+        "name": "Desain test case",
+        "weight": 35,
+        "description": "Test case memakai teknik yang tepat dan mencakup risiko utama.",
+        "levelDescriptions": [
+          "Tidak ada test case.",
+          "Test case hanya alur positif.",
+          "Ada alur negatif, tetapi locale, paste, atau batas nominal kurang.",
+          "Cakupan lengkap dengan teknik yang tepat dan prioritas risiko.",
+          "Sangat lengkap, efisien, dan menemukan risiko yang tidak tersurat di brief."
+        ]
+      },
+      {
+        "name": "Otomasi",
+        "weight": 25,
+        "description": "Skrip otomasi berjalan, stabil, dan mudah dikembangkan.",
+        "levelDescriptions": [
+          "Tidak ada otomasi.",
+          "Skrip tidak berjalan.",
+          "Skrip berjalan untuk sebagian kasus, tetapi rapuh.",
+          "Minimal 5 kasus kritis berjalan stabil dengan README jelas.",
+          "Otomasi rapi, data uji terpisah, dan siap masuk pipeline CI."
+        ]
+      },
+      {
+        "name": "Strategi QA",
+        "weight": 20,
+        "description": "Strategi realistis untuk siklus rilis 2 minggu.",
+        "levelDescriptions": [
+          "Tidak ada strategi.",
+          "Strategi berupa 'tambah tester'.",
+          "Ada piramida pengujian, tetapi tanpa kriteria rilis.",
+          "Piramida, matriks perangkat, dan kriteria rilis jelas.",
+          "Strategi matang, terukur, dan tidak memperlambat rilis."
+        ]
+      }
+    ],
+    "passingScore": 70
+  },
+  {
+    "slug": "bcaa-pengambilalihan-akun-mobile-banking",
+    "title": "Gelombang Pengambilalihan Akun Mobile Banking lewat Phishing",
+    "summary": "Dalam dua minggu, 340 nasabah BCAA kehilangan dana setelah akun mobile banking mereka diambil alih lewat situs phishing dan OTP yang dibagikan. Tangani insidennya dan rancang kontrol pencegahannya.",
+    "tier": "b2b",
+    "fieldKey": "cyber-security",
+    "level": "advanced",
+    "price": 149000,
+    "about": "Penipu menyebarkan tautan 'pembaruan data nasabah' lewat SMS dan WhatsApp, meniru halaman login BCAA, lalu meminta OTP. Dengan data itu, mereka mendaftarkan perangkat baru dan menguras rekening korban. Kerugian nasabah mencapai Rp7,8 miliar dalam dua minggu. Kamu diminta menangani insiden ini dan merancang kontrol pencegahannya bersama Cyber Security Lead BCAA.",
+    "activities": [
+      "Menganalisis log autentikasi dan pola serangan",
+      "Menyusun langkah respons insiden sesuai tahapannya",
+      "Merancang kontrol teknis untuk mencegah pengambilalihan akun",
+      "Menyusun komunikasi dan edukasi nasabah"
+    ],
+    "skills": [
+      "Respons insiden",
+      "Analisis log",
+      "Threat modeling",
+      "Fraud prevention",
+      "Keamanan autentikasi"
+    ],
+    "prerequisites": [
+      "Memahami dasar autentikasi dan OTP",
+      "Pernah membaca log aplikasi atau SIEM",
+      "Dasar kerangka respons insiden (misalnya NIST)"
+    ],
+    "reviewerRole": "Cyber Security Lead",
+    "partner": {
+      "name": "BCAA",
+      "industry": "Perbankan & Layanan Keuangan",
+      "about": "Bank swasta terkemuka di Indonesia yang berfokus pada layanan perbankan transaksi, pembiayaan korporasi, perbankan digital, dan ekosistem pembayaran ritel."
+    },
+    "context": [
+      "Materi berisi log autentikasi anonim selama 14 hari (sekitar 2,3 juta baris): waktu, ID nasabah tersamar, ID perangkat, model perangkat, IP dan ASN, lokasi kasar, jenis kejadian (login, OTP terkirim, OTP berhasil, registrasi perangkat, perubahan limit, transfer), serta label 340 akun yang dikonfirmasi diambil alih.",
+      "Pola awal dari tim fraud: registrasi perangkat baru terjadi rata-rata 4 menit setelah nasabah memasukkan OTP di situs palsu, limit transfer langsung dinaikkan ke maksimum, lalu dana dipecah ke 3-8 rekening penampung di bank lain dalam 15 menit. 72% korban berusia di atas 45 tahun.",
+      "Kontrol saat ini: login dengan PIN 6 digit, registrasi perangkat baru cukup dengan OTP SMS, tidak ada jeda waktu setelah registrasi perangkat, perubahan limit tidak memerlukan verifikasi tambahan, dan notifikasi transaksi hanya lewat SMS ke nomor yang sama. Ada 27 domain phishing yang teridentifikasi, 11 masih aktif.",
+      "Regulasi mewajibkan bank melaporkan insiden dan melindungi data nasabah, dan nasabah yang dirugikan menuntut penggantian dana. Tim keamanan berisi 6 orang dan bisa meminta bantuan tim aplikasi selama 1 sprint.",
+      "BCAA ingin serangan aktif dihentikan dalam 48 jam, kerugian ditekan selama masa transisi, dan kontrol permanen yang tidak terlalu menyulitkan 9 juta nasabah lain."
+    ],
+    "tasks": [
+      {
+        "title": "Analisis log dan pola serangan",
+        "description": "Analisis log untuk menemukan indikator pengambilalihan akun (perangkat, IP, urutan kejadian, jeda waktu). Susun aturan deteksi yang bisa menandai akun berisiko, dan ukur seberapa banyak akun korban yang tertangkap dan seberapa banyak nasabah normal yang ikut tertandai."
+      },
+      {
+        "title": "Rencana respons insiden",
+        "description": "Susun langkah respons berdasarkan tahapan identifikasi, containment, eradikasi, pemulihan, dan pelajaran. Sertakan tindakan 48 jam pertama (misalnya takedown domain, pembekuan rekening penampung, verifikasi ulang perangkat baru), pembagian peran, dan kerangka laporan insiden."
+      },
+      {
+        "title": "Kontrol pencegahan dan edukasi",
+        "description": "Rancang kontrol permanen berbasis threat model: pengikatan perangkat, jeda dan verifikasi tambahan untuk tindakan berisiko, deteksi anomali transaksi, notifikasi lewat kanal berbeda, serta alternatif OTP SMS. Timbang dampaknya terhadap kenyamanan nasabah, lalu susun pesan edukasi untuk nasabah lansia."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "analisis_log",
+        "title": "Analisis log dan aturan deteksi",
+        "description": "Notebook, query, atau spreadsheet analisis log beserta aturan deteksi dan hasil pengukurannya.",
+        "kind": "link",
+        "isRequired": true,
+        "linkHint": "https://github.com/username/bcaa-ato-analysis"
+      },
+      {
+        "slotKey": "rencana_respons",
+        "title": "Rencana respons insiden",
+        "description": "Langkah respons, pembagian peran, dan kerangka laporan insiden.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx"
+        ],
+        "maxSizeMb": 10
+      },
+      {
+        "slotKey": "kontrol_edukasi",
+        "title": "Kontrol pencegahan dan edukasi",
+        "description": "Threat model, rancangan kontrol, analisis dampak, dan materi edukasi.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "pptx"
+        ],
+        "maxSizeMb": 15
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Analisis dan deteksi",
+        "weight": 30,
+        "description": "Pola serangan ditemukan dari data dan aturan deteksinya terukur.",
+        "levelDescriptions": [
+          "Tidak ada analisis.",
+          "Pola disebut tanpa bukti dari log.",
+          "Pola ditemukan, tetapi aturan deteksi belum diukur.",
+          "Aturan deteksi terukur dengan tingkat tangkapan dan salah tandai yang jelas.",
+          "Deteksi tajam dengan keseimbangan tangkapan dan salah tandai yang dibahas matang."
+        ]
+      },
+      {
+        "name": "Respons insiden",
+        "weight": 25,
+        "description": "Langkah respons cepat, terstruktur, dan memenuhi kewajiban pelaporan.",
+        "levelDescriptions": [
+          "Tidak ada rencana.",
+          "Daftar tindakan tanpa urutan atau peran.",
+          "Tahapan ada, tetapi tindakan 48 jam pertama kurang konkret.",
+          "Tahapan, tindakan 48 jam, peran, dan laporan insiden jelas.",
+          "Rencana siap dijalankan dan mempertimbangkan pemulihan dana nasabah."
+        ]
+      },
+      {
+        "name": "Kontrol pencegahan",
+        "weight": 30,
+        "description": "Kontrol menutup jalur serangan dengan dampak wajar bagi nasabah.",
+        "levelDescriptions": [
+          "Tidak ada kontrol.",
+          "Kontrol umum seperti 'tambah keamanan'.",
+          "Beberapa kontrol tepat, tetapi tanpa threat model atau analisis dampak.",
+          "Kontrol berbasis threat model dengan analisis dampak yang seimbang.",
+          "Kontrol berlapis, realistis untuk 1 sprint, dan disertai rencana bertahap."
+        ]
+      },
+      {
+        "name": "Edukasi nasabah",
+        "weight": 15,
+        "description": "Pesan edukasi jelas dan cocok untuk nasabah lansia.",
+        "levelDescriptions": [
+          "Tidak ada.",
+          "Pesan teknis dan sulit dipahami.",
+          "Pesan jelas, tetapi tidak menyasar kelompok rentan.",
+          "Pesan jelas, singkat, dan menyasar nasabah lansia.",
+          "Materi siap pakai di berbagai kanal dan mudah diingat."
+        ]
+      }
+    ],
+    "passingScore": 70
+  },
+  {
+    "slug": "paragone-turnover-beauty-advisor",
+    "title": "Turnover Tinggi Beauty Advisor di Gerai Ritel",
+    "summary": "43% beauty advisor Paragone keluar sebelum genap enam bulan, padahal mereka ujung tombak penjualan di gerai. Analisis penyebabnya dan rancang program retensi yang terukur.",
+    "tier": "b2b",
+    "fieldKey": "hr",
+    "level": "intermediate",
+    "price": 149000,
+    "about": "Paragone Corp mempekerjakan sekitar 2.600 beauty advisor (BA) di department store dan drugstore di seluruh Indonesia. Turnover BA terus naik, biaya rekrutmen dan pelatihan membengkak, dan gerai yang sering berganti BA penjualannya lebih rendah. Kamu diminta menganalisis data karyawan dan merancang program retensi bersama HR Business Partner Paragone Corp.",
+    "activities": [
+      "Menganalisis data karyawan, exit interview, dan survei engagement",
+      "Menemukan penyebab utama BA keluar di enam bulan pertama",
+      "Merancang program retensi dan perbaikan onboarding",
+      "Menghitung biaya dan manfaat program"
+    ],
+    "skills": [
+      "People analytics",
+      "Desain program retensi",
+      "Onboarding",
+      "Analisis biaya-manfaat",
+      "Komunikasi dengan manajemen"
+    ],
+    "prerequisites": [
+      "Memahami dasar manajemen SDM",
+      "Menguasai spreadsheet untuk analisis",
+      "Mampu membaca data survei"
+    ],
+    "reviewerRole": "HR Business Partner",
+    "partner": {
+      "name": "Paragone Corp",
+      "industry": "FMCG Kosmetik & Perawatan Diri",
+      "about": "Perusahaan manufaktur dan distribusi produk kecantikan serta perawatan diri terkemuka di Indonesia dengan portofolio brand lokal yang didukung riset dan inovasi."
+    },
+    "context": [
+      "Materi berisi data anonim 3.900 BA yang bergabung dalam 2 tahun terakhir: tanggal masuk dan keluar, wilayah, tipe gerai, jalur rekrutmen (langsung atau agen outsourcing), gaji pokok, insentif penjualan yang diterima, jarak rumah ke gerai, supervisor, skor pelatihan, serta hasil exit interview dan survei engagement.",
+      "Turnover tahunan BA mencapai 58%, dan 43% BA keluar sebelum 6 bulan. Biaya rekrutmen dan pelatihan per BA sekitar Rp6,5 juta. Gerai yang BA-nya berganti lebih dari dua kali dalam setahun penjualannya rata-rata 17% lebih rendah dibanding gerai yang stabil.",
+      "Alasan keluar terbanyak di exit interview: target penjualan dirasa tidak realistis (31%), insentif dibayar terlambat dan perhitungannya tidak jelas (24%), perlakuan supervisor dan pengelola gerai (18%), jarak dan jadwal shift (14%), serta tawaran dari brand pesaing (9%). BA dari agen outsourcing turnover-nya 1,6 kali lebih tinggi.",
+      "Pelatihan awal hanya 2 hari tentang produk, lalu BA langsung ditempatkan di gerai tanpa pendamping. Survei engagement menunjukkan skor terendah pada 'saya tahu jalur karier saya' dan 'saya dihargai atasan'.",
+      "Paragone ingin menurunkan turnover 6 bulan pertama dari 43% menjadi 25% dalam satu tahun, dengan anggaran program maksimal Rp3,2 miliar per tahun."
+    ],
+    "tasks": [
+      {
+        "title": "Analisis penyebab turnover",
+        "description": "Analisis data untuk menemukan faktor yang paling terkait dengan BA keluar sebelum 6 bulan (misalnya jalur rekrutmen, supervisor, wilayah, insentif, jarak). Gabungkan temuan kuantitatif dengan data exit interview dan survei engagement, lalu tentukan 3-4 akar masalah utama."
+      },
+      {
+        "title": "Rancangan program retensi",
+        "description": "Rancang program yang menjawab akar masalah, misalnya perbaikan onboarding dan pendampingan 90 hari, transparansi dan ketepatan insentif, pelatihan supervisor, jalur karier BA, atau perubahan kebijakan agen outsourcing. Jelaskan prioritas, penanggung jawab, dan jadwal pelaksanaannya."
+      },
+      {
+        "title": "Biaya, manfaat, dan pengukuran",
+        "description": "Hitung biaya program dan perkiraan penghematan dari turunnya turnover serta dampaknya pada penjualan gerai. Tentukan metrik dan cara mengujinya, misalnya pilot di beberapa wilayah sebelum diterapkan nasional."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "analisis_data",
+        "title": "Analisis data turnover",
+        "description": "Spreadsheet atau notebook analisis beserta grafik utamanya.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "xlsx",
+          "pdf"
+        ],
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "proposal_program",
+        "title": "Proposal program retensi",
+        "description": "Proposal untuk manajemen berisi temuan, program, biaya-manfaat, dan rencana pilot.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "pptx"
+        ],
+        "maxSizeMb": 20
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Analisis data",
+        "weight": 30,
+        "description": "Akar masalah ditemukan dari data kuantitatif dan kualitatif.",
+        "levelDescriptions": [
+          "Tidak ada analisis.",
+          "Hanya merangkum alasan exit interview.",
+          "Data kuantitatif dianalisis, tetapi tidak digabungkan dengan data kualitatif.",
+          "Akar masalah teridentifikasi dari gabungan data dengan bukti jelas.",
+          "Analisis tajam, menemukan segmen berisiko tinggi, dan membedakan korelasi dari sebab."
+        ]
+      },
+      {
+        "name": "Rancangan program",
+        "weight": 35,
+        "description": "Program menjawab akar masalah dan bisa dijalankan di gerai yang tersebar.",
+        "levelDescriptions": [
+          "Tidak ada program.",
+          "Program umum seperti 'naikkan gaji'.",
+          "Program terkait sebagian akar masalah, tetapi pelaksanaannya kabur.",
+          "Program menjawab akar masalah dengan prioritas, penanggung jawab, dan jadwal.",
+          "Program kreatif, realistis untuk operasional ritel, dan memperhatikan pengalaman BA."
+        ]
+      },
+      {
+        "name": "Biaya dan manfaat",
+        "weight": 20,
+        "description": "Perhitungan biaya-manfaat masuk akal dan sesuai anggaran.",
+        "levelDescriptions": [
+          "Tidak ada perhitungan.",
+          "Angka tanpa dasar.",
+          "Biaya dihitung, tetapi manfaat tidak.",
+          "Biaya dan manfaat dihitung dengan asumsi jelas dan sesuai anggaran.",
+          "Perhitungan lengkap dengan skenario dan dampak penjualan gerai."
+        ]
+      },
+      {
+        "name": "Pengukuran dan pilot",
+        "weight": 15,
+        "description": "Keberhasilan program bisa diuji sebelum diterapkan nasional.",
+        "levelDescriptions": [
+          "Tidak ada.",
+          "Metrik tanpa cara pengukuran.",
+          "Metrik jelas, tetapi tanpa rencana pilot.",
+          "Metrik dan rencana pilot jelas.",
+          "Desain pilot matang dengan kelompok pembanding dan kriteria perluasan."
+        ]
+      }
+    ],
+    "passingScore": 70
+  },
+  {
+    "slug": "sayap-stok-kosong-indonesia-timur-menjelang-ramadan",
+    "title": "Stok Kosong di Indonesia Timur, Gudang Jawa Penuh Menjelang Ramadan",
+    "summary": "Menjelang Ramadan, distributor Sayap di Indonesia Timur kehabisan stok sirup dan biskuit, sementara gudang di Jawa penuh. Rancang ulang perencanaan permintaan dan alokasi stok antarwilayah.",
+    "tier": "b2b",
+    "fieldKey": "supply-chain",
+    "level": "advanced",
+    "price": 149000,
+    "about": "Ramadan adalah puncak penjualan sirup dan biskuit Sayap. Tahun lalu, distributor di Sulawesi, Maluku, dan Papua kehabisan stok 2-3 minggu sebelum Lebaran, sementara gudang regional Jawa Timur kelebihan stok dan harus memberi diskon setelah Lebaran. Kamu diminta merancang perencanaan permintaan dan alokasi stok yang lebih baik bersama Supply Chain Manager Sayap.",
+    "activities": [
+      "Menganalisis data penjualan, stok, dan lead time per wilayah",
+      "Membangun perkiraan permintaan musiman Ramadan",
+      "Menghitung safety stock dan rencana alokasi antarwilayah",
+      "Merancang proses S&OP dan pemantauan menjelang musim puncak"
+    ],
+    "skills": [
+      "Demand forecasting",
+      "Inventory planning",
+      "Safety stock",
+      "Perencanaan distribusi",
+      "S&OP"
+    ],
+    "prerequisites": [
+      "Memahami dasar manajemen persediaan",
+      "Menguasai spreadsheet tingkat menengah",
+      "Dasar statistik deskriptif"
+    ],
+    "reviewerRole": "Supply Chain Manager",
+    "partner": {
+      "name": "Sayap",
+      "industry": "FMCG Kebutuhan Rumah Tangga & Makanan",
+      "about": "Perusahaan barang konsumsi cepat saji (FMCG) besar di Indonesia yang memproduksi dan mendistribusikan produk perawatan rumah tangga, perawatan pribadi, serta makanan dan minuman."
+    },
+    "context": [
+      "Materi berisi data mingguan 3 tahun untuk 12 SKU sirup dan biskuit di 6 gudang regional (Jawa Barat, Jawa Timur, Sumatra Utara, Kalimantan Timur, Sulawesi Selatan, dan Papua) serta 140 distributor: penjualan dari distributor ke toko, stok, kiriman masuk, dan tanggal Ramadan setiap tahun.",
+      "Tahun lalu, perkiraan permintaan dibuat dengan menambah 35% dari penjualan rata-rata 3 bulan sebelumnya untuk semua wilayah. Kenyataannya, kenaikan di Indonesia Timur mencapai 70-90% karena tradisi hantaran dan parsel, sedangkan di Jawa Timur hanya 25%. Akibatnya, lost sales di Indonesia Timur diperkirakan Rp38 miliar dan stok berlebih di Jawa Timur Rp21 miliar harus dijual dengan diskon.",
+      "Lead time pengiriman dari pabrik di Jawa ke Papua 18-28 hari lewat laut, dengan jadwal kapal 2 kali sebulan, dan ke Sulawesi 10-14 hari. Kapasitas gudang Papua hanya 40% dari Jawa Timur. Biaya pengiriman antargudang setelah stok terlanjur dikirim ke wilayah yang salah 3 kali lebih mahal dari pengiriman awal.",
+      "Masa simpan sirup 18 bulan dan biskuit 9 bulan. Pabrik butuh konfirmasi volume produksi 10 minggu sebelum Ramadan. Tim sales cenderung memberi angka permintaan yang terlalu tinggi agar target tercapai.",
+      "Target Sayap: tingkat ketersediaan stok di distributor minimal 95% selama 6 minggu sebelum Lebaran, dan stok berlebih setelah Lebaran turun minimal 40%."
+    ],
+    "tasks": [
+      {
+        "title": "Analisis dan perkiraan permintaan",
+        "description": "Analisis pola penjualan Ramadan per wilayah dan SKU dari data 3 tahun (perhatikan bahwa tanggal Ramadan bergeser setiap tahun). Bangun perkiraan permintaan per wilayah untuk Ramadan berikutnya, ukur akurasinya pada data historis, dan jelaskan metode serta keterbatasannya."
+      },
+      {
+        "title": "Rencana stok dan alokasi",
+        "description": "Hitung safety stock per gudang dengan memperhitungkan variasi permintaan dan lead time, lalu susun rencana produksi dan jadwal pengiriman per wilayah yang menyesuaikan jadwal kapal dan kapasitas gudang. Bandingkan biaya dan tingkat ketersediaan rencanamu dengan cara tahun lalu."
+      },
+      {
+        "title": "Proses S&OP",
+        "description": "Rancang proses S&OP menjelang musim puncak: siapa terlibat, kapan rapat, data apa yang dibahas, cara menyaring angka sales yang terlalu optimis, serta indikator peringatan dini dan tindakan bila permintaan menyimpang dari perkiraan."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "model_perencanaan",
+        "title": "Model perkiraan dan perencanaan",
+        "description": "Spreadsheet atau notebook perkiraan permintaan, safety stock, dan rencana alokasi.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "xlsx",
+          "zip"
+        ],
+        "maxSizeMb": 25
+      },
+      {
+        "slotKey": "laporan_rekomendasi",
+        "title": "Laporan dan proses S&OP",
+        "description": "Laporan temuan, perbandingan dengan tahun lalu, dan rancangan proses S&OP.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "pptx"
+        ],
+        "maxSizeMb": 20
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Perkiraan permintaan",
+        "weight": 30,
+        "description": "Perkiraan menangkap pola musiman per wilayah dan akurasinya diukur.",
+        "levelDescriptions": [
+          "Tidak ada perkiraan.",
+          "Memakai satu persentase kenaikan untuk semua wilayah.",
+          "Perkiraan per wilayah, tetapi pergeseran tanggal Ramadan tidak diperhitungkan.",
+          "Perkiraan per wilayah dan SKU dengan akurasi historis terukur.",
+          "Perkiraan kuat dengan metode yang dibandingkan dan keterbatasan yang dijelaskan jujur."
+        ]
+      },
+      {
+        "name": "Rencana stok dan alokasi",
+        "weight": 35,
+        "description": "Rencana realistis terhadap lead time, jadwal kapal, kapasitas, dan masa simpan.",
+        "levelDescriptions": [
+          "Tidak ada rencana.",
+          "Rencana tidak mempertimbangkan lead time atau kapasitas.",
+          "Safety stock dihitung, tetapi jadwal pengiriman tidak realistis.",
+          "Rencana lengkap dan realistis, dibandingkan dengan cara tahun lalu.",
+          "Rencana optimal dengan analisis trade-off biaya dan ketersediaan yang matang."
+        ]
+      },
+      {
+        "name": "Proses S&OP",
+        "weight": 20,
+        "description": "Proses membuat keputusan lintas tim lebih akurat dan cepat.",
+        "levelDescriptions": [
+          "Tidak ada.",
+          "Hanya jadwal rapat.",
+          "Peserta dan data ada, tetapi tanpa peringatan dini.",
+          "Proses lengkap dengan peringatan dini dan tindakan korektif.",
+          "Proses matang dan menyelesaikan bias angka sales dengan cara yang adil."
+        ]
+      },
+      {
+        "name": "Komunikasi",
+        "weight": 15,
+        "description": "Temuan dan rencana mudah dipahami manajemen.",
+        "levelDescriptions": [
+          "Sulit dipahami.",
+          "Terlalu banyak tabel tanpa kesimpulan.",
+          "Cukup jelas, kesimpulan kurang tegas.",
+          "Jelas, terstruktur, dan kesimpulan tegas.",
+          "Sangat meyakinkan dan siap dipresentasikan ke direksi."
+        ]
+      }
+    ],
+    "passingScore": 70
+  },
+  {
+    "slug": "astral-perjanjian-berbagi-data-konsumen-uu-pdp",
+    "title": "Perjanjian Berbagi Data Konsumen dengan Mitra Fintech di Bawah UU PDP",
+    "summary": "Unit pembiayaan Astral akan berbagi data konsumen kendaraan dengan mitra fintech untuk penawaran asuransi dan pinjaman. Telaah draf perjanjiannya dan susun usulan perbaikan yang sesuai UU PDP.",
+    "tier": "b2b",
+    "fieldKey": "legal",
+    "level": "advanced",
+    "price": 149000,
+    "about": "Unit pembiayaan kendaraan Astral menerima draf perjanjian kerja sama dari mitra fintech untuk berbagi data 1,2 juta konsumen. Draf itu disusun pihak mitra dan banyak klausulnya merugikan Astral sebagai pengendali data. Kamu diminta menelaah draf perjanjian, memetakan risikonya terhadap UU Pelindungan Data Pribadi, dan menyusun usulan perbaikan bersama Corporate Legal Counsel Astral.",
+    "activities": [
+      "Menelaah draf perjanjian kerja sama berbagi data",
+      "Memetakan kewajiban berdasarkan UU No. 27 Tahun 2022 tentang Pelindungan Data Pribadi",
+      "Menyusun matriks risiko dan usulan perubahan klausul",
+      "Menulis memo hukum untuk direksi"
+    ],
+    "skills": [
+      "Contract review",
+      "Hukum pelindungan data pribadi",
+      "Analisis risiko hukum",
+      "Legal drafting",
+      "Penulisan memo hukum"
+    ],
+    "prerequisites": [
+      "Memahami dasar hukum perjanjian (KUH Perdata)",
+      "Pernah membaca UU PDP atau regulasi sejenis",
+      "Mampu menulis dokumen hukum dengan rapi"
+    ],
+    "reviewerRole": "Corporate Legal Counsel",
+    "partner": {
+      "name": "Astral",
+      "industry": "Otomotif, Manufaktur & Jasa Keuangan",
+      "about": "Grup usaha nasional terdiversifikasi yang bergerak di bidang otomotif, jasa keuangan, alat berat, pertambangan, agribisnis, infrastruktur, dan teknologi informasi di Indonesia."
+    },
+    "context": [
+      "Rencana kerja sama: Astral membagikan data konsumen pembiayaan kendaraan (nama, NIK, nomor HP, alamat, data kendaraan, riwayat pembayaran angsuran) kepada mitra fintech. Mitra akan memakai data itu untuk menawarkan asuransi kendaraan dan pinjaman tunai, dan Astral mendapat bagi hasil 15% dari pendapatan yang dihasilkan.",
+      "Materi berisi draf perjanjian 18 halaman. Beberapa klausul yang perlu diperhatikan: Pasal 4 memberi mitra hak memakai data 'untuk keperluan bisnis lainnya'; Pasal 7 mengizinkan mitra mengalihkan data ke afiliasi tanpa persetujuan; Pasal 9 menyebut data disimpan 'selama diperlukan'; Pasal 12 membatasi tanggung jawab mitra atas kebocoran data maksimal Rp100 juta; dan Pasal 15 memilih forum arbitrase di luar negeri.",
+      "Formulir persetujuan konsumen saat pengajuan kredit hanya memuat kalimat umum 'data dapat digunakan untuk keperluan pemrosesan kredit dan pemasaran produk grup'. Sekitar 30% konsumen sudah lunas dan tidak lagi berhubungan aktif dengan Astral.",
+      "UU PDP mengatur dasar pemrosesan data, kewajiban pengendali dan prosesor, hak subjek data, pemberitahuan kegagalan pelindungan data, serta sanksi administratif dan pidana. Masa transisi UU PDP telah berakhir pada Oktober 2024. Regulasi sektor jasa keuangan dari OJK juga mengatur pelindungan konsumen.",
+      "Direksi tertarik pada potensi pendapatan, tetapi tidak ingin perusahaan menanggung risiko hukum dan reputasi. Keputusan akan diambil dalam rapat 2 minggu lagi."
+    ],
+    "tasks": [
+      {
+        "title": "Analisis kepatuhan",
+        "description": "Petakan peran Astral dan mitra (pengendali, prosesor, atau pengendali bersama) dan dasar pemrosesan yang sah untuk setiap tujuan penggunaan data. Nilai apakah persetujuan konsumen yang ada cukup, termasuk untuk konsumen yang sudah lunas, dan kewajiban apa yang harus dipenuhi sebelum data dibagikan."
+      },
+      {
+        "title": "Matriks risiko dan usulan klausul",
+        "description": "Telaah draf perjanjian pasal demi pasal. Susun matriks risiko (klausul, risiko, tingkat risiko, dasar hukum, usulan perubahan) dan tulis ulang klausul yang bermasalah dalam bentuk redline atau usulan teks pengganti, termasuk klausul keamanan data, pemberitahuan insiden, audit, retensi dan pemusnahan data, serta tanggung jawab."
+      },
+      {
+        "title": "Memo untuk direksi",
+        "description": "Tulis memo maksimal 3 halaman dengan bahasa yang mudah dipahami non-hukum: ringkasan risiko, syarat minimal agar kerja sama bisa dilanjutkan, alternatif struktur kerja sama yang lebih aman (misalnya pemrosesan di sisi Astral atau data yang disamarkan), dan rekomendasi akhir."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "analisis_kepatuhan",
+        "title": "Analisis kepatuhan dan matriks risiko",
+        "description": "Analisis peran, dasar pemrosesan, persetujuan, dan matriks risiko.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx",
+          "xlsx"
+        ],
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "redline_perjanjian",
+        "title": "Redline atau usulan klausul",
+        "description": "Draf perjanjian dengan perubahan yang ditandai, atau dokumen usulan teks pengganti.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "docx",
+          "pdf"
+        ],
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "memo_direksi",
+        "title": "Memo untuk direksi",
+        "description": "Memo hukum maksimal 3 halaman.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx"
+        ],
+        "maxSizeMb": 5
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Analisis hukum",
+        "weight": 30,
+        "description": "Peran, dasar pemrosesan, dan persetujuan dianalisis tepat berdasarkan UU PDP.",
+        "levelDescriptions": [
+          "Tidak ada analisis.",
+          "Analisis umum tanpa merujuk aturan.",
+          "Merujuk UU PDP, tetapi peran atau dasar pemrosesan keliru.",
+          "Peran, dasar pemrosesan, dan kecukupan persetujuan dianalisis dengan benar.",
+          "Analisis tajam, termasuk konsumen lunas dan regulasi sektor jasa keuangan."
+        ]
+      },
+      {
+        "name": "Identifikasi risiko",
+        "weight": 25,
+        "description": "Klausul bermasalah ditemukan dan risikonya dinilai dengan tepat.",
+        "levelDescriptions": [
+          "Tidak ada.",
+          "Hanya satu atau dua klausul yang dibahas.",
+          "Sebagian besar klausul bermasalah ditemukan, tetapi penilaian risiko lemah.",
+          "Semua klausul utama ditemukan dengan tingkat risiko dan dasar hukum yang tepat.",
+          "Menemukan risiko tersembunyi di luar klausul yang disebut brief."
+        ]
+      },
+      {
+        "name": "Kualitas drafting",
+        "weight": 30,
+        "description": "Usulan klausul jelas, bisa dinegosiasikan, dan melindungi Astral.",
+        "levelDescriptions": [
+          "Tidak ada usulan.",
+          "Usulan berupa komentar tanpa teks pengganti.",
+          "Teks pengganti ada, tetapi ambigu atau tidak lengkap.",
+          "Teks pengganti jelas, lengkap, dan konsisten dengan analisis.",
+          "Drafting rapi, presisi, dan realistis untuk dinegosiasikan dengan mitra."
+        ]
+      },
+      {
+        "name": "Memo direksi",
+        "weight": 15,
+        "description": "Memo ringkas, mudah dipahami, dan memberi rekomendasi tegas.",
+        "levelDescriptions": [
+          "Tidak ada memo.",
+          "Memo terlalu teknis.",
+          "Memo jelas, tetapi tanpa rekomendasi tegas.",
+          "Memo jelas dengan syarat minimal dan rekomendasi tegas.",
+          "Memo sangat meyakinkan dan menawarkan alternatif struktur kerja sama."
+        ]
+      }
+    ],
+    "passingScore": 70
+  },
+  {
+    "slug": "astral-migrasi-sistem-booking-servis-bengkel",
+    "title": "Migrasi Sistem Booking Servis ke 300 Bengkel Resmi",
+    "summary": "Astral akan mengganti sistem booking servis lama di 300 bengkel resmi dengan aplikasi baru. Pilot pertama gagal dan antrean bengkel kacau. Susun rencana proyek migrasi yang lebih matang.",
+    "tier": "b2b",
+    "fieldKey": "product",
+    "level": "advanced",
+    "price": 149000,
+    "about": "Bengkel resmi Astral masih memakai sistem booking servis berbasis desktop yang berbeda-beda per wilayah. Aplikasi booking baru sudah dibangun, tetapi pilot di 12 bengkel Jabodetabek bermasalah: data booking hilang, kasir masih mencatat ganda, dan pelanggan menunggu lebih lama. Kamu berperan sebagai project manager yang menyusun ulang rencana migrasi bersama IT Project Manager Astral.",
+    "activities": [
+      "Menganalisis laporan evaluasi pilot yang gagal",
+      "Menyusun ruang lingkup, WBS, dan jadwal migrasi bertahap",
+      "Mengelola risiko, pemangku kepentingan, dan manajemen perubahan",
+      "Merancang kriteria go-live dan rencana rollback per gelombang"
+    ],
+    "skills": [
+      "Manajemen proyek",
+      "Work breakdown structure",
+      "Manajemen risiko",
+      "Change management",
+      "Perencanaan rollout"
+    ],
+    "prerequisites": [
+      "Memahami dasar manajemen proyek (waterfall atau agile)",
+      "Pernah membuat timeline atau Gantt chart",
+      "Mampu berkomunikasi dengan pemangku kepentingan non-teknis"
+    ],
+    "reviewerRole": "IT Project Manager",
+    "partner": {
+      "name": "Astral",
+      "industry": "Otomotif, Manufaktur & Jasa Keuangan",
+      "about": "Grup usaha nasional terdiversifikasi yang bergerak di bidang otomotif, jasa keuangan, alat berat, pertambangan, agribisnis, infrastruktur, dan teknologi informasi di Indonesia."
+    },
+    "context": [
+      "Jaringan bengkel resmi Astral terdiri dari 300 bengkel di 5 wilayah, melayani sekitar 420.000 servis per bulan. Bengkel memakai 3 sistem lama yang berbeda, sebagian tidak terhubung internet secara stabil. Aplikasi baru memungkinkan pelanggan booking lewat aplikasi, mengatur antrean mekanik, dan terhubung ke sistem stok suku cadang dan kasir pusat.",
+      "Pilot di 12 bengkel selama 6 minggu menghasilkan laporan evaluasi di materi: 7% booking dari sistem lama tidak termigrasi, kasir harus mencatat di dua sistem karena integrasi kasir belum selesai, pelatihan hanya 2 jam untuk service advisor, waktu tunggu pelanggan naik dari 25 menjadi 41 menit, dan 4 bengkel kembali memakai sistem lama tanpa koordinasi.",
+      "Pemangku kepentingan: kepala bengkel (diukur dari jumlah unit servis per hari), service advisor dan mekanik, tim IT pusat (8 orang), vendor pengembang aplikasi dengan kontrak yang berakhir dalam 7 bulan, tim keuangan yang membutuhkan data kasir akurat, serta manajemen yang menargetkan semua bengkel pindah sebelum akhir tahun.",
+      "Batasan: anggaran tersisa Rp4,8 miliar, tidak boleh ada migrasi di bulan menjelang Lebaran karena volume servis naik 60%, dan setiap bengkel hanya bisa menutup layanan maksimal setengah hari untuk transisi.",
+      "Manajemen ingin rencana yang realistis, bukan sekadar jadwal yang dipadatkan, serta laporan status yang bisa dipantau setiap minggu."
+    ],
+    "tasks": [
+      {
+        "title": "Evaluasi pilot dan ruang lingkup",
+        "description": "Analisis penyebab kegagalan pilot dari sisi teknis, proses, dan manusia. Tentukan ulang ruang lingkup proyek, prasyarat yang harus selesai sebelum rollout lanjutan (misalnya integrasi kasir dan migrasi data), serta definisi selesai untuk setiap bengkel."
+      },
+      {
+        "title": "Rencana proyek",
+        "description": "Susun WBS, jadwal rollout bertahap per gelombang dan wilayah (Gantt atau sejenisnya) dengan memperhatikan masa Lebaran, kontrak vendor, dan kapasitas tim. Sertakan estimasi anggaran, RACI, serta rencana pelatihan dan pendampingan di bengkel."
+      },
+      {
+        "title": "Risiko, go-live, dan pelaporan",
+        "description": "Buat daftar risiko dengan mitigasi dan pemiliknya, kriteria go-live dan rollback untuk setiap gelombang, rencana komunikasi ke pemangku kepentingan, serta contoh laporan status mingguan untuk manajemen."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "rencana_proyek",
+        "title": "Dokumen rencana proyek",
+        "description": "Evaluasi pilot, ruang lingkup, WBS, RACI, risiko, dan kriteria go-live.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx"
+        ],
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "jadwal_anggaran",
+        "title": "Jadwal dan anggaran",
+        "description": "Gantt chart dan estimasi anggaran per gelombang.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "xlsx",
+          "pdf"
+        ],
+        "maxSizeMb": 10
+      },
+      {
+        "slotKey": "laporan_status",
+        "title": "Contoh laporan status mingguan",
+        "description": "Satu halaman contoh laporan status untuk manajemen.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "pptx"
+        ],
+        "maxSizeMb": 5
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Evaluasi pilot",
+        "weight": 20,
+        "description": "Penyebab kegagalan pilot ditemukan dan menjadi dasar rencana baru.",
+        "levelDescriptions": [
+          "Tidak ada evaluasi.",
+          "Hanya mengulang isi laporan pilot.",
+          "Penyebab teknis ditemukan, tetapi faktor proses dan manusia terlewat.",
+          "Penyebab teknis, proses, dan manusia dianalisis dan dijadikan prasyarat.",
+          "Evaluasi tajam dengan pelajaran yang jelas diterapkan di rencana."
+        ]
+      },
+      {
+        "name": "Rencana dan jadwal",
+        "weight": 35,
+        "description": "WBS dan jadwal realistis terhadap batasan anggaran, waktu, dan kapasitas.",
+        "levelDescriptions": [
+          "Tidak ada rencana.",
+          "Jadwal dipadatkan tanpa memperhatikan batasan.",
+          "Rencana cukup lengkap, tetapi beberapa batasan dilanggar.",
+          "Rencana lengkap dan memenuhi semua batasan.",
+          "Rencana matang dengan dependensi, buffer, dan jalur kritis yang jelas."
+        ]
+      },
+      {
+        "name": "Risiko dan go-live",
+        "weight": 25,
+        "description": "Risiko dikelola dan setiap gelombang punya kriteria lanjut atau mundur.",
+        "levelDescriptions": [
+          "Tidak ada.",
+          "Daftar risiko tanpa mitigasi.",
+          "Risiko dan mitigasi ada, tetapi tanpa kriteria go-live.",
+          "Risiko, pemilik, mitigasi, kriteria go-live, dan rollback jelas.",
+          "Pengelolaan risiko matang dan mencegah terulangnya kegagalan pilot."
+        ]
+      },
+      {
+        "name": "Pemangku kepentingan dan perubahan",
+        "weight": 20,
+        "description": "Pelatihan, komunikasi, dan pelaporan membuat bengkel benar-benar beralih.",
+        "levelDescriptions": [
+          "Tidak dibahas.",
+          "Hanya menyebut 'sosialisasi'.",
+          "Ada rencana pelatihan, tetapi komunikasi dan pelaporan lemah.",
+          "Pelatihan, pendampingan, komunikasi, dan laporan mingguan terencana.",
+          "Manajemen perubahan matang dan memperhatikan insentif kepala bengkel."
+        ]
+      }
+    ],
+    "passingScore": 70
+  },
+  {
+    "slug": "kopi-memory-ekspansi-langganan-kopi-kantor",
+    "title": "Ekspansi Layanan Langganan Kopi untuk Kantor",
+    "summary": "Kopi Memory ingin menambah pendapatan di luar gerai lewat layanan langganan kopi untuk perusahaan. Susun strategi segmen, model bisnis, dan proposal kemitraan pertamanya.",
+    "tier": "b2b",
+    "fieldKey": "business-development",
+    "level": "intermediate",
+    "price": 149000,
+    "about": "Penjualan gerai Kopi Memory di kawasan perkantoran turun 19% sejak banyak perusahaan menerapkan kerja hybrid. Di sisi lain, beberapa HR perusahaan bertanya apakah Kopi Memory bisa menyediakan kopi untuk kantor mereka. Kamu diminta merancang strategi bisnis layanan langganan kopi kantor dan proposal kemitraan pertamanya bersama Business Development Lead Kopi Memory.",
+    "activities": [
+      "Menganalisis pasar dan menentukan segmen perusahaan sasaran",
+      "Merancang model bisnis dan skema harga paket langganan",
+      "Menyusun strategi akuisisi dan pipeline calon mitra",
+      "Menulis proposal kemitraan untuk satu calon klien"
+    ],
+    "skills": [
+      "Analisis pasar",
+      "Segmentasi B2B",
+      "Model bisnis dan pricing",
+      "Pipeline penjualan",
+      "Penulisan proposal"
+    ],
+    "prerequisites": [
+      "Memahami dasar model bisnis (misalnya Business Model Canvas)",
+      "Mampu membuat perhitungan sederhana di spreadsheet",
+      "Mampu menulis proposal yang persuasif"
+    ],
+    "reviewerRole": "Business Development Lead",
+    "partner": {
+      "name": "Kopi Memory",
+      "industry": "Food & Beverage (F&B) Ritel",
+      "about": "Jaringan kedai kopi modern berbasis teknologi di Indonesia yang menggabungkan pengalaman gerai fisik, pemesanan lewat aplikasi, dan rantai pasok bahan baku berskala nasional."
+    },
+    "context": [
+      "Kopi Memory punya 640 gerai di 38 kota, 180 di antaranya di kawasan perkantoran. Rata-rata penjualan gerai perkantoran turun dari 410 menjadi 330 gelas per hari, dengan penjualan Senin dan Jumat paling rendah. Kopi Memory punya pabrik roasting sendiri dan dapur pusat di 6 kota besar.",
+      "Dalam 3 bulan terakhir, 14 perusahaan menghubungi Kopi Memory untuk kebutuhan kopi kantor, rapat, atau acara. Saat ini semua permintaan ditangani manual oleh manajer gerai, tanpa harga baku. Pesaing menawarkan sewa mesin kopi otomatis Rp3-6 juta per bulan dan langganan biji kopi.",
+      "Data biaya di materi: harga pokok minuman siap saji Rp9.500 per gelas, biji kopi Rp210.000 per kg, sewa mesin espresso otomatis dari vendor Rp2,4 juta per bulan, dan biaya antar dari gerai terdekat Rp15.000 per pengiriman. Margin gerai saat ini sekitar 22%.",
+      "Gambaran pasar dari survei kecil kepada 60 HR dan general affairs: 48% menyediakan kopi sachet sebagai fasilitas karyawan, 35% ingin fasilitas kopi yang lebih baik untuk menarik karyawan kembali ke kantor, dan anggaran fasilitas pantry rata-rata Rp150.000-400.000 per karyawan per bulan. Pengambil keputusan biasanya HR, general affairs, atau procurement.",
+      "Kopi Memory menargetkan 40 klien korporat dan pendapatan Rp1,5 miliar per bulan dari layanan ini dalam 12 bulan, tanpa mengganggu operasional gerai."
+    ],
+    "tasks": [
+      {
+        "title": "Analisis pasar dan segmen",
+        "description": "Tentukan segmen perusahaan yang paling menjanjikan (industri, ukuran, lokasi, pola kerja) beserta alasannya. Perkirakan ukuran pasar secara bertahap (TAM, SAM, SOM) dan bandingkan tawaran Kopi Memory dengan alternatif yang ada."
+      },
+      {
+        "title": "Model bisnis dan harga",
+        "description": "Rancang 2-3 paket layanan (misalnya mesin di kantor dengan biji kopi, kuota minuman siap antar, atau paket acara), skema harga, struktur biaya, dan proyeksi margin per paket. Jelaskan kebutuhan operasional dan cara menjaga agar tidak mengganggu gerai."
+      },
+      {
+        "title": "Strategi akuisisi dan proposal",
+        "description": "Susun strategi akuisisi klien 12 bulan (kanal, tahapan pipeline, target konversi, dan kebutuhan tim), lalu tulis satu proposal kemitraan untuk calon klien fiktif: perusahaan teknologi dengan 450 karyawan yang bekerja hybrid 3 hari di kantor."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "strategi_bisnis",
+        "title": "Deck strategi bisnis",
+        "description": "Analisis pasar, segmen, paket layanan, dan strategi akuisisi.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "pptx"
+        ],
+        "maxSizeMb": 25
+      },
+      {
+        "slotKey": "model_harga",
+        "title": "Model harga dan proyeksi",
+        "description": "Spreadsheet harga, biaya, margin, dan proyeksi pendapatan 12 bulan.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "xlsx"
+        ],
+        "maxSizeMb": 10
+      },
+      {
+        "slotKey": "proposal_kemitraan",
+        "title": "Proposal kemitraan",
+        "description": "Proposal untuk calon klien, maksimal 6 halaman.",
+        "kind": "file",
+        "isRequired": true,
+        "formats": [
+          "pdf",
+          "docx"
+        ],
+        "maxSizeMb": 10
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Analisis pasar",
+        "weight": 20,
+        "description": "Segmen sasaran dan ukuran pasar ditentukan dengan logika yang kuat.",
+        "levelDescriptions": [
+          "Tidak ada analisis.",
+          "Segmen terlalu umum, misalnya 'semua perusahaan'.",
+          "Segmen jelas, tetapi ukuran pasar tanpa dasar.",
+          "Segmen beralasan dan ukuran pasar dihitung dengan asumsi jelas.",
+          "Analisis tajam dengan perbandingan kompetitif yang meyakinkan."
+        ]
+      },
+      {
+        "name": "Model bisnis",
+        "weight": 30,
+        "description": "Paket, harga, dan margin masuk akal serta bisa dijalankan.",
+        "levelDescriptions": [
+          "Tidak ada model bisnis.",
+          "Paket tanpa perhitungan biaya.",
+          "Harga dan biaya dihitung, tetapi margin atau operasional tidak realistis.",
+          "Paket, harga, margin, dan operasional realistis.",
+          "Model bisnis kreatif dengan margin sehat dan dampak minimal pada gerai."
+        ]
+      },
+      {
+        "name": "Strategi akuisisi",
+        "weight": 25,
+        "description": "Strategi realistis untuk mencapai target 40 klien.",
+        "levelDescriptions": [
+          "Tidak ada strategi.",
+          "Hanya daftar kanal pemasaran.",
+          "Kanal dan tahapan ada, tetapi target konversi tidak dihitung.",
+          "Pipeline, target konversi, dan kebutuhan tim dihitung dan realistis.",
+          "Strategi tajam dengan prioritas kanal dan pelajaran dari 14 permintaan awal."
+        ]
+      },
+      {
+        "name": "Proposal kemitraan",
+        "weight": 25,
+        "description": "Proposal persuasif, spesifik untuk klien, dan memudahkan pengambilan keputusan.",
+        "levelDescriptions": [
+          "Tidak ada proposal.",
+          "Proposal generik seperti brosur.",
+          "Proposal cukup spesifik, tetapi nilai bagi klien kurang jelas.",
+          "Proposal spesifik dengan nilai, paket, harga, dan langkah berikutnya yang jelas.",
+          "Proposal sangat meyakinkan dan siap dikirim ke calon klien sungguhan."
+        ]
+      }
+    ],
+    "passingScore": 70
+  }
+]

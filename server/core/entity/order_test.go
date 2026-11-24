@@ -36,7 +36,7 @@ func TestPaymentMethod(t *testing.T) {
 	assert.True(t, PaymentVABCA.IsVirtualAccount())
 	assert.True(t, PaymentVAMandiri.IsVirtualAccount())
 	assert.False(t, PaymentQRIS.IsVirtualAccount())
-	assert.Equal(t, 4000, PaymentVABNI.AdminFee())
+	assert.Equal(t, 0, PaymentVABNI.AdminFee())
 	assert.Equal(t, 0, PaymentGoPay.AdminFee())
 	assert.False(t, PaymentMethod("cash").IsValid())
 }
@@ -68,8 +68,6 @@ func TestPaymentDetails(t *testing.T) {
 	assert.Equal(t, "8277", scanned.VANumber)
 }
 
-func TestStartDeadline(t *testing.T) {
-	paidAt := time.Date(2026, 11, 3, 10, 0, 0, 0, time.UTC)
-	assert.Equal(t, time.Date(2026, 12, 3, 10, 0, 0, 0, time.UTC), StartDeadline(paidAt))
+func TestGrossAmount(t *testing.T) {
 	assert.Equal(t, "154000.00", GrossAmount(154000))
 }

@@ -23,7 +23,7 @@ COALESCE((SELECT round(avg(r.rating)::numeric, 1) FROM case_ratings r WHERE r.ca
 
 // caseSummaryColumns hanya memilih kolom kartu katalog, karena tabel cases lebar (brief, konteks).
 const caseSummaryColumns = `cases.id, cases.slug, cases.title, cases.summary, cases.tier, cases.status,
-cases.field_key, cases.level, cases.duration_label, cases.price, cases.partner_id, cases.deadline_days,
+cases.field_key, cases.level, cases.price, cases.partner_id,
 cases.passing_score, ` + caseComputedColumns
 
 const caseDetailColumns = "cases.*, " + caseComputedColumns
@@ -77,7 +77,7 @@ func (r *caseRepo) GetPublishedBySlug(ctx context.Context, slug string) (entity.
 
 func (r *caseRepo) GetByID(ctx context.Context, id string) (entity.Case, error) {
 	var c entity.Case
-	err := r.db.WithContext(ctx).Select("id", "tier", "status", "deadline_days").Where("id = ?", id).Take(&c).Error
+	err := r.db.WithContext(ctx).Select("id", "tier", "status").Where("id = ?", id).Take(&c).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return entity.Case{}, coreErrors.ErrCaseNotFound
 	}
@@ -106,7 +106,7 @@ func (r *caseRepo) CountRubricCriteria(ctx context.Context, caseID string) (int,
 func (r *caseRepo) GetWithSlotsByID(ctx context.Context, id string) (entity.Case, error) {
 	var c entity.Case
 	err := r.db.WithContext(ctx).
-		Select("id", "tier", "status", "deadline_days").
+		Select("id", "tier", "status").
 		Preload("Slots", orderByPosition).
 		Where("id = ?", id).
 		Take(&c).Error

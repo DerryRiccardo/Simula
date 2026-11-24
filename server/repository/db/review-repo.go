@@ -29,7 +29,6 @@ func (r *reviewRepo) Finalize(ctx context.Context, f entity.ReviewFinalization) 
 		updates := map[string]any{
 			"status":        f.To,
 			"score":         f.Review.TotalScore,
-			"deadline_at":   nil,
 			"review_due_at": nil,
 			"share_consent": f.ShareConsent,
 			"updated_at":    f.At,
