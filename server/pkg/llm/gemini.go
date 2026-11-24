@@ -19,7 +19,8 @@ import (
 
 const (
 	defaultGeminiBaseURL = "https://generativelanguage.googleapis.com/v1beta"
-	geminiMaxRetries     = 2
+	// Retry ditangani oleh worker pool (grading-pool.go) agar tidak terjadi nested retry.
+	geminiMaxRetries = 0
 )
 
 // Gemini mengimplementasikan coreRepo.LLM menggunakan Google Gemini generateContent API.

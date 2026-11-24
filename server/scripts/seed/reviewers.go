@@ -181,8 +181,8 @@ func seedReviewerAccounts(ctx context.Context, db *gorm.DB, users coreRepo.UserR
 	return nil
 }
 
-// seedReviewerAssignments menugaskan reviewer ke B2B case milik mitranya. Dijalankan setelah case
-// di-seed; penugasan yang sudah ada dibiarkan.
+// seedReviewerAssignments menugaskan reviewer ke B2B case milik mitranya sesuai bidangnya.
+// Dijalankan setelah case di-seed; penugasan yang sudah ada dibiarkan.
 func seedReviewerAssignments(ctx context.Context, db *gorm.DB) error {
 	for _, reviewer := range seedReviewers {
 		err := db.WithContext(ctx).Exec(`
@@ -190,8 +190,8 @@ func seedReviewerAssignments(ctx context.Context, db *gorm.DB) error {
 			SELECT c.id, u.id FROM cases c
 			JOIN partners p ON p.id = c.partner_id
 			JOIN users u ON u.email = ? AND u.role = 'reviewer'
-			WHERE c.tier = 'b2b' AND p.name = ?
-			ON CONFLICT (case_id, reviewer_id) DO NOTHING`, reviewer.email, reviewer.partner).Error
+			WHERE c.tier = 'b2b' AND p.name = ? AND c.field_key = ?
+			ON CONFLICT (case_id, reviewer_id) DO NOTHING`, reviewer.email, reviewer.partner, reviewer.field).Error
 		if err != nil {
 			return fmt.Errorf("failed to assign %s: %w", reviewer.email, err)
 		}
