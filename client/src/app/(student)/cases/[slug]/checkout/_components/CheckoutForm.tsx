@@ -60,10 +60,7 @@ export function CheckoutForm({ slug, summary }: CheckoutFormProps) {
           <h2 id="method-title" className="text-base md:text-base">
             Metode pembayaran
           </h2>
-          <p className="mt-1 text-sm text-ink-muted">
-            Virtual account dicek otomatis. QRIS dan GoPay langsung terkonfirmasi.
-          </p>
-          <div className="mt-5">
+          <div className="mt-4">
             <PaymentMethodPicker value={method} onChange={setMethod} />
           </div>
         </section>

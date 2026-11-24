@@ -31,13 +31,6 @@ const TIER_TABS: { value: TTierFilter; label: string }[] = [
   { value: 'b2b', label: 'B2B Case Study' },
 ];
 
-// Satu kalimat penjelas per tab, agar beda kedua produk terbaca tanpa membuka halaman lain.
-const TIER_NOTE: Record<TTierFilter, string> = {
-  all: 'Mulai gratis di AI Case Study, lalu validasi kompetensimu lewat B2B Case Study.',
-  ai: 'Gratis. Dinilai AI dalam hitungan menit, lengkap dengan feedback per kriteria.',
-  b2b: 'Brief nyata dari perusahaan mitra, direview langsung oleh praktisinya.',
-};
-
 const SORT_OPTIONS: { value: TCaseSort; label: string }[] = [
   { value: 'relevance', label: 'Paling relevan' },
   { value: 'popular', label: 'Terpopuler' },
@@ -54,7 +47,7 @@ const LEVEL_OPTIONS: { value: TCaseLevel | 'all'; label: string }[] = [
 
 export function CatalogView() {
   const { user, isLoading: isUserLoading } = useCurrentUser();
-  const { fieldByKey, filterOptions: fieldFilterOptions } = useActiveFields();
+  const { filterOptions: fieldFilterOptions } = useActiveFields();
   const { searchParams, setParams } = useUrlParams();
   const tier = parseOption(TIER_TABS, searchParams.get('tier'), 'all');
   const field = parseOption(fieldFilterOptions, searchParams.get('field'), FILTER_ALL);
@@ -79,7 +72,6 @@ export function CatalogView() {
 
   const cases = data?.data ?? [];
   const userFields = user?.fieldKeys ?? [];
-  const userFieldLabels = userFields.flatMap((key) => fieldByKey[key]?.label ?? []);
   // Tanpa pencarian dan filter bidang/level, daftar kosong berarti semua case di tab ini sudah diambil.
   const hasRefinements = field !== FILTER_ALL || level !== 'all' || urlSearch !== '';
   const tierLabel = tier === 'all' ? 'case' : TIER_TABS.find((tab) => tab.value === tier)?.label;
@@ -114,16 +106,13 @@ export function CatalogView() {
       />
 
       <div className="grid gap-4">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div data-tour="tier-filter">
-            <FilterTabs
-              ariaLabel="Jenis case"
-              options={TIER_TABS}
-              value={tier}
-              onChange={(value) => setParams({ tier: value === 'all' ? null : value })}
-            />
-          </div>
-          <p className="text-sm text-ink-muted lg:text-right">{TIER_NOTE[tier]}</p>
+        <div data-tour="tier-filter">
+          <FilterTabs
+            ariaLabel="Jenis case"
+            options={TIER_TABS}
+            value={tier}
+            onChange={(value) => setParams({ tier: value === 'all' ? null : value })}
+          />
         </div>
 
         <SearchToolbar
@@ -141,18 +130,8 @@ export function CatalogView() {
       <section aria-label="Daftar case" className="grid gap-4">
         {data && (
           <p className="text-sm text-ink-subtle" aria-live="polite">
-            <span className="font-mono text-ink tabular-nums">{data.metadata.totalItems}</span> case
-            {sort === 'relevance' && userFieldLabels.length > 0 && cases.length > 0 && (
-              <>, bidang {userFieldLabels.join(' dan ')} ditampilkan lebih dulu</>
-            )}
-            {user && (
-              <>
-                . Case yang sudah kamu ambil ada di{' '}
-                <Link href={PATHS.myCases} className="font-medium text-brand hover:underline">
-                  Case Saya
-                </Link>
-              </>
-            )}
+            Total <span className="font-mono text-ink tabular-nums">{data.metadata.totalItems}</span>{' '}
+            case
           </p>
         )}
 
