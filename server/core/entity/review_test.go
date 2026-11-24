@@ -102,16 +102,6 @@ func TestEnrollmentCanRetry(t *testing.T) {
 	assert.False(t, passed.CanRetry(TierAI))
 }
 
-func TestRetryDeadline(t *testing.T) {
-	now := time.Date(2026, 10, 24, 10, 0, 0, 0, time.UTC)
-	assert.Nil(t, RetryDeadline(TierAI, now))
-
-	deadline := RetryDeadline(TierB2B, now)
-	require.NotNil(t, deadline)
-	days := B2BRetryDeadlineDays
-	assert.Equal(t, *WorkDeadline(now, &days), *deadline)
-}
-
 func TestAIGradingRun(t *testing.T) {
 	now := time.Date(2026, 10, 24, 10, 0, 0, 0, time.UTC)
 	run := NewAIGradingRun("run-1", "sub-1", "fake-v1", []string{"c1", "c2", "c3"}, now)

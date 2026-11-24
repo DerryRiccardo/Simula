@@ -72,7 +72,6 @@ func intPtr(v int) *int { return &v }
 func b2bBrief() entity.Case {
 	return entity.Case{
 		ID: b2bCaseID, Slug: "overselling", Tier: entity.TierB2B, Status: entity.CaseStatusPublished,
-		DeadlineDays: intPtr(7),
 		Slots: []entity.CaseSlot{
 			{SlotKey: "design_doc", Kind: entity.SlotKindFile, IsRequired: true, Formats: entity.StringList{"pdf"}, MaxSizeMb: intPtr(5)},
 			{SlotKey: "repo", Kind: entity.SlotKindLink, IsRequired: true},
@@ -95,7 +94,7 @@ func aiBrief() entity.Case {
 func enrollmentWith(c entity.Case, status entity.EnrollmentStatus) entity.Enrollment {
 	return entity.Enrollment{
 		ID: enrollmentID, UserID: studentID, CaseID: c.ID, Status: status,
-		Case: &entity.Case{ID: c.ID, Slug: c.Slug, Tier: c.Tier, DeadlineDays: c.DeadlineDays},
+		Case: &entity.Case{ID: c.ID, Slug: c.Slug, Tier: c.Tier},
 	}
 }
 
@@ -217,9 +216,7 @@ func TestStartWork(t *testing.T) {
 			env.enrollments.On("GetByIDForUser", mock.Anything, studentID, enrollmentID).
 				Return(enrollmentWith(b2bBrief(), tc.status), nil)
 			if tc.status == entity.EnrollmentNotStarted {
-				env.cases.On("GetByID", mock.Anything, b2bCaseID).Return(b2bBrief(), nil)
-				wantDeadline := testNow.AddDate(0, 0, 7)
-				env.enrollments.On("Start", mock.Anything, enrollmentID, testNow, &wantDeadline).Return(tc.startErr)
+				env.enrollments.On("Start", mock.Anything, enrollmentID, testNow).Return(tc.startErr)
 			}
 			if tc.wantKind == "" {
 				env.enrollments.On("GetForUser", mock.Anything, studentID, enrollmentID).
@@ -330,19 +327,6 @@ func TestSaveDraft(t *testing.T) {
 		_, err := env.uc.SaveDraft(asStudent(), enrollmentID, entity.SubmissionContent{})
 
 		requireKind(t, err, apperror.KindConflict)
-	})
-
-	t.Run("past the deadline", func(t *testing.T) {
-		env := newWorkspaceEnv()
-		late := enrollmentWith(b2bBrief(), entity.EnrollmentInProgress)
-		deadline := testNow.Add(-time.Minute)
-		late.DeadlineAt = &deadline
-		env.enrollments.On("GetByIDForUser", mock.Anything, studentID, enrollmentID).Return(late, nil)
-
-		_, err := env.uc.SaveDraft(asStudent(), enrollmentID, entity.SubmissionContent{})
-
-		appErr := requireKind(t, err, apperror.KindConflict)
-		assert.Equal(t, msgDeadlinePassed, appErr.Message)
 	})
 }
 

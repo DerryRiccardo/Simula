@@ -60,10 +60,6 @@ export function CaseCard({ item, isRecommended = false }: CaseCardProps) {
       {/* Info dan footer selalu menempel di bawah dengan jarak tetap; ruang sisa ada di atasnya. */}
       <div className="mt-auto pt-4">
         <dl className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[0.6875rem] whitespace-nowrap text-ink-subtle tabular-nums">
-          <div>
-            <dt className="sr-only">Durasi</dt>
-            <dd>{item.durationLabel}</dd>
-          </div>
           {/* Rating 0 berarti belum ada peserta yang menilai; disembunyikan agar tidak terbaca jelek. */}
           {item.rating > 0 && (
             <div>

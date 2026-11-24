@@ -129,6 +129,22 @@ func (s *PaymentService) Expire(ctx context.Context, orderID string) (entity.Ord
 	})
 }
 
+// ExpireOverdue mengedaluwarsakan order yang lewat batas bayar tetapi belum diproses (misalnya
+// timer-nya hilang saat server restart). Mengembalikan jumlah order yang diproses.
+func (s *PaymentService) ExpireOverdue(ctx context.Context, limit int) (int, error) {
+	ids, err := s.Orders.ListOverdueIDs(ctx, s.Now(), limit)
+	if err != nil {
+		return 0, err
+	}
+	var errs []error
+	for _, id := range ids {
+		if _, err := s.Expire(ctx, id); err != nil {
+			errs = append(errs, fmt.Errorf("order %s: %w", id, err))
+		}
+	}
+	return len(ids) - len(errs), errors.Join(errs...)
+}
+
 // settle menerapkan status final. Bila order sudah berubah lebih dulu (webhook ganda), status yang
 // ada dipakai. Order lunas selalu menjalankan OnOrderPaid, supaya percobaan ulang menyelesaikan
 // efek yang sempat gagal.

@@ -11,7 +11,6 @@ export interface ICaseSummary {
   tier: TTier;
   fieldKey: string;
   level: TCaseLevel;
-  durationLabel: string;
   deliverableCount: number;
   /** Hanya untuk B2B. */
   partnerName: string | null;
@@ -91,14 +90,14 @@ export interface IEnrollment {
   id: string;
   caseSummary: ICaseSummary;
   status: TEnrollmentStatus;
-  /** ISO string. Batas pengerjaan (B2B) atau batas bayar (pending_payment). */
-  deadlineAt: string | null;
+  /** Batas bayar order VA yang masih menunggu; hanya terisi untuk "Menunggu pembayaran". */
+  paymentDueAt: string | null;
   updatedAt: string;
   score: number | null;
   certificateId: string | null;
 }
 
-export type TEnrollmentSort = 'recent' | 'deadline' | 'title';
+export type TEnrollmentSort = 'recent' | 'title';
 
 export interface IEnrollmentListParams {
   tier?: TTier;

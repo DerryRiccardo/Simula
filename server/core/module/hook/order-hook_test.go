@@ -26,8 +26,8 @@ func (m *mockPaidEnrollmentRepo) FindByUserAndCase(ctx context.Context, userID, 
 	return args.Get(0).(entity.Enrollment), args.Error(1)
 }
 
-func (m *mockPaidEnrollmentRepo) ActivatePaid(ctx context.Context, id string, startBy, now time.Time) error {
-	return m.Called(ctx, id, startBy, now).Error(0)
+func (m *mockPaidEnrollmentRepo) ActivatePaid(ctx context.Context, id string, now time.Time) error {
+	return m.Called(ctx, id, now).Error(0)
 }
 
 func (m *mockPaidEnrollmentRepo) Create(ctx context.Context, enrollment *entity.Enrollment) error {
@@ -64,7 +64,7 @@ func TestOnOrderPaid_VirtualAccountActivatesPendingEnrollment(t *testing.T) {
 	enrollmentID := "enrollment-1"
 	enrollments.On("FindByUserAndCase", mock.Anything, "user-1", "case-1").
 		Return(entity.Enrollment{ID: enrollmentID, Status: entity.EnrollmentPendingPayment}, nil)
-	enrollments.On("ActivatePaid", mock.Anything, enrollmentID, entity.StartDeadline(testNow), testNow).Return(nil)
+	enrollments.On("ActivatePaid", mock.Anything, enrollmentID, testNow).Return(nil)
 
 	require.NoError(t, hook.OnOrderPaid(context.Background(), paidOrder(&enrollmentID)))
 
@@ -85,8 +85,6 @@ func TestOnOrderPaid_InstantPaymentCreatesEnrollment(t *testing.T) {
 
 	assert.Equal(t, entity.EnrollmentNotStarted, created.Status)
 	assert.Equal(t, 4321, created.CandidateNumber)
-	require.NotNil(t, created.DeadlineAt)
-	assert.Equal(t, entity.StartDeadline(testNow), *created.DeadlineAt)
 	orders.AssertCalled(t, "LinkEnrollment", mock.Anything, "order-1", created.ID)
 }
 

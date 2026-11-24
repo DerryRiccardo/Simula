@@ -27,22 +27,24 @@ func RunServer(ctx context.Context, cfg *config.Config) error {
 	}
 	defer initializers.CloseDB(db)
 
-	rdb, err := initializers.NewRedisClient(ctx, cfg)
-	if err != nil {
-		return err
-	}
-	defer initializers.CloseRedis(rdb)
-
 	engine, err := newEngine(cfg)
 	if err != nil {
 		return err
 	}
-	auth := newAuthComponents(cfg, newAuthUseCase(cfg, db, rdb))
+	authUC := newAuthUseCase(cfg, db)
+	auth := newAuthComponents(cfg, authUC)
 	store := newStorage(cfg)
 
-	client := initializers.NewAsynqClient(cfg)
-	defer initializers.CloseAsynqClient(client)
 	payments := newPayments(cfg, db)
+	uploadUC := newUploadUseCase(cfg, db, store)
+
+	// Job latar belakang berjalan di proses ini (tanpa worker Asynq), sehingga APP_MODE=server
+	// di production sudah lengkap: kedaluwarsa order dan pembersihan berkala.
+	orderQueue := task.NewInProcessOrderQueue(payments.service)
+	defer orderQueue.Shutdown()
+	background := task.NewBackgroundRunner()
+	background.Start(backgroundJobs(payments.service, authUC, uploadUC)...)
+	defer background.Shutdown()
 
 	// Tanpa penilai AI, queue tetap nil sehingga submit tidak membuat run penilaian.
 	var gradingQueue coreRepo.GradingQueue
@@ -52,22 +54,26 @@ func RunServer(ctx context.Context, cfg *config.Config) error {
 		return err
 	}
 	if model != nil {
-		gradingQueue = task.NewGradingQueue(client, cfg.QueueName)
+		pool := task.NewInProcessGradingQueue(cfg.WorkerConcurrency, cfg.ShutdownTimeout)
+		objectReader, _ := store.(coreRepo.ObjectReader)
+		pool.Start(newGradingService(db, pool, objectReader, model))
+		defer pool.Shutdown()
+		gradingQueue = pool
 		gradingModel = model.Model()
 	}
 
 	router.Register(engine, router.Handlers{
-		Health:          newHealthHandler(cfg, db, rdb),
+		Health:          newHealthHandler(cfg, db),
 		Platform:        newPlatformHandler(db),
 		Auth:            auth.auth,
 		Onboarding:      auth.onboarding,
 		Profile:         newProfileHandler(db),
 		Learning:        newLearningHandler(db),
 		Workspace:       newWorkspaceHandler(db, store, gradingQueue, gradingModel),
-		Upload:          studentHandler.Upload(newUploadUseCase(cfg, db, store)),
+		Upload:          studentHandler.Upload(uploadUC),
 		Result:          newResultHandler(db),
 		Certificate:     newCertificateHandler(db),
-		Checkout:        newCheckoutHandler(cfg, db, payments, client),
+		Checkout:        newCheckoutHandler(db, payments, orderQueue),
 		Midtrans:        webhookHandler.Midtrans(payments.service),
 		Review:          newReviewerHandler(db, store),
 		AdminPartner:    newAdminPartnerHandler(db),

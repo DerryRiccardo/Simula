@@ -51,7 +51,6 @@ export interface IAdminCaseInput {
   title: string;
   fieldKey: string;
   level: TCaseLevel;
-  durationLabel: string;
   summary: string;
   /** Paragraf "Tentang case" di halaman detail. */
   about: string;
@@ -73,7 +72,6 @@ export interface IAdminCaseInput {
   passingScore: number;
   // 6. Komersial (B2B saja)
   price: number;
-  deadlineDays: number;
   /** Mitra dari menu Reviewer & Mitra; string kosong bila belum dipilih. */
   partnerId: string;
   /** Peran penilai yang tampil ke peserta, mis. "Senior Backend Engineer". */

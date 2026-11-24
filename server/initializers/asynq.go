@@ -11,7 +11,7 @@ import (
 	"github.com/DerryRiccardo/Simula/server/config"
 )
 
-// ScheduleLocation dipakai jadwal periodik (misalnya pengingat tenggat) agar mengikuti jam WIB.
+// ScheduleLocation dipakai jadwal periodik (misalnya pembersihan harian) agar mengikuti jam WIB.
 const ScheduleLocation = "Asia/Jakarta"
 
 // NewAsynqServer membuat consumer Asynq yang hanya membaca queue dari cfg.QueueName.

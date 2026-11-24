@@ -45,14 +45,13 @@ var ActiveStatuses = append(append([]EnrollmentStatus{}, ActionStatuses...), Enr
 type EnrollmentSort string
 
 const (
-	EnrollmentSortRecent   EnrollmentSort = "recent"
-	EnrollmentSortDeadline EnrollmentSort = "deadline"
-	EnrollmentSortTitle    EnrollmentSort = "title"
+	EnrollmentSortRecent EnrollmentSort = "recent"
+	EnrollmentSortTitle  EnrollmentSort = "title"
 )
 
 // IsValid memeriksa apakah urutan dikenal.
 func (s EnrollmentSort) IsValid() bool {
-	return s == EnrollmentSortRecent || s == EnrollmentSortDeadline || s == EnrollmentSortTitle
+	return s == EnrollmentSortRecent || s == EnrollmentSortTitle
 }
 
 // Rentang nomor kandidat anonim yang ditampilkan ke reviewer ("Kandidat #5868"), sama dengan
@@ -72,7 +71,6 @@ type Enrollment struct {
 	CaseID          string
 	Status          EnrollmentStatus
 	CandidateNumber int
-	DeadlineAt      *time.Time
 	StartedAt       *time.Time
 	ReviewDueAt     *time.Time
 	LastRetriedAt   *time.Time
@@ -86,8 +84,11 @@ type Enrollment struct {
 	LastReminderAt *time.Time
 	// ProfileSharedAt adalah waktu admin meneruskan profil kandidat ke mitra (Talent pool).
 	ProfileSharedAt *time.Time
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	// PaymentDueAt adalah batas bayar order VA yang masih menunggu (hanya "Menunggu pembayaran").
+	// Bukan kolom tabel: diisi repository dari orders saat membaca Case Saya dan dashboard.
+	PaymentDueAt *time.Time `gorm:"->;-:migration"`
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 
 	Case        *Case        `gorm:"foreignKey:CaseID"`
 	Certificate *Certificate `gorm:"foreignKey:EnrollmentID"`
@@ -116,12 +117,9 @@ var EditableStatuses = []EnrollmentStatus{EnrollmentInProgress, EnrollmentRevisi
 // ReviewSLABusinessDays adalah batas reviewer mitra menilai sejak submit terakhir (CONTEXT.md 4.10).
 const ReviewSLABusinessDays = 5
 
-// Aturan "Coba lagi" setelah belum lulus (CONTEXT.md §7): AI tanpa batas, B2B satu kali dengan
-// tenggat baru dalam hari kalender.
-const (
-	B2BMaxRetries        = 1
-	B2BRetryDeadlineDays = 3
-)
+// Aturan "Coba lagi" setelah belum lulus (CONTEXT.md §7): AI tanpa batas, B2B satu kali. Semua
+// case self-paced, jadi percobaan ulang tidak punya tenggat.
+const B2BMaxRetries = 1
 
 // CanStart bernilai true bila case B2B yang sudah dibayar boleh mulai dikerjakan.
 func (e *Enrollment) CanStart() bool {
@@ -141,34 +139,9 @@ func (e *Enrollment) CanRetry(tier Tier) bool {
 	return tier == TierAI || e.RetryCount < B2BMaxRetries
 }
 
-// RetryDeadline menghitung tenggat percobaan ulang: B2B mendapat tenggat baru, AI tidak.
-func RetryDeadline(tier Tier, now time.Time) *time.Time {
-	if tier == TierAI {
-		return nil
-	}
-	days := B2BRetryDeadlineDays
-	return WorkDeadline(now, &days)
-}
-
 // IsEditable bernilai true bila draft dan submission masih bisa diubah.
 func (e *Enrollment) IsEditable() bool {
 	return containsStatus(EditableStatuses, e.Status)
-}
-
-// IsPastDeadline bernilai true bila tenggat pengerjaan sudah lewat pada waktu now. AI case tidak
-// punya tenggat.
-func (e *Enrollment) IsPastDeadline(now time.Time) bool {
-	return e.DeadlineAt != nil && !now.Before(*e.DeadlineAt)
-}
-
-// WorkDeadline menghitung tenggat pengerjaan dalam hari kalender sejak mulai mengerjakan. nil bila
-// case tidak punya tenggat.
-func WorkDeadline(startedAt time.Time, deadlineDays *int) *time.Time {
-	if deadlineDays == nil || *deadlineDays <= 0 {
-		return nil
-	}
-	deadline := startedAt.AddDate(0, 0, *deadlineDays)
-	return &deadline
 }
 
 // StatusAfterSubmit menentukan status enrollment setelah submit: AI dinilai AI, B2B menunggu review.

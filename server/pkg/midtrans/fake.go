@@ -148,10 +148,10 @@ func fakeDetails(req entity.ChargeRequest) (entity.PaymentDetails, error) {
 		return entity.PaymentDetails{BillerCode: "70012", BillKey: key}, err
 	case entity.PaymentQRIS:
 		return entity.PaymentDetails{QRURL: "https://fake-gateway.local/qris/" + req.OrderID}, nil
-	case entity.PaymentGoPay:
+	case entity.PaymentGoPay, entity.PaymentOVO, entity.PaymentDANA, entity.PaymentShopeePay:
 		return entity.PaymentDetails{
-			QRURL:       "https://fake-gateway.local/gopay/qr/" + req.OrderID,
-			DeeplinkURL: "https://fake-gateway.local/gopay/deeplink/" + req.OrderID,
+			QRURL:       fmt.Sprintf("https://fake-gateway.local/%s/qr/%s", req.Method, req.OrderID),
+			DeeplinkURL: fmt.Sprintf("https://fake-gateway.local/%s/deeplink/%s", req.Method, req.OrderID),
 		}, nil
 	}
 	return entity.PaymentDetails{}, fmt.Errorf("unsupported payment method %q", req.Method)
@@ -161,8 +161,8 @@ func paymentType(method entity.PaymentMethod) string {
 	switch method {
 	case entity.PaymentQRIS:
 		return "qris"
-	case entity.PaymentGoPay:
-		return "gopay"
+	case entity.PaymentGoPay, entity.PaymentOVO, entity.PaymentDANA, entity.PaymentShopeePay:
+		return string(method)
 	case entity.PaymentVAMandiri:
 		return "echannel"
 	}

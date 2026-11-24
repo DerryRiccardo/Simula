@@ -28,7 +28,7 @@ type CaseRepository interface {
 	// GetPublishedBySlug mengisi semua kolom, Partner, Slots, dan Rubric. Mengembalikan
 	// coreErrors.ErrCaseNotFound bila tidak ada atau belum terbit.
 	GetPublishedBySlug(ctx context.Context, slug string) (entity.Case, error)
-	// GetByID hanya mengisi ID, Tier, Status, dan DeadlineDays. Mengembalikan coreErrors.ErrCaseNotFound bila
+	// GetByID hanya mengisi ID, Tier, dan Status. Mengembalikan coreErrors.ErrCaseNotFound bila
 	// tidak ada.
 	GetByID(ctx context.Context, id string) (entity.Case, error)
 	// GetWithBriefBySlug mengisi semua kolom (termasuk kolom terhitung), Partner, Tasks, Slots,
@@ -40,7 +40,7 @@ type CaseRepository interface {
 	GetWithBriefByID(ctx context.Context, id string) (entity.Case, error)
 	// CountRubricCriteria menghitung kriteria rubrik case, untuk menyiapkan run penilaian AI.
 	CountRubricCriteria(ctx context.Context, caseID string) (int, error)
-	// GetWithSlotsByID hanya mengisi ID, Tier, Status, DeadlineDays, dan Slots. Dipakai jalur tulis
+	// GetWithSlotsByID hanya mengisi ID, Tier, Status, dan Slots. Dipakai jalur tulis
 	// (draft, submit, unggah) yang hanya butuh aturan slot. Mengembalikan coreErrors.ErrCaseNotFound
 	// bila tidak ada.
 	GetWithSlotsByID(ctx context.Context, id string) (entity.Case, error)
@@ -77,18 +77,18 @@ type EnrollmentRepository interface {
 	// Hanya untuk proses internal (worker, hook). Mengembalikan coreErrors.ErrEnrollmentNotFound.
 	GetByIDWithCase(ctx context.Context, enrollmentID string) (entity.Enrollment, error)
 	// Retry mengubah failed menjadi in_progress untuk percobaan baru: menambah retry_count, mencatat
-	// last_retried_at, menghapus skor, dan memasang tenggat baru. Mengembalikan
-	// coreErrors.ErrStatusConflict bila status sudah bukan failed.
-	Retry(ctx context.Context, enrollmentID string, deadlineAt *time.Time, now time.Time) error
-	// ActivatePaid mengubah pending_payment menjadi not_started dengan batas mulai startBy.
+	// last_retried_at, dan menghapus skor. Mengembalikan coreErrors.ErrStatusConflict bila status
+	// sudah bukan failed.
+	Retry(ctx context.Context, enrollmentID string, now time.Time) error
+	// ActivatePaid mengubah pending_payment menjadi not_started.
 	// Mengembalikan coreErrors.ErrStatusConflict bila status sudah bukan pending_payment.
-	ActivatePaid(ctx context.Context, enrollmentID string, startBy, now time.Time) error
+	ActivatePaid(ctx context.Context, enrollmentID string, now time.Time) error
 	// SetShareConsent menyimpan persetujuan berbagi profil untuk enrollment yang direkomendasikan
 	// (share_consent tidak null). Mengembalikan coreErrors.ErrStatusConflict bila tidak ada rekomendasi.
 	SetShareConsent(ctx context.Context, enrollmentID, consent string, now time.Time) error
-	// Start mengubah not_started menjadi in_progress beserta waktu mulai dan tenggat. Mengembalikan
+	// Start mengubah not_started menjadi in_progress beserta waktu mulai. Mengembalikan
 	// coreErrors.ErrStatusConflict bila status sudah bukan not_started.
-	Start(ctx context.Context, enrollmentID string, startedAt time.Time, deadlineAt *time.Time) error
+	Start(ctx context.Context, enrollmentID string, startedAt time.Time) error
 }
 
 // CertificateRepository membaca sertifikat peserta.

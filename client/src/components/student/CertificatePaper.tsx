@@ -1,4 +1,7 @@
+import Image from 'next/image';
+
 import { BrandLogo } from '@/components/layout/Logo';
+import { resolvePartnerLogo } from '@/constants/partners';
 import { formatDate } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import type { ICertificate } from '@/types';
@@ -7,6 +10,8 @@ type TPaperSize = 'full' | 'compact';
 
 interface CertificatePaperProps {
   certificate: ICertificate;
+  /** Logo mitra opsional; bila kosong dicocokkan otomatis dari folder `public/partner/`. */
+  partnerLogo?: string | null;
   /** Industri mitra di bawah nama mitra (hanya ukuran penuh). */
   partnerIndustry?: string | null;
   /** Penilai; ukuran ringkas tidak menampilkannya agar baris bawah tetap muat. */
@@ -93,6 +98,7 @@ function Fact({
 // Sertifikat Saya (ukuran ringkas), supaya pratinjau selalu sama dengan sertifikat aslinya.
 export function CertificatePaper({
   certificate,
+  partnerLogo,
   partnerIndustry,
   reviewerRole,
   size = 'full',
@@ -101,6 +107,7 @@ export function CertificatePaper({
   const classes = SIZE_CLASS[size];
   const isAi = certificate.tier === 'ai';
   const isFull = size === 'full';
+  const resolvedPartnerLogo = partnerLogo ?? resolvePartnerLogo(certificate.partnerName);
   const program = isAi
     ? 'AI Case Study'
     : `B2B Case Study bersama ${certificate.partnerName ?? 'mitra'}`;
@@ -125,12 +132,26 @@ export function CertificatePaper({
         <div className="flex items-start justify-between gap-3">
           <BrandLogo className={classes.logo} />
           {certificate.partnerName ? (
-            <div className="min-w-0 text-right">
-              <p className={cn('truncate font-semibold tracking-tight text-ink', classes.partner)}>
-                {certificate.partnerName}
-              </p>
+            <div className="flex min-w-0 flex-col items-end text-right">
+              {resolvedPartnerLogo ? (
+                <Image
+                  src={resolvedPartnerLogo}
+                  alt={certificate.partnerName}
+                  width={160}
+                  height={40}
+                  priority
+                  className={cn(
+                    'w-auto object-contain object-right',
+                    isFull ? 'h-7 max-w-[140px] sm:h-8 sm:max-w-[170px]' : 'h-4 max-w-[84px]'
+                  )}
+                />
+              ) : (
+                <p className={cn('truncate font-semibold tracking-tight text-ink', classes.partner)}>
+                  {certificate.partnerName}
+                </p>
+              )}
               {isFull && partnerIndustry && (
-                <p className="text-[0.6875rem] text-ink-subtle">{partnerIndustry}</p>
+                <p className="mt-1 text-[0.6875rem] text-ink-subtle">{partnerIndustry}</p>
               )}
             </div>
           ) : (

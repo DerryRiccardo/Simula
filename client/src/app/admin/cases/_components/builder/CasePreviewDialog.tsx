@@ -73,7 +73,6 @@ function toBrief(input: IAdminCaseInput): ICaseBrief {
       maxSizeMb: slot.kind === 'file' ? slot.maxSizeMb : undefined,
     })),
     passingScore: input.passingScore,
-    deadlineDays: input.tier === 'b2b' ? input.deadlineDays : null,
   };
 }
 
@@ -91,7 +90,6 @@ function toDetail(input: IAdminCaseInput, partner: ICasePartner | null): ICaseDe
     tier: input.tier,
     fieldKey: input.fieldKey,
     level: input.level,
-    durationLabel: input.durationLabel.trim() || '-',
     deliverableCount: input.slots.length,
     partnerName: partner?.name ?? null,
     price: input.tier === 'ai' ? null : input.price,

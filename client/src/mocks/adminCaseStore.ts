@@ -24,7 +24,6 @@ function fromSeed(summary: ICaseSummary): IAdminCase {
     title: summary.title,
     fieldKey: summary.fieldKey,
     level: summary.level,
-    durationLabel: summary.durationLabel,
     summary: summary.summary,
     about: content?.about ?? '',
     activities: (content?.activities ?? []).join('\n'),
@@ -52,7 +51,6 @@ function fromSeed(summary: ICaseSummary): IAdminCase {
     rubric: brief.rubric,
     passingScore: brief.passingScore,
     price: summary.price ?? 0,
-    deadlineDays: brief.deadlineDays ?? 0,
     partnerId: findPartnerIdByName(detail.partner?.name ?? ''),
     reviewerRole: detail.reviewerRole ?? '',
   };

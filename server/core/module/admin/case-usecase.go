@@ -253,7 +253,7 @@ func (uc *caseUseCase) buildCase(ctx context.Context, existing *entity.AdminCase
 	}
 
 	c.Tier, c.Title, c.FieldKey, c.Level = in.Tier, in.Title, in.FieldKey, in.Level
-	c.DurationLabel, c.Summary, c.About = in.DurationLabel, in.Summary, in.About
+	c.Summary, c.About = in.Summary, in.About
 	c.Activities = entity.SplitLines(in.Activities)
 	c.Skills = entity.SplitComma(in.Skills, false)
 	c.Prerequisites = entity.SplitLines(in.Prerequisites)
@@ -267,10 +267,9 @@ func (uc *caseUseCase) buildCase(ctx context.Context, existing *entity.AdminCase
 			c.PublishedAt = &now
 		}
 	}
-	// AI case dinilai AI: tanpa harga, tenggat, mitra, dan peran penilai (CHECK di tabel cases).
+	// AI case dinilai AI: tanpa harga, mitra, dan peran penilai (CHECK di tabel cases).
 	if in.Tier == entity.TierB2B {
 		c.Price = positive(in.Price)
-		c.DeadlineDays = positive(in.DeadlineDays)
 		if in.PartnerID != "" {
 			c.PartnerID = &in.PartnerID
 		}
@@ -443,7 +442,7 @@ func (uc *caseUseCase) resolveMaterialFiles(ctx context.Context, materials []ent
 
 func normalizeInput(in entity.AdminCaseInput) entity.AdminCaseInput {
 	trim := strings.TrimSpace
-	in.Title, in.FieldKey, in.DurationLabel = trim(in.Title), trim(in.FieldKey), trim(in.DurationLabel)
+	in.Title, in.FieldKey = trim(in.Title), trim(in.FieldKey)
 	in.Summary, in.About, in.Context = trim(in.Summary), trim(in.About), trim(in.Context)
 	in.PartnerID, in.ReviewerRole = trim(in.PartnerID), trim(in.ReviewerRole)
 	for i := range in.Tasks {
@@ -484,7 +483,7 @@ func validateBasics(in entity.AdminCaseInput) []apperror.FieldError {
 		add("passingScore", msgPassingScore)
 	}
 	for _, long := range []struct{ field, value string }{
-		{"durationLabel", in.DurationLabel}, {"summary", in.Summary}, {"about", in.About}, {"activities", in.Activities},
+		{"summary", in.Summary}, {"about", in.About}, {"activities", in.Activities},
 		{"skills", in.Skills}, {"prerequisites", in.Prerequisites}, {"context", in.Context}, {"reviewerRole", in.ReviewerRole},
 	} {
 		if utf8.RuneCountInString(long.value) > entity.CaseTextMaxRunes {
@@ -524,9 +523,6 @@ func validateBasics(in entity.AdminCaseInput) []apperror.FieldError {
 	if in.Price < 0 {
 		add("price", "Harga tidak boleh negatif.")
 	}
-	if in.DeadlineDays < 0 {
-		add("deadlineDays", "Tenggat tidak boleh negatif.")
-	}
 	return fields
 }
 
@@ -538,7 +534,6 @@ func validateForPublish(in entity.AdminCaseInput) []apperror.FieldError {
 			fields = append(fields, apperror.FieldError{Field: field, Message: fmt.Sprintf("Tulis minimal %d karakter.", min)})
 		}
 	}
-	minText("durationLabel", in.DurationLabel, entity.CaseItemMinRunes)
 	minText("summary", in.Summary, entity.CaseSummaryMinRunes)
 	minText("about", in.About, entity.CaseAboutMinRunes)
 	minText("context", in.Context, entity.CaseContextMinRunes)
@@ -579,9 +574,6 @@ func validateForPublish(in entity.AdminCaseInput) []apperror.FieldError {
 	if in.Tier == entity.TierB2B {
 		if in.Price < entity.CaseMinPriceB2B {
 			fields = append(fields, apperror.FieldError{Field: "price", Message: "Harga minimal Rp10.000."})
-		}
-		if in.DeadlineDays < 1 {
-			fields = append(fields, apperror.FieldError{Field: "deadlineDays", Message: "Tenggat minimal 1 hari."})
 		}
 		if in.PartnerID == "" {
 			fields = append(fields, apperror.FieldError{Field: "partnerId", Message: "Pilih mitra."})

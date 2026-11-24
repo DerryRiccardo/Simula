@@ -3,7 +3,15 @@ import type { ICaseDetail, IEnrollment } from './case';
 // Kontrak data checkout B2B (prototype/CONTEXT.md 4.6).
 
 /** va_* = transfer virtual account (menunggu pembayaran); qris/gopay = bayar instan. */
-export type TPaymentMethod = 'va_bca' | 'va_mandiri' | 'va_bni' | 'qris' | 'gopay';
+export type TPaymentMethod =
+  | 'va_bca'
+  | 'va_mandiri'
+  | 'va_bni'
+  | 'qris'
+  | 'gopay'
+  | 'ovo'
+  | 'dana'
+  | 'shopeepay';
 
 /** cancelled = dibatalkan peserta saat mengganti metode pembayaran. */
 export type TOrderStatus = 'awaiting_payment' | 'paid' | 'failed' | 'expired' | 'cancelled';

@@ -26,11 +26,9 @@ export function getOwnedRecord(enrollmentId: string) {
 export function toEnrollment(record: IMockEnrollmentRecord): IEnrollment {
   const caseSummary = findCaseById(record.caseId);
   if (!caseSummary) throw new Error('Case tidak ditemukan.');
-  const { id, status, deadlineAt, updatedAt, score, certificateId } = record;
-  return { id, caseSummary, status, deadlineAt, updatedAt, score, certificateId };
+  const { id, status, paymentDueAt, updatedAt, score, certificateId } = record;
+  return { id, caseSummary, status, paymentDueAt, updatedAt, score, certificateId };
 }
-
-const daysFromNow = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString();
 
 export const workspaceApi = {
   /** null jika slug tidak ditemukan. Brief tetap dikirim; halaman yang menahan aksesnya. */
@@ -51,16 +49,12 @@ export const workspaceApi = {
     };
   },
 
-  /** B2B: "Belum dimulai" → "Sedang dikerjakan", tenggat dihitung sejak saat ini (CONTEXT 4.7). */
+  /** B2B: "Belum dimulai" → "Sedang dikerjakan". */
   startWork: (enrollmentId: string): IEnrollment => {
     const record = getOwnedRecord(enrollmentId);
     if (record.status !== 'not_started') throw new Error('Case ini sudah dimulai.');
-    const caseInfo = findCaseById(record.caseId);
-    const detail = caseInfo && learningApi.getCaseBySlug(caseInfo.slug);
-    const deadlineDays = detail ? getCaseBrief(detail).deadlineDays : null;
     const updated = mockDb.updateEnrollment(enrollmentId, {
       status: 'in_progress',
-      deadlineAt: deadlineDays ? daysFromNow(deadlineDays) : null,
     });
     mockDb.addEnrollmentEvent(enrollmentId, { type: 'started' });
     return toEnrollment(updated ?? record);

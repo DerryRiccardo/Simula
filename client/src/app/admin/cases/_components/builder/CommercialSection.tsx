@@ -76,7 +76,7 @@ function AssignedReviewers({ adminCase, partnerId, directory }: AssignedReviewer
   );
 }
 
-// Komersial (bagian 6, B2B saja): harga, tenggat, dan mitra dari menu Reviewer & Mitra.
+// Komersial (bagian 6, B2B saja): harga dan mitra dari menu Reviewer & Mitra.
 export function CommercialSection({ adminCase }: { adminCase: IAdminCase | null }) {
   const { control, register, formState } = useFormContext<IAdminCaseInput>();
   const { errors } = formState;
@@ -88,37 +88,22 @@ export function CommercialSection({ adminCase }: { adminCase: IAdminCase | null 
     <BuilderSection
       id="commercial"
       title="Komersial dan mitra"
-      description="Harga dibayar peserta. Tenggat dihitung sejak peserta klik Mulai mengerjakan. Mitra dipilih dari menu Reviewer & Mitra."
+      description="Harga dibayar peserta. Mitra dipilih dari menu Reviewer & Mitra."
     >
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Controller
-          control={control}
-          name="price"
-          render={({ field, fieldState }) => (
-            <TextField
-              id="case-price"
-              label="Harga (Rp)"
-              min={0}
-              step={1000}
-              error={fieldState.error?.message}
-              {...toNumberInput(field)}
-            />
-          )}
-        />
-        <Controller
-          control={control}
-          name="deadlineDays"
-          render={({ field, fieldState }) => (
-            <TextField
-              id="case-deadline"
-              label="Tenggat pengerjaan (hari)"
-              min={1}
-              error={fieldState.error?.message}
-              {...toNumberInput(field)}
-            />
-          )}
-        />
-      </div>
+      <Controller
+        control={control}
+        name="price"
+        render={({ field, fieldState }) => (
+          <TextField
+            id="case-price"
+            label="Harga (Rp)"
+            min={0}
+            step={1000}
+            error={fieldState.error?.message}
+            {...toNumberInput(field)}
+          />
+        )}
+      />
 
       {isLoading ? (
         <div className="grid gap-3" role="status" aria-label="Memuat mitra">

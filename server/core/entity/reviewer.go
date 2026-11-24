@@ -13,8 +13,6 @@ import (
 const (
 	// MaxRevisions adalah batas pengembalian; setelah itu reviewer wajib menilai apa adanya.
 	MaxRevisions = 2
-	// RevisionExtraDays adalah tenggat baru peserta sejak dikembalikan (hari kalender).
-	RevisionExtraDays = 3
 	// ReviewReasonMinRunes adalah panjang minimal alasan per kriteria dan catatan revisi.
 	ReviewReasonMinRunes = 20
 	// ReviewReasonMaxRunes membatasi alasan per kriteria dan catatan revisi.
@@ -181,9 +179,7 @@ type RevisionDecision struct {
 	Reason       string
 	Note         string
 	MaxRevisions int
-	// DeadlineAt adalah tenggat baru peserta.
-	DeadlineAt time.Time
-	At         time.Time
+	At           time.Time
 }
 
 // InitialShareConsent menentukan persetujuan berbagi profil saat peserta direkomendasikan,

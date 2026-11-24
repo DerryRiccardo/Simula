@@ -53,11 +53,9 @@ type PlatformSettings struct {
 	ID                      bool      `gorm:"primaryKey;column:id"`
 	ReviewSlaDays           int       `gorm:"column:review_sla_days"`
 	MaxRevisions            int       `gorm:"column:max_revisions"`
-	RevisionExtraDays       int       `gorm:"column:revision_extra_days"`
 	RecommendationThreshold int       `gorm:"column:recommendation_threshold"`
 	PassingScoreAI          int       `gorm:"column:passing_score_ai"`
 	PassingScoreB2B         int       `gorm:"column:passing_score_b2b"`
-	B2BStartWindowDays      int       `gorm:"column:b2b_start_window_days"`
 	PaymentWindowHours      int       `gorm:"column:payment_window_hours"`
 	WhatsappNumber          string    `gorm:"column:whatsapp_number"`
 	UpdatedAt               time.Time `gorm:"column:updated_at"`
@@ -74,11 +72,9 @@ func DefaultPlatformSettings() PlatformSettings {
 		ID:                      true,
 		ReviewSlaDays:           ReviewSLABusinessDays,
 		MaxRevisions:            2,
-		RevisionExtraDays:       3,
 		RecommendationThreshold: 80,
 		PassingScoreAI:          60,
 		PassingScoreB2B:         70,
-		B2BStartWindowDays:      30,
 		PaymentWindowHours:      24,
 		WhatsappNumber:          DefaultWhatsappNumber,
 	}
@@ -173,11 +169,9 @@ func DiffPlatformSettings(current, next PlatformSettings) []SettingChange {
 	specs := []intSpec{
 		{"reviewSlaDays", "SLA review", "hari kerja", current.ReviewSlaDays, next.ReviewSlaDays},
 		{"maxRevisions", "Batas pengembalian revisi", "kali", current.MaxRevisions, next.MaxRevisions},
-		{"revisionExtraDays", "Tambahan tenggat revisi", "hari", current.RevisionExtraDays, next.RevisionExtraDays},
 		{"recommendationThreshold", "Saran skor rekomendasi interview", "poin", current.RecommendationThreshold, next.RecommendationThreshold},
 		{"passingScoreAi", "Ambang lulus AI case", "poin", current.PassingScoreAI, next.PassingScoreAI},
 		{"passingScoreB2b", "Ambang lulus B2B case", "poin", current.PassingScoreB2B, next.PassingScoreB2B},
-		{"b2bStartWindowDays", "Batas mulai B2B setelah dibeli", "hari", current.B2BStartWindowDays, next.B2BStartWindowDays},
 		{"paymentWindowHours", "Batas waktu bayar", "jam", current.PaymentWindowHours, next.PaymentWindowHours},
 	}
 

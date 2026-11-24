@@ -48,6 +48,12 @@ func (m *mockOrderRepo) Settle(ctx context.Context, settlement entity.OrderSettl
 	return m.Called(ctx, settlement).Error(0)
 }
 
+func (m *mockOrderRepo) ListOverdueIDs(ctx context.Context, now time.Time, limit int) ([]string, error) {
+	args := m.Called(ctx, now, limit)
+	ids, _ := args.Get(0).([]string)
+	return ids, args.Error(1)
+}
+
 func (m *mockOrderRepo) LinkEnrollment(ctx context.Context, id, enrollmentID string) error {
 	return m.Called(ctx, id, enrollmentID).Error(0)
 }
@@ -171,16 +177,15 @@ func TestCreateOrder_VirtualAccount(t *testing.T) {
 	env.expectPurchasable()
 	env.orders.On("LatestForCase", mock.Anything, studentID, b2bCaseID).Return(entity.Order{}, coreErrors.ErrOrderNotFound)
 	env.gateway.On("Charge", mock.Anything, mock.MatchedBy(func(req entity.ChargeRequest) bool {
-		return req.Amount == 154000 && req.Method == entity.PaymentVABCA && req.CustomerEmail == "rani@simula.test"
+		return req.Amount == 150000 && req.Method == entity.PaymentVABCA && req.CustomerEmail == "rani@simula.test"
 	})).Return(entity.ChargeResult{TransactionID: "tx-1", Status: entity.GatewayPending, Details: entity.PaymentDetails{VANumber: "827712345678901"}}, nil)
 	env.orders.On("Create", mock.Anything,
 		mock.MatchedBy(func(o *entity.Order) bool {
-			return o.InvoiceNumber == "INV/2026/10/0412" && o.Subtotal == 150000 && o.AdminFee == 4000 && o.Total == 154000 &&
+			return o.InvoiceNumber == "INV/2026/10/0412" && o.Subtotal == 150000 && o.AdminFee == 0 && o.Total == 150000 &&
 				o.Status == entity.OrderAwaitingPayment && o.ExpiresAt.Equal(testNow.Add(entity.PaymentWindow))
 		}),
 		mock.MatchedBy(func(e *entity.Enrollment) bool {
-			return e != nil && e.Status == entity.EnrollmentPendingPayment && e.CandidateNumber == 2024 &&
-				e.DeadlineAt != nil && e.DeadlineAt.Equal(testNow.Add(entity.PaymentWindow))
+			return e != nil && e.Status == entity.EnrollmentPendingPayment && e.CandidateNumber == 2024
 		}),
 	).Return(nil)
 	env.queue.On("ScheduleExpiry", mock.Anything, mock.Anything, testNow.Add(entity.PaymentWindow)).Return(nil)
@@ -379,17 +384,4 @@ func TestSimulatePayment(t *testing.T) {
 		_, err := env.uc.SimulatePayment(asStudent(), checkoutOrderID, "refund")
 		requireKind(t, err, apperror.KindValidation)
 	})
-}
-
-func TestStartWork_StartWindowExpired(t *testing.T) {
-	env := newWorkspaceEnv()
-	enrollment := enrollmentWith(b2bBrief(), entity.EnrollmentNotStarted)
-	startBy := testNow.Add(-time.Hour)
-	enrollment.DeadlineAt = &startBy
-	env.enrollments.On("GetByIDForUser", mock.Anything, studentID, enrollmentID).Return(enrollment, nil)
-
-	_, err := env.uc.StartWork(asStudent(), enrollmentID)
-
-	requireKind(t, err, apperror.KindConflict)
-	env.enrollments.AssertNotCalled(t, "Start", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 }

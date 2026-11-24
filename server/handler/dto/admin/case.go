@@ -55,7 +55,6 @@ type CaseInputPayload struct {
 	Title         string                 `json:"title"`
 	FieldKey      string                 `json:"fieldKey"`
 	Level         string                 `json:"level"`
-	DurationLabel string                 `json:"durationLabel"`
 	Summary       string                 `json:"summary"`
 	About         string                 `json:"about"`
 	Activities    string                 `json:"activities"`
@@ -68,7 +67,6 @@ type CaseInputPayload struct {
 	Rubric        []CaseCriterionPayload `json:"rubric"`
 	PassingScore  int                    `json:"passingScore"`
 	Price         int                    `json:"price"`
-	DeadlineDays  int                    `json:"deadlineDays"`
 	PartnerID     string                 `json:"partnerId"`
 	ReviewerRole  string                 `json:"reviewerRole"`
 }
@@ -125,9 +123,9 @@ type UploadTicketResponse struct {
 func MapCaseReqToInput(req CaseInputPayload) entity.AdminCaseInput {
 	in := entity.AdminCaseInput{
 		Tier: entity.Tier(req.Tier), Title: req.Title, FieldKey: req.FieldKey, Level: entity.CaseLevel(req.Level),
-		DurationLabel: req.DurationLabel, Summary: req.Summary, About: req.About, Activities: req.Activities,
+		Summary: req.Summary, About: req.About, Activities: req.Activities,
 		Skills: req.Skills, Prerequisites: req.Prerequisites, Context: req.Context, PassingScore: req.PassingScore,
-		Price: req.Price, DeadlineDays: req.DeadlineDays, PartnerID: req.PartnerID, ReviewerRole: req.ReviewerRole,
+		Price: req.Price, PartnerID: req.PartnerID, ReviewerRole: req.ReviewerRole,
 	}
 	for _, task := range req.Tasks {
 		in.Tasks = append(in.Tasks, entity.AdminCaseTask{Title: task.Title, Description: task.Description})
@@ -170,12 +168,12 @@ func MapAdminCase(d entity.AdminCaseDetail) AdminCaseResponse {
 	c := d.Case
 	input := CaseInputPayload{
 		Tier: string(c.Tier), Title: c.Title, FieldKey: c.FieldKey, Level: string(c.Level),
-		DurationLabel: c.DurationLabel, Summary: c.Summary, About: c.About,
+		Summary: c.Summary, About: c.About,
 		Activities: strings.Join(c.Activities, "\n"), Skills: strings.Join(c.Skills, ", "),
 		Prerequisites: strings.Join(c.Prerequisites, "\n"), Context: strings.Join(c.Context, "\n\n"),
 		Tasks: make([]CaseTaskPayload, 0, len(c.Tasks)), Materials: make([]CaseMaterialPayload, 0, len(c.Materials)),
 		Slots: make([]CaseSlotPayload, 0, len(c.Slots)), Rubric: make([]CaseCriterionPayload, 0, len(c.Rubric)),
-		PassingScore: c.PassingScore, Price: deref(c.Price), DeadlineDays: deref(c.DeadlineDays),
+		PassingScore: c.PassingScore, Price: deref(c.Price),
 		PartnerID: derefString(c.PartnerID), ReviewerRole: derefString(c.ReviewerRole),
 	}
 	for _, task := range c.Tasks {

@@ -48,6 +48,12 @@ func (m *mockOrderRepo) Settle(ctx context.Context, settlement entity.OrderSettl
 	return m.Called(ctx, settlement).Error(0)
 }
 
+func (m *mockOrderRepo) ListOverdueIDs(ctx context.Context, now time.Time, limit int) ([]string, error) {
+	args := m.Called(ctx, now, limit)
+	ids, _ := args.Get(0).([]string)
+	return ids, args.Error(1)
+}
+
 func (m *mockOrderRepo) LinkEnrollment(ctx context.Context, id, enrollmentID string) error {
 	return m.Called(ctx, id, enrollmentID).Error(0)
 }
@@ -263,4 +269,25 @@ func TestExpire(t *testing.T) {
 		require.NoError(t, err)
 		env.orders.AssertNotCalled(t, "Settle", mock.Anything, mock.Anything)
 	})
+}
+
+func TestExpireOverdue(t *testing.T) {
+	env := newPaymentEnv()
+	overdue := awaitingOrder()
+	overdue.ExpiresAt = testNow.Add(-time.Minute)
+	expired := overdue
+	expired.Status = entity.OrderExpired
+	env.orders.On("ListOverdueIDs", mock.Anything, testNow, 50).Return([]string{orderID}, nil)
+	env.orders.On("GetByID", mock.Anything, orderID).Return(overdue, nil).Once()
+	env.gateway.On("Cancel", mock.Anything, orderID).Return(nil)
+	env.orders.On("Settle", mock.Anything, mock.MatchedBy(func(s entity.OrderSettlement) bool {
+		return s.OrderID == orderID && s.To == entity.OrderExpired && s.ReleaseEnrollment
+	})).Return(nil)
+	env.orders.On("GetByID", mock.Anything, orderID).Return(expired, nil).Once()
+
+	count, err := env.svc.ExpireOverdue(context.Background(), 50)
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, count)
+	env.orders.AssertExpectations(t)
 }

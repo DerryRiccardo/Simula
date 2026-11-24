@@ -29,7 +29,7 @@ export function EnrollmentList({
         >
           <span>Case</span>
           <span>Status</span>
-          <span>Tenggat / skor</span>
+          <span>Batas bayar / skor</span>
           <span className="text-right">Aksi</span>
         </div>
       )}

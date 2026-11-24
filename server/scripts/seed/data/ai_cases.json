@@ -1,0 +1,2050 @@
+[
+  {
+    "slug": "rancang-ulang-endpoint-ekspor-laporan",
+    "title": "Rancang Ulang Endpoint Ekspor Laporan yang Sering Timeout",
+    "summary": "Endpoint ekspor laporan transaksi sering timeout saat data membesar. Rancang solusi yang andal tanpa membebani server.",
+    "tier": "ai",
+    "fieldKey": "backend",
+    "level": "intermediate",
+    "price": null,
+    "about": "Sebuah aplikasi kasir untuk UMKM menyediakan tombol Ekspor Laporan yang membuat file Excel transaksi. Setelah pelanggan bertambah, tombol itu sering gagal dengan error timeout dan sesekali membuat server lambat bagi semua pengguna. Kamu berperan sebagai back-end engineer yang diminta merancang ulang endpoint tersebut.",
+    "activities": [
+      "Membaca alur endpoint dan menemukan titik yang membuatnya lambat serta boros memori",
+      "Membandingkan beberapa pendekatan (streaming, antrean job, pre-aggregation)",
+      "Merancang kontrak API, penanganan kegagalan, dan batas penggunaan",
+      "Menjelaskan trade-off dan rencana pengujian beban"
+    ],
+    "skills": [
+      "Desain API",
+      "Pemrosesan asinkron",
+      "Optimasi query",
+      "Penanganan error"
+    ],
+    "prerequisites": [
+      "Dasar REST API",
+      "Dasar SQL",
+      "Memahami konsep antrean (queue)"
+    ],
+    "reviewerRole": null,
+    "partner": null,
+    "context": [
+      "Aplikasi KasirKu dipakai 8.000 toko. Endpoint GET /api/reports/export?from=&to= membuat file .xlsx berisi semua transaksi pada rentang tanggal tertentu, lalu mengirimkannya sebagai respons. Rata-rata toko punya 300 transaksi per hari; toko besar bisa mencapai 5.000 transaksi per hari.",
+      "Cara kerja saat ini: (1) server mengambil seluruh transaksi pada rentang tanggal ke memori lewat satu query, (2) untuk setiap transaksi menjalankan query tambahan untuk item dan nama kasir, (3) menyusun seluruh file .xlsx di memori, (4) baru mengirimkannya. Proses ini berjalan di dalam request HTTP biasa dengan batas waktu 30 detik.",
+      "Gejala: ekspor 1 bulan untuk toko besar (sekitar 150.000 transaksi) memakan 2–4 menit dan hampir selalu timeout. Saat 20 toko mengekspor bersamaan di akhir bulan, penggunaan memori server naik dari 1 GB ke 7 GB dan endpoint lain ikut lambat. Dalam sebulan terakhir ada 310 tiket dukungan terkait ekspor gagal.",
+      "Batasan: tim hanya terdiri dari 3 engineer, infrastruktur saat ini satu database PostgreSQL dan satu layanan Redis yang sudah ada. Pengguna tetap ingin menerima file Excel. Tidak ada anggaran untuk layanan data warehouse baru. Pemilik toko menerima jika file tidak langsung jadi, asalkan mereka diberi tahu kapan siap diunduh.",
+      "AI Reviewer membaca teks jawaban dan isi berkas yang kamu unggah, tetapi tidak menjalankan kode atau membuka tautan. Karena itu, tulis semua alasan, angka, dan asumsimu secara eksplisit."
+    ],
+    "tasks": [
+      {
+        "title": "Diagnosis masalah",
+        "description": "Jelaskan minimal tiga penyebab endpoint lambat dan boros memori. Urutkan dari dampak terbesar dan jelaskan bagaimana kamu akan membuktikannya (metrik, profiling, atau query plan)."
+      },
+      {
+        "title": "Rancang solusi",
+        "description": "Pilih pendekatan perbaikan dan jelaskan alurnya dari tombol ditekan sampai file bisa diunduh: kontrak API (endpoint, status, respons), cara memproses data, tempat menyimpan file, dan notifikasi kepada pengguna."
+      },
+      {
+        "title": "Ketahanan dan risiko",
+        "description": "Jelaskan penanganan kegagalan di tengah proses, pembatasan agar satu toko tidak membebani yang lain, kebijakan retensi file, serta cara menguji bahwa solusinya tahan beban akhir bulan."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "rancangan_solusi",
+        "title": "Dokumen rancangan solusi",
+        "description": "Tulis diagnosis, rancangan solusi, kontrak API, dan penanganan risiko. Gunakan sub-judul agar mudah dibaca.",
+        "kind": "text",
+        "isRequired": true,
+        "minLength": 600,
+        "maxLength": 9000
+      },
+      {
+        "slotKey": "diagram_pendukung",
+        "title": "Diagram atau lampiran pendukung (opsional)",
+        "description": "Diagram alur atau dokumen tambahan jika ada.",
+        "kind": "file",
+        "isRequired": false,
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "repo_portofolio",
+        "title": "Tautan repositori (opsional)",
+        "description": "Untuk portofolio. Tautan tidak dibuka dan tidak dinilai.",
+        "kind": "link",
+        "isRequired": false,
+        "linkHint": "https://github.com/username/rancangan-ekspor"
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Ketepatan diagnosis",
+        "weight": 25,
+        "description": "Penyebab utama diidentifikasi dengan benar dan diurutkan menurut dampak.",
+        "levelDescriptions": [
+          "Tidak ada diagnosis penyebab masalah yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Diagnosis penyebab masalah disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Diagnosis penyebab masalah memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Diagnosis penyebab masalah jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Diagnosis penyebab masalah komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kualitas rancangan solusi",
+        "weight": 35,
+        "description": "Pendekatan sesuai batasan (tim kecil, infrastruktur yang ada) dan alurnya lengkap dari awal sampai akhir.",
+        "levelDescriptions": [
+          "Tidak ada rancangan solusi yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Rancangan solusi disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Rancangan solusi memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Rancangan solusi jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Rancangan solusi komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Ketahanan dan penanganan risiko",
+        "weight": 25,
+        "description": "Mempertimbangkan kegagalan, pembatasan penggunaan, retensi file, dan pengujian beban.",
+        "levelDescriptions": [
+          "Tidak ada penanganan kegagalan dan risiko yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Penanganan kegagalan dan risiko disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Penanganan kegagalan dan risiko memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Penanganan kegagalan dan risiko jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Penanganan kegagalan dan risiko komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kejelasan komunikasi",
+        "weight": 15,
+        "description": "Dokumen terstruktur, argumen runtut, dan trade-off dijelaskan.",
+        "levelDescriptions": [
+          "Tidak ada kejelasan dokumen yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Kejelasan dokumen disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Kejelasan dokumen memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Kejelasan dokumen jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Kejelasan dokumen komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      }
+    ],
+    "passingScore": 60
+  },
+  {
+    "slug": "halaman-produk-lambat-di-hp-entry-level",
+    "title": "Halaman Daftar Produk Terasa Lambat di HP Entry-Level",
+    "summary": "Halaman daftar produk lambat dan patah-patah di ponsel murah. Cari penyebabnya dan susun rencana perbaikan terukur.",
+    "tier": "ai",
+    "fieldKey": "frontend",
+    "level": "intermediate",
+    "price": null,
+    "about": "Toko online fashion mendapati 75% pengunjungnya memakai ponsel Android kelas entry-level dengan jaringan 4G yang tidak stabil. Halaman daftar produk terasa lambat dan menggulir dengan patah-patah. Kamu berperan sebagai front-end engineer yang diminta menemukan penyebabnya dan menyusun rencana perbaikan.",
+    "activities": [
+      "Membaca data performa (Lighthouse dan Core Web Vitals) dan menemukan bottleneck",
+      "Menganalisis ukuran aset, JavaScript, dan cara render daftar produk",
+      "Menyusun perbaikan berurutan berdasarkan dampak dan usaha",
+      "Menetapkan target metrik dan cara memantaunya"
+    ],
+    "skills": [
+      "Web performance",
+      "Core Web Vitals",
+      "Optimasi gambar dan bundle",
+      "Prioritisasi teknis"
+    ],
+    "prerequisites": [
+      "Dasar HTML, CSS, JavaScript",
+      "Pernah memakai browser DevTools",
+      "Paham konsep rendering web"
+    ],
+    "reviewerRole": null,
+    "partner": null,
+    "context": [
+      "Halaman /produk menampilkan 48 produk per muat dengan filter dan pengurutan. Data lab Lighthouse (ponsel Moto G Power, 4G lambat): Performance 31/100, LCP 6,8 detik, TBT 1.450 ms, CLS 0,34. Data lapangan (28 hari, persentil 75): LCP 5,9 detik, INP 540 ms, CLS 0,29.",
+      "Temuan awal tim: total transfer halaman 9,2 MB; 48 gambar produk berformat JPEG berukuran asli 1600x2000 piksel (rata-rata 140 KB lalu diperkecil lewat CSS menjadi 180x225 piksel) dan semuanya dimuat sekaligus; bundle JavaScript utama 1,9 MB (gzip 620 KB) karena memuat pustaka tanggal, ikon, dan carousel yang tidak dipakai di halaman ini; font kustom 4 varian dimuat dengan pemblokiran render; banner promo di atas daftar memuat tanpa dimensi tetap sehingga mendorong konten turun saat gambar tiba.",
+      "Dampak bisnis: laju pentalan halaman ini 61% di ponsel dibanding 38% di desktop. Setiap 1 detik perbaikan LCP diperkirakan menaikkan konversi sebesar 5–8% berdasarkan data historis toko. Rilis fitur promo besar berikutnya dijadwalkan 6 minggu lagi.",
+      "Batasan: tim front-end berjumlah 2 orang dengan kapasitas sekitar 3 minggu kerja untuk perbaikan performa. Desain visual tidak boleh berubah drastis. Aplikasi memakai framework komponen modern dengan render sisi server untuk halaman ini.",
+      "AI Reviewer membaca teks jawaban dan isi berkas yang kamu unggah, tetapi tidak menjalankan kode atau membuka tautan. Karena itu, tulis semua alasan, angka, dan asumsimu secara eksplisit."
+    ],
+    "tasks": [
+      {
+        "title": "Diagnosis performa",
+        "description": "Dari data yang diberikan, jelaskan minimal empat penyebab utama halaman lambat, kaitkan setiap penyebab dengan metrik yang terpengaruh (LCP, TBT/INP, CLS)."
+      },
+      {
+        "title": "Rencana perbaikan berurutan",
+        "description": "Susun daftar perbaikan dengan urutan prioritas berdasarkan dampak dan usaha. Untuk setiap perbaikan, jelaskan teknik yang dipakai dan perkiraan dampaknya."
+      },
+      {
+        "title": "Target dan pemantauan",
+        "description": "Tetapkan target metrik yang realistis setelah perbaikan, cara memverifikasinya sebelum rilis, dan cara memantau agar performa tidak menurun lagi."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "analisis_dan_rencana",
+        "title": "Analisis dan rencana perbaikan",
+        "description": "Tulis diagnosis, prioritas perbaikan, target metrik, dan rencana pemantauan.",
+        "kind": "text",
+        "isRequired": true,
+        "minLength": 600,
+        "maxLength": 9000
+      },
+      {
+        "slotKey": "lampiran_pendukung",
+        "title": "Lampiran pendukung (opsional)",
+        "description": "Tabel prioritas, diagram, atau catatan tambahan.",
+        "kind": "file",
+        "isRequired": false,
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "repo_portofolio",
+        "title": "Tautan demo atau repositori (opsional)",
+        "description": "Untuk portofolio. Tautan tidak dibuka dan tidak dinilai.",
+        "kind": "link",
+        "isRequired": false,
+        "linkHint": "https://github.com/username/perbaikan-performa"
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Ketepatan diagnosis",
+        "weight": 30,
+        "description": "Penyebab dikaitkan dengan metrik yang benar dan didukung data kasus.",
+        "levelDescriptions": [
+          "Tidak ada diagnosis performa yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Diagnosis performa disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Diagnosis performa memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Diagnosis performa jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Diagnosis performa komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kualitas perbaikan dan prioritas",
+        "weight": 35,
+        "description": "Teknik perbaikan tepat, urutannya masuk akal terhadap dampak dan usaha.",
+        "levelDescriptions": [
+          "Tidak ada rencana perbaikan dan prioritas yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Rencana perbaikan dan prioritas disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Rencana perbaikan dan prioritas memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Rencana perbaikan dan prioritas jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Rencana perbaikan dan prioritas komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Target dan pemantauan",
+        "weight": 20,
+        "description": "Target metrik realistis serta ada cara verifikasi dan pemantauan berkelanjutan.",
+        "levelDescriptions": [
+          "Tidak ada target dan pemantauan yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Target dan pemantauan disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Target dan pemantauan memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Target dan pemantauan jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Target dan pemantauan komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kejelasan komunikasi",
+        "weight": 15,
+        "description": "Uraian runtut, istilah teknis dijelaskan, dan mudah dipahami tim non-teknis.",
+        "levelDescriptions": [
+          "Tidak ada kejelasan penyampaian yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Kejelasan penyampaian disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Kejelasan penyampaian memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Kejelasan penyampaian jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Kejelasan penyampaian komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      }
+    ],
+    "passingScore": 60
+  },
+  {
+    "slug": "aplikasi-sering-crash-setelah-update",
+    "title": "Aplikasi Sering Crash dan Boros Baterai Setelah Update",
+    "summary": "Setelah rilis versi baru, aplikasi sering crash dan menguras baterai. Telusuri penyebabnya dan rancang penanganannya.",
+    "tier": "ai",
+    "fieldKey": "mobile",
+    "level": "intermediate",
+    "price": null,
+    "about": "Aplikasi pemesanan makanan versi 4.2 baru dirilis seminggu lalu. Sejak itu ulasan di toko aplikasi menurun, crash meningkat, dan banyak pengguna mengeluh baterai cepat habis. Kamu berperan sebagai mobile engineer yang memimpin penanganan masalah ini.",
+    "activities": [
+      "Membaca data crash dan ulasan pengguna untuk mengelompokkan masalah",
+      "Membuat hipotesis penyebab berdasarkan perubahan di rilis 4.2",
+      "Menentukan langkah mitigasi cepat dan perbaikan permanen",
+      "Merancang strategi rilis bertahap dan pemantauan"
+    ],
+    "skills": [
+      "Analisis crash",
+      "Debugging mobile",
+      "Manajemen rilis",
+      "Optimasi baterai"
+    ],
+    "prerequisites": [
+      "Dasar pengembangan aplikasi Android atau iOS",
+      "Memahami siklus rilis aplikasi",
+      "Dasar membaca stack trace"
+    ],
+    "reviewerRole": null,
+    "partner": null,
+    "context": [
+      "Aplikasi PesanAja punya 600.000 pengguna aktif bulanan. Versi 4.2 dirilis ke 100% pengguna sekaligus. Crash-free sessions turun dari 99,4% menjadi 96,8%; rating toko aplikasi turun dari 4,6 ke 4,1 dalam 7 hari. Ada 1.900 ulasan baru, 38% menyebut crash dan 24% menyebut baterai boros.",
+      "Data crash teratas: (1) OutOfMemoryError pada halaman daftar restoran, 52% dari semua crash, hampir semuanya di perangkat RAM 3 GB atau kurang; (2) NullPointerException saat membuka notifikasi pesanan ketika aplikasi sedang tertutup, 21%; (3) ANR (aplikasi tidak merespons) saat sinkronisasi keranjang, 14%; sisanya tersebar.",
+      "Perubahan di versi 4.2: peta live untuk pelacakan kurir dengan pembaruan lokasi tiap 2 detik, pustaka gambar diganti, prefetch gambar restoran di halaman daftar diperluas dari 10 menjadi 60 item, dan sinkronisasi keranjang dipindah ke thread utama agar 'terasa instan'. Pelacakan lokasi tetap aktif di latar belakang selama pesanan berlangsung.",
+      "Batasan: perbaikan permanen butuh sekitar 5 hari kerja dan melewati proses review toko aplikasi (1–2 hari). Tim tidak bisa menarik versi lama dari pengguna yang sudah memperbarui. Ada kampanye promo besar di akhir pekan depan yang akan menaikkan trafik 2–3 kali lipat.",
+      "AI Reviewer membaca teks jawaban dan isi berkas yang kamu unggah, tetapi tidak menjalankan kode atau membuka tautan. Karena itu, tulis semua alasan, angka, dan asumsimu secara eksplisit."
+    ],
+    "tasks": [
+      {
+        "title": "Analisis dan hipotesis",
+        "description": "Kelompokkan masalah dari data, lalu kaitkan setiap kelompok dengan perubahan di versi 4.2. Nyatakan hipotesis penyebabnya dan cara memverifikasi masing-masing."
+      },
+      {
+        "title": "Mitigasi dan perbaikan",
+        "description": "Rancang langkah mitigasi cepat sebelum akhir pekan serta perbaikan permanen. Jelaskan urutan pekerjaan, siapa yang perlu dilibatkan, dan bagaimana kamu menjaga pengalaman pengguna selama masa transisi."
+      },
+      {
+        "title": "Rilis aman ke depan",
+        "description": "Usulkan perubahan proses rilis (rollout bertahap, feature flag, ambang pemantauan, kriteria rollback) agar masalah serupa tidak terulang."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "analisis_dan_rencana",
+        "title": "Analisis dan rencana penanganan",
+        "description": "Tulis analisis, hipotesis, rencana mitigasi, perbaikan, dan perubahan proses rilis.",
+        "kind": "text",
+        "isRequired": true,
+        "minLength": 600,
+        "maxLength": 9000
+      },
+      {
+        "slotKey": "lampiran_pendukung",
+        "title": "Lampiran pendukung (opsional)",
+        "description": "Tabel prioritas atau diagram alur rilis.",
+        "kind": "file",
+        "isRequired": false,
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "repo_portofolio",
+        "title": "Tautan portofolio (opsional)",
+        "description": "Untuk portofolio. Tautan tidak dibuka dan tidak dinilai.",
+        "kind": "link",
+        "isRequired": false,
+        "linkHint": "https://github.com/username/penanganan-crash"
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Kualitas analisis dan hipotesis",
+        "weight": 30,
+        "description": "Masalah dikelompokkan dengan benar dan dikaitkan dengan perubahan rilis.",
+        "levelDescriptions": [
+          "Tidak ada analisis dan hipotesis penyebab yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Analisis dan hipotesis penyebab disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Analisis dan hipotesis penyebab memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Analisis dan hipotesis penyebab jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Analisis dan hipotesis penyebab komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Mitigasi dan perbaikan",
+        "weight": 35,
+        "description": "Langkah cepat dan permanen realistis terhadap batasan waktu dan menjaga pengguna.",
+        "levelDescriptions": [
+          "Tidak ada mitigasi dan perbaikan yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Mitigasi dan perbaikan disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Mitigasi dan perbaikan memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Mitigasi dan perbaikan jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Mitigasi dan perbaikan komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Strategi rilis dan pemantauan",
+        "weight": 20,
+        "description": "Rollout bertahap, ambang pemantauan, dan kriteria rollback jelas.",
+        "levelDescriptions": [
+          "Tidak ada strategi rilis dan pemantauan yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Strategi rilis dan pemantauan disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Strategi rilis dan pemantauan memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Strategi rilis dan pemantauan jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Strategi rilis dan pemantauan komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kejelasan komunikasi",
+        "weight": 15,
+        "description": "Uraian runtut, prioritas jelas, dan mudah diikuti lintas tim.",
+        "levelDescriptions": [
+          "Tidak ada kejelasan penyampaian yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Kejelasan penyampaian disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Kejelasan penyampaian memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Kejelasan penyampaian jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Kejelasan penyampaian komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      }
+    ],
+    "passingScore": 60
+  },
+  {
+    "slug": "penjualan-turun-mendadak-cari-penyebab",
+    "title": "Penjualan Turun Mendadak: Cari Penyebabnya dari Data",
+    "summary": "Pendapatan toko online turun hampir 27% dalam seminggu. Telusuri data funnel untuk menemukan penyebab sebenarnya.",
+    "tier": "ai",
+    "fieldKey": "data",
+    "level": "intermediate",
+    "price": null,
+    "about": "Toko online peralatan olahraga mendapati pendapatan mingguan turun tajam tanpa perubahan harga atau promo. Kamu berperan sebagai data analyst yang diminta menemukan penyebab utamanya dari data yang tersedia dan menyarankan tindakan.",
+    "activities": [
+      "Memecah penurunan pendapatan menjadi kunjungan, konversi, dan nilai pesanan",
+      "Membandingkan segmen perangkat, kanal, dan tahap funnel",
+      "Menarik kesimpulan dengan menyebut angka dan batas keyakinannya",
+      "Merekomendasikan tindakan dan analisis lanjutan"
+    ],
+    "skills": [
+      "Analisis funnel",
+      "Segmentasi data",
+      "Interpretasi metrik",
+      "Storytelling data"
+    ],
+    "prerequisites": [
+      "Dasar statistik deskriptif",
+      "Dasar spreadsheet atau SQL",
+      "Memahami metrik e-commerce"
+    ],
+    "reviewerRole": null,
+    "partner": null,
+    "context": [
+      "Ringkasan mingguan (minggu lalu → minggu ini): kunjungan 120.000 → 118.000; order 3.612 → 2.690; tingkat konversi 3,0% → 2,3%; rata-rata nilai pesanan Rp215.000 → Rp212.000; pendapatan Rp776,6 juta → Rp570,3 juta (turun 26,6%). Tidak ada perubahan harga, tidak ada kampanye iklan baru, dan stok produk terlaris tersedia.",
+      "Per perangkat (minggu lalu → minggu ini): mobile kunjungan 84.000 → 82.600, konversi 2,5% → 1,5%; desktop kunjungan 36.000 → 35.400, konversi 4,2% → 4,1%. Per kanal untuk mobile: pencarian organik dan iklan berbayar menurun konversinya hampir sama; kanal email stabil.",
+      "Per tahap funnel di mobile (minggu lalu → minggu ini): lihat produk → tambah ke keranjang 9,8% → 9,6%; keranjang → mulai checkout 38% → 37%; mulai checkout → pembayaran berhasil 66% → 41%. Kegagalan pembayaran melalui dompet digital di mobile naik dari 2% menjadi 14% transaksi.",
+      "Informasi tambahan dari tim: versi baru halaman checkout dirilis hari Selasa minggu ini, mencakup tombol pembayaran dompet digital baru dari penyedia pembayaran. Tim customer service melaporkan keluhan 'pembayaran berputar terus' dari pengguna Android. Tidak ada data lain tentang browser atau versi OS.",
+      "AI Reviewer membaca teks jawaban dan isi berkas yang kamu unggah, tetapi tidak menjalankan kode atau membuka tautan. Karena itu, tulis semua alasan, angka, dan asumsimu secara eksplisit."
+    ],
+    "tasks": [
+      {
+        "title": "Dekomposisi penurunan",
+        "description": "Uraikan penurunan pendapatan 26,6% menjadi kontribusi kunjungan, konversi, dan nilai pesanan. Tunjukkan hitunganmu."
+      },
+      {
+        "title": "Temukan penyebab utama",
+        "description": "Tentukan segmen dan tahap funnel yang paling bertanggung jawab. Sebutkan bukti dari data, hipotesis alternatif yang kamu singkirkan, dan batas keyakinan kesimpulanmu."
+      },
+      {
+        "title": "Rekomendasi",
+        "description": "Berikan tindakan segera, ukuran keberhasilan pemulihan, dan analisis lanjutan yang perlu dilakukan. Perkirakan dampak pendapatan bila masalah teratasi."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "laporan_analisis",
+        "title": "Laporan analisis",
+        "description": "Tulis dekomposisi, penyebab utama, dan rekomendasi. Sertakan tabel atau hitungan jika perlu.",
+        "kind": "text",
+        "isRequired": true,
+        "minLength": 600,
+        "maxLength": 9000
+      },
+      {
+        "slotKey": "lampiran_hitungan",
+        "title": "Spreadsheet hitungan (opsional)",
+        "description": "Lampirkan hitungan atau grafik pendukung.",
+        "kind": "file",
+        "isRequired": false,
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "portofolio",
+        "title": "Tautan dashboard atau portofolio (opsional)",
+        "description": "Untuk portofolio. Tautan tidak dibuka dan tidak dinilai.",
+        "kind": "link",
+        "isRequired": false,
+        "linkHint": "https://contoh.com/analisis-funnel"
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Ketepatan analisis data",
+        "weight": 35,
+        "description": "Dekomposisi dan hitungan benar serta segmen penyebab utama teridentifikasi.",
+        "levelDescriptions": [
+          "Tidak ada analisis dan hitungan data yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Analisis dan hitungan data disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Analisis dan hitungan data memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Analisis dan hitungan data jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Analisis dan hitungan data komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kekuatan bukti dan penalaran",
+        "weight": 25,
+        "description": "Kesimpulan didukung data, hipotesis alternatif dipertimbangkan, batas keyakinan disebut.",
+        "levelDescriptions": [
+          "Tidak ada bukti dan penalaran yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Bukti dan penalaran disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Bukti dan penalaran memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Bukti dan penalaran jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Bukti dan penalaran komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kualitas rekomendasi",
+        "weight": 25,
+        "description": "Tindakan konkret, terukur, dan diprioritaskan.",
+        "levelDescriptions": [
+          "Tidak ada rekomendasi tindakan yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Rekomendasi tindakan disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Rekomendasi tindakan memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Rekomendasi tindakan jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Rekomendasi tindakan komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kejelasan penyampaian",
+        "weight": 15,
+        "description": "Cerita data runtut dan mudah dipahami pemangku kepentingan non-teknis.",
+        "levelDescriptions": [
+          "Tidak ada kejelasan penyampaian yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Kejelasan penyampaian disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Kejelasan penyampaian memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Kejelasan penyampaian jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Kejelasan penyampaian komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      }
+    ],
+    "passingScore": 60
+  },
+  {
+    "slug": "evaluasi-usability-form-pengajuan",
+    "title": "Evaluasi Usability Form Pengajuan yang Membingungkan",
+    "summary": "Banyak pengguna gagal menyelesaikan form pengajuan layanan. Evaluasi usability-nya dan usulkan perbaikan berbasis riset.",
+    "tier": "ai",
+    "fieldKey": "uiux",
+    "level": "beginner",
+    "price": null,
+    "about": "Sebuah layanan pengajuan KTA online mendapati banyak calon nasabah berhenti di tengah form pengajuan. Kamu berperan sebagai UX designer yang diminta mengevaluasi form dan mengusulkan perbaikan berdasarkan temuan riset.",
+    "activities": [
+      "Menganalisis hasil uji usability dan data analitik form",
+      "Mengidentifikasi masalah usability dan menilai tingkat keparahannya",
+      "Mengusulkan perbaikan desain dengan alasan berbasis temuan",
+      "Merancang cara mengukur keberhasilan perbaikan"
+    ],
+    "skills": [
+      "Evaluasi usability",
+      "Heuristik UX",
+      "Desain form",
+      "Prioritisasi masalah"
+    ],
+    "prerequisites": [
+      "Dasar prinsip UX",
+      "Mengenal heuristik Nielsen",
+      "Dasar wireframing"
+    ],
+    "reviewerRole": null,
+    "partner": null,
+    "context": [
+      "Form pengajuan memiliki 34 isian dalam satu halaman panjang tanpa indikator progres. Data analitik 30 hari: 18.400 orang memulai form, 5.100 menyelesaikannya (27,7%). Titik berhenti terbanyak: bagian 'Data pekerjaan' (31% dari yang berhenti) dan unggah dokumen (27%).",
+      "Hasil uji usability 6 peserta (tugas: mengajukan pinjaman Rp10 juta): 5 dari 6 bingung membedakan 'Penghasilan bulanan' dan 'Penghasilan lain'; 4 dari 6 tidak tahu format foto KTP yang diterima dan gagal unggah 2–3 kali; 3 dari 6 tidak sadar ada kolom wajib di bagian bawah dan menekan Kirim berkali-kali; pesan error hanya 'Data tidak valid' di bagian atas halaman dengan warna merah muda tipis.",
+      "Kutipan peserta: 'Saya takut salah isi, nanti ditolak.' 'Kenapa harus isi nama ibu kandung sekarang? Nanti saja kan?' 'Saya nggak tahu ini sudah berapa persen.' Sekitar 70% pengguna mengakses lewat ponsel layar 6 inci.",
+      "Batasan: tim engineering hanya bisa mengubah tampilan dan urutan, bukan mengubah isian yang diwajibkan oleh regulator (semua 34 isian harus tetap dikumpulkan, tetapi boleh dipecah dalam beberapa langkah atau dikumpulkan bertahap).",
+      "AI Reviewer membaca teks jawaban dan isi berkas yang kamu unggah, tetapi tidak menjalankan kode atau membuka tautan. Karena itu, tulis semua alasan, angka, dan asumsimu secara eksplisit."
+    ],
+    "tasks": [
+      {
+        "title": "Identifikasi masalah usability",
+        "description": "Daftarkan minimal lima masalah usability. Untuk masing-masing, jelaskan bukti dari data, heuristik UX yang dilanggar, dan tingkat keparahannya."
+      },
+      {
+        "title": "Usulan perbaikan desain",
+        "description": "Jelaskan perbaikan untuk masalah teratas: struktur langkah, tata letak, teks bantuan, validasi, dan pesan error. Gambarkan secara tertulis atau lampirkan sketsa sederhana."
+      },
+      {
+        "title": "Pengukuran keberhasilan",
+        "description": "Tetapkan metrik dan target, serta rencana uji lanjutan untuk membuktikan perbaikanmu berhasil."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "laporan_evaluasi",
+        "title": "Laporan evaluasi dan usulan",
+        "description": "Tulis temuan, usulan perbaikan, dan rencana pengukuran.",
+        "kind": "text",
+        "isRequired": true,
+        "minLength": 500,
+        "maxLength": 8000
+      },
+      {
+        "slotKey": "sketsa_usulan",
+        "title": "Sketsa atau wireframe (opsional)",
+        "description": "Unggah sketsa usulan desain bila ada.",
+        "kind": "file",
+        "isRequired": false,
+        "maxSizeMb": 10
+      },
+      {
+        "slotKey": "portofolio",
+        "title": "Tautan portofolio (opsional)",
+        "description": "Untuk portofolio. Tautan tidak dibuka dan tidak dinilai.",
+        "kind": "link",
+        "isRequired": false,
+        "linkHint": "https://www.figma.com/file/..."
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Kualitas identifikasi masalah",
+        "weight": 30,
+        "description": "Masalah relevan, didukung bukti, dan dikaitkan dengan heuristik UX serta tingkat keparahan.",
+        "levelDescriptions": [
+          "Tidak ada identifikasi masalah usability yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Identifikasi masalah usability disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Identifikasi masalah usability memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Identifikasi masalah usability jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Identifikasi masalah usability komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kualitas usulan desain",
+        "weight": 35,
+        "description": "Usulan menjawab masalah teratas dan memperhatikan batasan regulator serta konteks mobile.",
+        "levelDescriptions": [
+          "Tidak ada usulan perbaikan desain yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Usulan perbaikan desain disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Usulan perbaikan desain memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Usulan perbaikan desain jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Usulan perbaikan desain komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Rencana pengukuran",
+        "weight": 20,
+        "description": "Metrik dan target jelas serta ada rencana pengujian lanjutan.",
+        "levelDescriptions": [
+          "Tidak ada rencana pengukuran yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Rencana pengukuran disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Rencana pengukuran memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Rencana pengukuran jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Rencana pengukuran komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kejelasan komunikasi",
+        "weight": 15,
+        "description": "Laporan terstruktur dan alasan setiap usulan mudah dipahami.",
+        "levelDescriptions": [
+          "Tidak ada kejelasan laporan yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Kejelasan laporan disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Kejelasan laporan memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Kejelasan laporan jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Kejelasan laporan komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      }
+    ],
+    "passingScore": 60
+  },
+  {
+    "slug": "prioritas-fitur-dengan-sumber-daya-terbatas",
+    "title": "Memilih Fitur Prioritas dengan Sumber Daya Terbatas",
+    "summary": "Ada tujuh permintaan fitur tetapi kapasitas tim hanya cukup untuk dua. Susun prioritas dan rencana rilis dengan argumen yang kuat.",
+    "tier": "ai",
+    "fieldKey": "product",
+    "level": "intermediate",
+    "price": null,
+    "about": "Sebuah aplikasi manajemen keuangan pribadi memiliki banyak permintaan fitur dari pengguna, tim bisnis, dan pimpinan. Kapasitas engineering kuartal depan hanya cukup untuk dua fitur. Kamu berperan sebagai product manager yang harus memilih, menjelaskan alasannya, dan menyiapkan rencana pengukuran.",
+    "activities": [
+      "Mengevaluasi permintaan fitur dengan kerangka prioritisasi",
+      "Menimbang data pengguna, dampak bisnis, usaha, dan risiko",
+      "Menyusun ringkasan keputusan untuk pemangku kepentingan",
+      "Menetapkan metrik keberhasilan dan rencana rilis"
+    ],
+    "skills": [
+      "Prioritisasi produk",
+      "Penyusunan PRD ringkas",
+      "Penetapan metrik",
+      "Komunikasi pemangku kepentingan"
+    ],
+    "prerequisites": [
+      "Dasar manajemen produk",
+      "Memahami metrik produk (retensi, aktivasi)",
+      "Dasar berpikir berbasis data"
+    ],
+    "reviewerRole": null,
+    "partner": null,
+    "context": [
+      "Aplikasi CatatDuit: 450.000 pengguna aktif bulanan, retensi hari ke-30 sebesar 24%, 6% pengguna berlangganan paket premium (Rp39.000 per bulan). Target kuartal depan: menaikkan retensi hari ke-30 menjadi 30% atau pelanggan premium menjadi 8%.",
+      "Daftar permintaan (usaha dalam minggu-engineer): (A) Ekspor laporan ke PDF — diminta 1.200 pengguna, usaha 3; (B) Sinkronisasi otomatis rekening bank — diminta 3.400 pengguna, usaha 14, butuh kerja sama dengan agregator berbayar; (C) Mode gelap — diminta 900 pengguna, usaha 2; (D) Anggaran bersama pasangan — diminta 1.800 pengguna, usaha 8; (E) Pengingat tagihan — diminta 2.600 pengguna, usaha 4; (F) Widget layar utama — diminta 400 pengguna, usaha 5; (G) Tantangan hemat bulanan bergaya gamifikasi — usulan tim marketing, belum ada permintaan pengguna, usaha 6.",
+      "Data pendukung: dari survei 800 pengguna yang berhenti memakai aplikasi, 41% menyebut 'lupa mencatat', 27% menyebut 'terlalu ribet mencatat manual', 12% menyebut kurang fitur laporan. Pengguna yang menyalakan pengingat apa pun memiliki retensi hari ke-30 sebesar 38% dibanding 21% yang tidak. 70% pelanggan premium menyebut laporan dan ekspor sebagai alasan berlangganan.",
+      "Batasan: kapasitas engineering 16 minggu-engineer kuartal depan, tetapi 4 minggu sudah dialokasikan untuk perawatan teknis. Pimpinan sangat menyukai fitur (B) karena kompetitor memilikinya. Biaya agregator untuk (B) sekitar Rp12 juta per bulan.",
+      "AI Reviewer membaca teks jawaban dan isi berkas yang kamu unggah, tetapi tidak menjalankan kode atau membuka tautan. Karena itu, tulis semua alasan, angka, dan asumsimu secara eksplisit."
+    ],
+    "tasks": [
+      {
+        "title": "Analisis dan prioritas",
+        "description": "Nilai ketujuh permintaan memakai kerangka yang kamu pilih (mis. RICE atau value-vs-effort). Tunjukkan skor atau penilaianmu serta asumsinya, lalu tentukan fitur yang dikerjakan, ditunda, dan ditolak."
+      },
+      {
+        "title": "Ringkasan keputusan",
+        "description": "Tulis ringkasan untuk pimpinan dan tim marketing yang menjelaskan keputusanmu, terutama untuk fitur (B) dan (G) yang punya pendukung internal kuat, beserta risiko dan trade-off."
+      },
+      {
+        "title": "Metrik dan rencana rilis",
+        "description": "Tetapkan metrik keberhasilan utama dan metrik pengaman, target, serta cara meluncurkan fitur terpilih (bertahap, eksperimen, atau lainnya)."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "dokumen_prioritas",
+        "title": "Dokumen prioritas dan keputusan",
+        "description": "Tulis analisis prioritas, ringkasan keputusan, dan rencana metrik.",
+        "kind": "text",
+        "isRequired": true,
+        "minLength": 600,
+        "maxLength": 9000
+      },
+      {
+        "slotKey": "tabel_prioritas",
+        "title": "Tabel prioritas (opsional)",
+        "description": "Spreadsheet skor atau lampiran tambahan.",
+        "kind": "file",
+        "isRequired": false,
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "portofolio",
+        "title": "Tautan portofolio (opsional)",
+        "description": "Untuk portofolio. Tautan tidak dibuka dan tidak dinilai.",
+        "kind": "link",
+        "isRequired": false,
+        "linkHint": "https://contoh.com/portofolio-produk"
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Kualitas analisis prioritas",
+        "weight": 35,
+        "description": "Kerangka dipakai konsisten dengan asumsi eksplisit dan memakai data kasus.",
+        "levelDescriptions": [
+          "Tidak ada analisis prioritas yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Analisis prioritas disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Analisis prioritas memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Analisis prioritas jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Analisis prioritas komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Keputusan dan manajemen trade-off",
+        "weight": 25,
+        "description": "Keputusan tegas, risiko dan keberatan pemangku kepentingan dijawab.",
+        "levelDescriptions": [
+          "Tidak ada keputusan dan trade-off yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Keputusan dan trade-off disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Keputusan dan trade-off memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Keputusan dan trade-off jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Keputusan dan trade-off komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Metrik dan rencana rilis",
+        "weight": 25,
+        "description": "Metrik utama dan pengaman jelas, target realistis, rilis terukur.",
+        "levelDescriptions": [
+          "Tidak ada metrik dan rencana rilis yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Metrik dan rencana rilis disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Metrik dan rencana rilis memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Metrik dan rencana rilis jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Metrik dan rencana rilis komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kejelasan komunikasi",
+        "weight": 15,
+        "description": "Ringkas, terstruktur, dan meyakinkan bagi pemangku kepentingan.",
+        "levelDescriptions": [
+          "Tidak ada kejelasan komunikasi yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Kejelasan komunikasi disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Kejelasan komunikasi memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Kejelasan komunikasi jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Kejelasan komunikasi komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      }
+    ],
+    "passingScore": 60
+  },
+  {
+    "slug": "kampanye-produk-baru-anggaran-terbatas",
+    "title": "Kampanye Peluncuran Produk Baru dengan Anggaran Terbatas",
+    "summary": "Rancang rencana kampanye 6 minggu dengan anggaran Rp30 juta untuk produk baru, lengkap dengan KPI dan alokasi kanal.",
+    "tier": "ai",
+    "fieldKey": "marketing",
+    "level": "beginner",
+    "price": null,
+    "about": "Sebuah brand minuman sehat lokal akan meluncurkan varian baru dengan anggaran pemasaran terbatas. Kamu berperan sebagai marketer yang diminta menyusun rencana kampanye yang realistis dan terukur.",
+    "activities": [
+      "Menentukan target audiens dan pesan utama berdasarkan data",
+      "Memilih kanal dan mengalokasikan anggaran",
+      "Menetapkan KPI, jadwal, dan cara evaluasi",
+      "Mengantisipasi risiko dan menyiapkan rencana cadangan"
+    ],
+    "skills": [
+      "Perencanaan kampanye",
+      "Pemilihan kanal",
+      "Penetapan KPI",
+      "Penganggaran"
+    ],
+    "prerequisites": [
+      "Dasar pemasaran digital",
+      "Memahami funnel pemasaran",
+      "Dasar menghitung CPA dan ROAS"
+    ],
+    "reviewerRole": null,
+    "partner": null,
+    "context": [
+      "Brand SegarKu menjual minuman teh buah dalam kemasan botol 330 ml (harga Rp12.000) di minimarket dan marketplace. Varian baru: Teh Jahe Lemon tanpa gula tambahan, harga Rp13.500. Target: terjual 40.000 botol dalam 6 minggu pertama; margin kotor produk 38%.",
+      "Data konsumen: 62% pembeli SegarKu berusia 22–35 tahun, 70% perempuan, mayoritas pekerja kantoran dan mahasiswa di Jabodetabek, Bandung, dan Surabaya. Penjualan terbesar lewat minimarket (65%), marketplace (25%), dan situs sendiri (10%). Akun Instagram memiliki 18.000 pengikut dengan engagement 2,1%; TikTok 4.500 pengikut. Rata-rata CPA iklan berbayar sebelumnya Rp28.000 per pembeli baru di marketplace.",
+      "Anggaran total kampanye Rp30 juta untuk 6 minggu, sudah termasuk produksi konten, iklan berbayar, kerja sama dengan kreator, dan sampel produk. Tim terdiri atas 1 marketer dan 1 desainer paruh waktu. Peluncuran di minimarket baru tersedia pada minggu ke-3 karena proses distribusi.",
+      "Catatan: pesaing utama meluncurkan teh tanpa gula dua bulan lalu dengan kampanye kreator yang cukup ramai. Tim ingin pesan yang berbeda dan tidak sekadar 'sehat'.",
+      "AI Reviewer membaca teks jawaban dan isi berkas yang kamu unggah, tetapi tidak menjalankan kode atau membuka tautan. Karena itu, tulis semua alasan, angka, dan asumsimu secara eksplisit."
+    ],
+    "tasks": [
+      {
+        "title": "Strategi dan pesan",
+        "description": "Tentukan target audiens utama, insight yang kamu pakai, dan pesan inti kampanye. Jelaskan bagaimana pesanmu berbeda dari pesaing."
+      },
+      {
+        "title": "Rencana kanal dan anggaran",
+        "description": "Susun alokasi anggaran Rp30 juta per kanal dan per minggu, termasuk alasan pemilihan kanal dan jadwal selama 6 minggu dengan memperhatikan jadwal distribusi minimarket."
+      },
+      {
+        "title": "KPI dan evaluasi",
+        "description": "Tetapkan KPI di tiap tahap funnel dan target yang realistis. Jelaskan cara mengevaluasi mingguan dan tindakan jika performa di bawah target."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "rencana_kampanye",
+        "title": "Rencana kampanye",
+        "description": "Tulis strategi, rencana kanal dan anggaran, serta KPI dan evaluasi.",
+        "kind": "text",
+        "isRequired": true,
+        "minLength": 500,
+        "maxLength": 8000
+      },
+      {
+        "slotKey": "tabel_anggaran",
+        "title": "Tabel anggaran atau kalender (opsional)",
+        "description": "Spreadsheet anggaran atau kalender konten.",
+        "kind": "file",
+        "isRequired": false,
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "portofolio",
+        "title": "Tautan portofolio (opsional)",
+        "description": "Untuk portofolio. Tautan tidak dibuka dan tidak dinilai.",
+        "kind": "link",
+        "isRequired": false,
+        "linkHint": "https://contoh.com/portofolio-marketing"
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Kualitas strategi dan pesan",
+        "weight": 30,
+        "description": "Audiens dan insight tepat, pesan jelas serta berbeda dari pesaing.",
+        "levelDescriptions": [
+          "Tidak ada strategi dan pesan kampanye yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Strategi dan pesan kampanye disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Strategi dan pesan kampanye memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Strategi dan pesan kampanye jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Strategi dan pesan kampanye komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Rencana kanal dan anggaran",
+        "weight": 30,
+        "description": "Alokasi realistis, sesuai batasan, dan memperhitungkan jadwal distribusi.",
+        "levelDescriptions": [
+          "Tidak ada rencana kanal dan anggaran yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Rencana kanal dan anggaran disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Rencana kanal dan anggaran memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Rencana kanal dan anggaran jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Rencana kanal dan anggaran komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "KPI dan rencana evaluasi",
+        "weight": 25,
+        "description": "KPI per tahap funnel terukur, target realistis, ada rencana tindak lanjut.",
+        "levelDescriptions": [
+          "Tidak ada KPI dan evaluasi yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "KPI dan evaluasi disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "KPI dan evaluasi memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "KPI dan evaluasi jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "KPI dan evaluasi komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kejelasan komunikasi",
+        "weight": 15,
+        "description": "Terstruktur dan mudah dieksekusi tim kecil.",
+        "levelDescriptions": [
+          "Tidak ada kejelasan rencana yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Kejelasan rencana disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Kejelasan rencana memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Kejelasan rencana jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Kejelasan rencana komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      }
+    ],
+    "passingScore": 60
+  },
+  {
+    "slug": "kelayakan-investasi-mesin-produksi",
+    "title": "Menilai Kelayakan Investasi Mesin Produksi Baru",
+    "summary": "Putuskan apakah membeli mesin senilai Rp240 juta layak, menggunakan NPV, payback, dan analisis sensitivitas.",
+    "tier": "ai",
+    "fieldKey": "finance",
+    "level": "intermediate",
+    "price": null,
+    "about": "Sebuah usaha roti rumahan yang sedang berkembang mempertimbangkan membeli oven industri baru. Kamu berperan sebagai analis keuangan yang diminta menilai kelayakannya dan memberi rekomendasi kepada pemilik.",
+    "activities": [
+      "Menyusun arus kas proyek berdasarkan data yang diberikan",
+      "Menghitung NPV dan periode pengembalian modal",
+      "Menguji sensitivitas terhadap perubahan asumsi",
+      "Memberi rekomendasi dengan mempertimbangkan risiko"
+    ],
+    "skills": [
+      "Penganggaran modal",
+      "NPV dan payback",
+      "Analisis sensitivitas",
+      "Rekomendasi keuangan"
+    ],
+    "prerequisites": [
+      "Dasar nilai waktu uang",
+      "Dasar membaca arus kas",
+      "Dasar spreadsheet"
+    ],
+    "reviewerRole": null,
+    "partner": null,
+    "context": [
+      "Usaha: Roti Lestari, pendapatan tahun lalu Rp1,2 miliar, kapasitas produksi saat ini sudah penuh sehingga sekitar 15% pesanan ditolak. Pemilik mempertimbangkan membeli oven industri seharga Rp240 juta, umur ekonomis 5 tahun, nilai sisa dianggap Rp0.",
+      "Proyeksi arus kas bersih tambahan dari oven (setelah bahan baku, tenaga kerja tambahan, listrik, dan pajak): Rp70 juta per tahun selama tahun ke-1 sampai ke-5, diasumsikan terjadi di akhir tiap tahun. Tingkat diskonto (biaya modal) yang dipakai pemilik: 12% per tahun. Investasi dibayar tunai di awal dari tabungan usaha.",
+      "Faktor tambahan: pemilik khawatir permintaan tambahan tidak sebesar proyeksi karena sebagian estimasi berasal dari pesanan yang ditolak, yang belum tentu kembali. Biaya perawatan oven sudah termasuk dalam arus kas bersih. Dana tabungan usaha saat ini Rp310 juta dan dipakai juga sebagai dana darurat operasional (minimal Rp100 juta).",
+      "Catatan untuk perhitungan: faktor anuitas 12% selama 5 tahun adalah 3,6048. Tunjukkan semua langkah hitung dan asumsi. Jika kamu memakai asumsi tambahan, tulis secara eksplisit.",
+      "AI Reviewer membaca teks jawaban dan isi berkas yang kamu unggah, tetapi tidak menjalankan kode atau membuka tautan. Karena itu, tulis semua alasan, angka, dan asumsimu secara eksplisit."
+    ],
+    "tasks": [
+      {
+        "title": "Hitung kelayakan",
+        "description": "Hitung NPV dan periode pengembalian modal (payback) proyek berdasarkan data yang diberikan. Tunjukkan langkah hitungannya."
+      },
+      {
+        "title": "Uji sensitivitas",
+        "description": "Uji bagaimana NPV berubah jika arus kas tahunan lebih rendah 10% dan 20% dari proyeksi, serta tentukan batas arus kas minimum agar proyek tetap layak."
+      },
+      {
+        "title": "Rekomendasi",
+        "description": "Berikan rekomendasi akhir (beli, tunda, atau ubah rencana) dengan mempertimbangkan risiko permintaan, dana darurat, dan alternatif pendanaan atau pembelian bertahap."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "analisis_kelayakan",
+        "title": "Analisis kelayakan investasi",
+        "description": "Tulis perhitungan, sensitivitas, dan rekomendasi.",
+        "kind": "text",
+        "isRequired": true,
+        "minLength": 500,
+        "maxLength": 8000
+      },
+      {
+        "slotKey": "spreadsheet_hitungan",
+        "title": "Spreadsheet hitungan (opsional)",
+        "description": "Lampirkan spreadsheet perhitungan.",
+        "kind": "file",
+        "isRequired": false,
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "portofolio",
+        "title": "Tautan portofolio (opsional)",
+        "description": "Untuk portofolio. Tautan tidak dibuka dan tidak dinilai.",
+        "kind": "link",
+        "isRequired": false,
+        "linkHint": "https://contoh.com/analisis-keuangan"
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Ketepatan perhitungan",
+        "weight": 35,
+        "description": "NPV, payback, dan sensitivitas dihitung dengan benar dengan langkah yang terlihat.",
+        "levelDescriptions": [
+          "Tidak ada perhitungan NPV dan payback yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Perhitungan NPV dan payback disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Perhitungan NPV dan payback memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Perhitungan NPV dan payback jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Perhitungan NPV dan payback komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kualitas analisis risiko",
+        "weight": 25,
+        "description": "Sensitivitas dan batas kelayakan dianalisis dengan baik, mempertimbangkan risiko permintaan.",
+        "levelDescriptions": [
+          "Tidak ada analisis sensitivitas dan risiko yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Analisis sensitivitas dan risiko disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Analisis sensitivitas dan risiko memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Analisis sensitivitas dan risiko jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Analisis sensitivitas dan risiko komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kualitas rekomendasi",
+        "weight": 25,
+        "description": "Rekomendasi tegas, sesuai hasil hitung, dan mempertimbangkan dana darurat serta alternatif.",
+        "levelDescriptions": [
+          "Tidak ada rekomendasi keuangan yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Rekomendasi keuangan disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Rekomendasi keuangan memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Rekomendasi keuangan jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Rekomendasi keuangan komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kejelasan komunikasi",
+        "weight": 15,
+        "description": "Penjelasan runtut dan bisa dipahami pemilik non-keuangan.",
+        "levelDescriptions": [
+          "Tidak ada kejelasan penjelasan yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Kejelasan penjelasan disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Kejelasan penjelasan memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Kejelasan penjelasan jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Kejelasan penjelasan komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      }
+    ],
+    "passingScore": 60
+  },
+  {
+    "slug": "rekonsiliasi-bank-dan-jurnal-penyesuaian",
+    "title": "Rekonsiliasi Bank dan Jurnal Penyesuaian Akhir Bulan",
+    "summary": "Saldo kas di buku dan rekening koran berbeda Rp1,55 juta. Telusuri selisihnya dan susun rekonsiliasi serta jurnal penyesuaian.",
+    "tier": "ai",
+    "fieldKey": "accounting",
+    "level": "intermediate",
+    "price": null,
+    "about": "Pada penutupan buku akhir bulan, saldo kas di bank menurut buku perusahaan berbeda dengan saldo di rekening koran. Kamu berperan sebagai staf akuntansi yang diminta menyusun rekonsiliasi bank dan jurnal penyesuaiannya.",
+    "activities": [
+      "Mengidentifikasi item rekonsiliasi dari kedua sisi",
+      "Menyusun laporan rekonsiliasi bank",
+      "Membuat jurnal penyesuaian untuk item di sisi buku",
+      "Menyarankan perbaikan pengendalian internal"
+    ],
+    "skills": [
+      "Rekonsiliasi bank",
+      "Jurnal penyesuaian",
+      "Pengendalian internal",
+      "Ketelitian akuntansi"
+    ],
+    "prerequisites": [
+      "Dasar akuntansi dan jurnal",
+      "Memahami buku besar",
+      "Dasar rekonsiliasi bank"
+    ],
+    "reviewerRole": null,
+    "partner": null,
+    "context": [
+      "CV Maju Bersama menutup buku per 30 November. Saldo akun Kas di Bank pada buku besar: Rp53.900.000. Saldo menurut rekening koran bank per 30 November: Rp52.350.000. Selisih: Rp1.550.000.",
+      "Hasil pembandingan transaksi bulan November: (1) setoran tanggal 30 November sebesar Rp4.200.000 sudah dicatat perusahaan tetapi belum muncul di rekening koran; (2) cek nomor 0127 sebesar Rp2.500.000 sudah dicatat dan diberikan ke pemasok tetapi belum dicairkan; (3) biaya administrasi bank Rp350.000 muncul di rekening koran tetapi belum dicatat perusahaan; (4) bunga jasa giro Rp150.000 muncul di rekening koran tetapi belum dicatat perusahaan; (5) pembayaran listrik dicatat perusahaan Rp1.250.000, padahal jumlah di rekening koran dan tagihan hanya Rp900.000.",
+      "Informasi akun: Beban administrasi bank (akun 6-210), Pendapatan bunga (akun 4-310), Beban listrik (akun 6-120), Kas di Bank (akun 1-110). Perusahaan memakai satu orang yang menyetorkan, mencatat, sekaligus menyimpan rekening koran. Rekonsiliasi belum pernah dibuat tiga bulan terakhir.",
+      "Tunjukkan perhitungan lengkap, termasuk saldo disesuaikan versi bank dan versi buku, serta jurnal dalam format tanggal, akun, debit, dan kredit.",
+      "AI Reviewer membaca teks jawaban dan isi berkas yang kamu unggah, tetapi tidak menjalankan kode atau membuka tautan. Karena itu, tulis semua alasan, angka, dan asumsimu secara eksplisit."
+    ],
+    "tasks": [
+      {
+        "title": "Susun rekonsiliasi bank",
+        "description": "Buat laporan rekonsiliasi dua sisi (saldo bank dan saldo buku). Klasifikasikan setiap item, hitung saldo disesuaikan, dan buktikan keduanya sama."
+      },
+      {
+        "title": "Jurnal penyesuaian",
+        "description": "Buat jurnal penyesuaian untuk item yang perlu dicatat perusahaan dan jelaskan alasan item lain tidak perlu dijurnal."
+      },
+      {
+        "title": "Pengendalian internal",
+        "description": "Identifikasi kelemahan pengendalian internal pada kasus dan usulkan minimal tiga perbaikan praktis."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "laporan_rekonsiliasi",
+        "title": "Laporan rekonsiliasi dan jurnal",
+        "description": "Tulis rekonsiliasi dua sisi, jurnal penyesuaian, dan usulan pengendalian.",
+        "kind": "text",
+        "isRequired": true,
+        "minLength": 500,
+        "maxLength": 8000
+      },
+      {
+        "slotKey": "spreadsheet_rekonsiliasi",
+        "title": "Spreadsheet rekonsiliasi (opsional)",
+        "description": "Lampirkan spreadsheet hitungan.",
+        "kind": "file",
+        "isRequired": false,
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "portofolio",
+        "title": "Tautan portofolio (opsional)",
+        "description": "Untuk portofolio. Tautan tidak dibuka dan tidak dinilai.",
+        "kind": "link",
+        "isRequired": false,
+        "linkHint": "https://contoh.com/portofolio-akuntansi"
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Ketepatan rekonsiliasi",
+        "weight": 35,
+        "description": "Item dikelompokkan benar dan saldo disesuaikan kedua sisi sama.",
+        "levelDescriptions": [
+          "Tidak ada rekonsiliasi bank yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Rekonsiliasi bank disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Rekonsiliasi bank memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Rekonsiliasi bank jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Rekonsiliasi bank komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Ketepatan jurnal penyesuaian",
+        "weight": 30,
+        "description": "Jurnal benar akun, sisi debit-kredit, dan jumlahnya.",
+        "levelDescriptions": [
+          "Tidak ada jurnal penyesuaian yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Jurnal penyesuaian disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Jurnal penyesuaian memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Jurnal penyesuaian jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Jurnal penyesuaian komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Pengendalian internal",
+        "weight": 20,
+        "description": "Kelemahan teridentifikasi dan usulan perbaikan praktis.",
+        "levelDescriptions": [
+          "Tidak ada usulan pengendalian internal yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Usulan pengendalian internal disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Usulan pengendalian internal memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Usulan pengendalian internal jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Usulan pengendalian internal komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kejelasan dan kerapian",
+        "weight": 15,
+        "description": "Laporan rapi, terstruktur, dan mudah diaudit.",
+        "levelDescriptions": [
+          "Tidak ada kerapian laporan yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Kerapian laporan disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Kerapian laporan memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Kerapian laporan jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Kerapian laporan komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      }
+    ],
+    "passingScore": 60
+  },
+  {
+    "slug": "turnover-karyawan-baru-enam-bulan-pertama",
+    "title": "Menurunkan Turnover Karyawan Baru di 6 Bulan Pertama",
+    "summary": "Banyak karyawan baru keluar dalam enam bulan pertama. Analisis penyebab dan rancang program perbaikan onboarding.",
+    "tier": "ai",
+    "fieldKey": "hr",
+    "level": "intermediate",
+    "price": null,
+    "about": "Sebuah perusahaan ritel dengan 40 cabang kehilangan banyak karyawan baru dalam waktu singkat sehingga biaya rekrutmen membengkak. Kamu berperan sebagai HR business partner yang diminta menganalisis penyebab dan merancang program perbaikan.",
+    "activities": [
+      "Membaca data turnover dan hasil exit interview",
+      "Menemukan pola penyebab dan membedakan gejala dari akar masalah",
+      "Merancang program onboarding dan retensi yang realistis",
+      "Menetapkan metrik dan rencana evaluasi"
+    ],
+    "skills": [
+      "Analisis turnover",
+      "Desain onboarding",
+      "Exit interview",
+      "Metrik HR"
+    ],
+    "prerequisites": [
+      "Dasar manajemen SDM",
+      "Memahami siklus karyawan",
+      "Dasar analisis data sederhana"
+    ],
+    "reviewerRole": null,
+    "partner": null,
+    "context": [
+      "Perusahaan Ritelkita merekrut sekitar 480 karyawan toko per tahun. Dari karyawan yang masuk tahun lalu, 34% keluar dalam 6 bulan pertama (rata-rata industri ritel di wilayah yang sama: 22%). Biaya rekrutmen dan pelatihan per karyawan sekitar Rp6,5 juta.",
+      "Data exit interview (112 responden): 38% menyebut 'jadwal kerja tidak sesuai janji dan sering berubah', 27% 'tidak jelas apa yang harus dikerjakan di minggu-minggu awal', 18% 'hubungan dengan atasan langsung', 11% 'gaji dan insentif', 6% lainnya. Turnover tertinggi terjadi pada bulan ke-2 dan ke-3.",
+      "Kondisi onboarding saat ini: orientasi 1 hari di kantor pusat berisi presentasi kebijakan; setelah itu karyawan langsung ditempatkan di toko dan 'belajar sambil jalan' dari rekan senior tanpa program terstruktur. Kepala toko tidak mendapat pelatihan khusus mengelola karyawan baru. Terdapat 6 cabang dengan turnover di bawah 15%; kepala toko di cabang tersebut menyebut mereka memberi 'buddy' dan jadwal tetap 2 minggu pertama.",
+      "Batasan: anggaran program Rp150 juta per tahun, tim HR hanya 3 orang untuk 40 cabang. Kepala toko sudah sibuk sehingga program tidak boleh menambah beban administrasi besar.",
+      "AI Reviewer membaca teks jawaban dan isi berkas yang kamu unggah, tetapi tidak menjalankan kode atau membuka tautan. Karena itu, tulis semua alasan, angka, dan asumsimu secara eksplisit."
+    ],
+    "tasks": [
+      {
+        "title": "Analisis akar masalah",
+        "description": "Dari data, jelaskan akar masalah utama (bukan hanya gejala), bagaimana kamu membuktikannya, dan pelajaran dari 6 cabang dengan turnover rendah."
+      },
+      {
+        "title": "Rancang program perbaikan",
+        "description": "Rancang program onboarding dan retensi 90 hari pertama: aktivitas, penanggung jawab, jadwal, dan perkiraan biaya sesuai batasan anggaran."
+      },
+      {
+        "title": "Metrik dan evaluasi",
+        "description": "Tentukan metrik keberhasilan, target realistis, cara pengumpulan data, dan rencana uji coba bertahap sebelum diterapkan di semua cabang."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "rencana_program",
+        "title": "Analisis dan rencana program",
+        "description": "Tulis analisis, rancangan program, dan rencana evaluasi.",
+        "kind": "text",
+        "isRequired": true,
+        "minLength": 500,
+        "maxLength": 8000
+      },
+      {
+        "slotKey": "lampiran_pendukung",
+        "title": "Lampiran pendukung (opsional)",
+        "description": "Kalender onboarding atau rincian anggaran.",
+        "kind": "file",
+        "isRequired": false,
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "portofolio",
+        "title": "Tautan portofolio (opsional)",
+        "description": "Untuk portofolio. Tautan tidak dibuka dan tidak dinilai.",
+        "kind": "link",
+        "isRequired": false,
+        "linkHint": "https://contoh.com/portofolio-hr"
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Kualitas analisis akar masalah",
+        "weight": 30,
+        "description": "Akar masalah dibedakan dari gejala dan didukung data serta pembanding cabang.",
+        "levelDescriptions": [
+          "Tidak ada analisis akar masalah yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Analisis akar masalah disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Analisis akar masalah memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Analisis akar masalah jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Analisis akar masalah komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kualitas rancangan program",
+        "weight": 35,
+        "description": "Program konkret, realistis terhadap batasan anggaran dan beban kepala toko.",
+        "levelDescriptions": [
+          "Tidak ada rancangan program yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Rancangan program disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Rancangan program memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Rancangan program jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Rancangan program komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Metrik dan evaluasi",
+        "weight": 20,
+        "description": "Metrik, target, dan rencana uji coba jelas.",
+        "levelDescriptions": [
+          "Tidak ada metrik dan evaluasi yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Metrik dan evaluasi disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Metrik dan evaluasi memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Metrik dan evaluasi jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Metrik dan evaluasi komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kejelasan komunikasi",
+        "weight": 15,
+        "description": "Terstruktur dan siap dipresentasikan kepada manajemen.",
+        "levelDescriptions": [
+          "Tidak ada kejelasan penyampaian yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Kejelasan penyampaian disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Kejelasan penyampaian memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Kejelasan penyampaian jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Kejelasan penyampaian komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      }
+    ],
+    "passingScore": 60
+  },
+  {
+    "slug": "stok-menumpuk-di-satu-gudang",
+    "title": "Stok Menumpuk di Satu Gudang dan Kosong di Gudang Lain",
+    "summary": "Satu gudang kelebihan stok sementara gudang lain kehabisan. Analisis kondisi dan rancang kebijakan redistribusi serta pengisian ulang.",
+    "tier": "ai",
+    "fieldKey": "supply-chain",
+    "level": "intermediate",
+    "price": null,
+    "about": "Distributor perlengkapan rumah tangga memiliki dua gudang. Gudang Jakarta menumpuk stok satu produk sementara gudang Surabaya sering kehabisan sehingga pesanan terlambat. Kamu berperan sebagai supply chain analyst yang diminta menganalisis dan merancang perbaikan.",
+    "activities": [
+      "Menghitung cakupan stok (days of cover) dan titik pemesanan ulang",
+      "Mengevaluasi opsi redistribusi antar gudang",
+      "Merancang kebijakan pengisian ulang ke depan",
+      "Menghitung biaya dan menimbang risiko"
+    ],
+    "skills": [
+      "Manajemen inventori",
+      "Perencanaan permintaan",
+      "Safety stock dan reorder point",
+      "Analisis biaya logistik"
+    ],
+    "prerequisites": [
+      "Dasar manajemen rantai pasok",
+      "Dasar menghitung rata-rata dan variasi permintaan",
+      "Dasar spreadsheet"
+    ],
+    "reviewerRole": null,
+    "partner": null,
+    "context": [
+      "Produk: panci presto 5 liter (SKU PP-05). Stok saat ini: Gudang Jakarta 12.000 unit; Gudang Surabaya 800 unit. Rata-rata penjualan harian: Jakarta 300 unit, Surabaya 250 unit (simpangan baku harian Jakarta 60, Surabaya 70).",
+      "Parameter logistik: lead time pengisian dari pabrik ke gudang 7 hari; biaya simpan Rp40 per unit per hari; transfer antar gudang Jakarta–Surabaya memakan 2 hari dengan biaya Rp1.500 per unit; harga pokok Rp180.000 per unit, harga jual rata-rata Rp265.000. Pesanan dari Surabaya yang tidak terlayani langsung dibatalkan (penjualan hilang). Pabrik menerapkan minimum pesanan 5.000 unit per kiriman.",
+      "Riwayat masalah: dalam 8 minggu terakhir Surabaya mengalami kehabisan stok sebanyak 11 hari, sementara Jakarta menerima kiriman besar 15.000 unit sekali dari pabrik karena pembelian dilakukan terpusat berdasarkan total permintaan nasional tanpa memisahkan gudang. Barang di Jakarta ada yang berusia lebih dari 90 hari.",
+      "Batasan: gudang Surabaya hanya berkapasitas 6.000 unit. Pembelian dari pabrik dilakukan setiap 2 minggu. Tim logistik meminta kebijakan yang sederhana agar bisa diikuti staf gudang.",
+      "AI Reviewer membaca teks jawaban dan isi berkas yang kamu unggah, tetapi tidak menjalankan kode atau membuka tautan. Karena itu, tulis semua alasan, angka, dan asumsimu secara eksplisit."
+    ],
+    "tasks": [
+      {
+        "title": "Analisis kondisi saat ini",
+        "description": "Hitung cakupan stok (hari) tiap gudang, perkirakan penjualan hilang di Surabaya, dan jelaskan akar penyebab ketidakseimbangan stok."
+      },
+      {
+        "title": "Rencana redistribusi dan pengisian",
+        "description": "Tentukan berapa unit yang perlu ditransfer sekarang dan tunjukkan perhitungannya, lalu rancang kebijakan pengisian ulang (reorder point dan safety stock) untuk setiap gudang."
+      },
+      {
+        "title": "Biaya dan risiko",
+        "description": "Bandingkan biaya transfer, biaya simpan, dan penjualan hilang. Jelaskan risiko dan cara memantau agar masalah tidak terulang."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "analisis_dan_kebijakan",
+        "title": "Analisis dan kebijakan inventori",
+        "description": "Tulis analisis, rencana redistribusi, dan kebijakan pengisian ulang.",
+        "kind": "text",
+        "isRequired": true,
+        "minLength": 500,
+        "maxLength": 8000
+      },
+      {
+        "slotKey": "spreadsheet_hitungan",
+        "title": "Spreadsheet hitungan (opsional)",
+        "description": "Lampirkan hitungan inventori.",
+        "kind": "file",
+        "isRequired": false,
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "portofolio",
+        "title": "Tautan portofolio (opsional)",
+        "description": "Untuk portofolio. Tautan tidak dibuka dan tidak dinilai.",
+        "kind": "link",
+        "isRequired": false,
+        "linkHint": "https://contoh.com/portofolio-supply-chain"
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Ketepatan perhitungan inventori",
+        "weight": 35,
+        "description": "Cakupan stok, reorder point, safety stock, dan jumlah transfer dihitung dengan benar.",
+        "levelDescriptions": [
+          "Tidak ada perhitungan inventori yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Perhitungan inventori disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Perhitungan inventori memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Perhitungan inventori jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Perhitungan inventori komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kualitas kebijakan dan rencana",
+        "weight": 30,
+        "description": "Kebijakan sederhana, sesuai batasan kapasitas dan minimum pesanan.",
+        "levelDescriptions": [
+          "Tidak ada kebijakan dan rencana inventori yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Kebijakan dan rencana inventori disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Kebijakan dan rencana inventori memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Kebijakan dan rencana inventori jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Kebijakan dan rencana inventori komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Analisis biaya dan risiko",
+        "weight": 20,
+        "description": "Biaya dibandingkan dan risiko dipantau.",
+        "levelDescriptions": [
+          "Tidak ada analisis biaya dan risiko yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Analisis biaya dan risiko disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Analisis biaya dan risiko memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Analisis biaya dan risiko jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Analisis biaya dan risiko komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kejelasan komunikasi",
+        "weight": 15,
+        "description": "Terstruktur dan mudah diikuti staf gudang.",
+        "levelDescriptions": [
+          "Tidak ada kejelasan penjelasan yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Kejelasan penjelasan disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Kejelasan penjelasan memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Kejelasan penjelasan jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Kejelasan penjelasan komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      }
+    ],
+    "passingScore": 60
+  },
+  {
+    "slug": "review-klausul-kontrak-vendor-berisiko",
+    "title": "Review Klausul Kontrak Kerja Sama Vendor yang Berisiko",
+    "summary": "Tinjau empat klausul kontrak vendor yang berpotensi merugikan perusahaan dan susun usulan revisi serta strategi negosiasi.",
+    "tier": "ai",
+    "fieldKey": "legal",
+    "level": "intermediate",
+    "price": null,
+    "about": "Sebuah startup akan menandatangani kontrak layanan komputasi awan dan dukungan teknis dengan vendor. Kamu berperan sebagai legal associate yang diminta meninjau beberapa klausul dan memberi rekomendasi kepada manajemen.",
+    "activities": [
+      "Membaca klausul dan mengidentifikasi risiko hukum maupun bisnis",
+      "Menyusun usulan revisi redaksi klausul",
+      "Menentukan prioritas negosiasi",
+      "Menjelaskan risiko dengan bahasa yang dipahami non-hukum"
+    ],
+    "skills": [
+      "Review kontrak",
+      "Identifikasi risiko hukum",
+      "Drafting klausul",
+      "Strategi negosiasi"
+    ],
+    "prerequisites": [
+      "Dasar hukum perikatan dan kontrak",
+      "Memahami struktur kontrak komersial",
+      "Dasar penalaran hukum"
+    ],
+    "reviewerRole": null,
+    "partner": null,
+    "context": [
+      "Kontrak layanan senilai Rp900 juta per tahun untuk 2 tahun. Pihak: PT Nusa Digital (pelanggan, startup fintech dengan data nasabah) dan PT Awan Prima (vendor). Pelanggan tidak memiliki tim legal internal dan ingin menandatangani dalam 10 hari.",
+      "Klausul 7.2 (Tingkat layanan): 'Vendor berusaha menjaga ketersediaan layanan sebesar 99,9% namun tidak menjamin layanan bebas gangguan. Kompensasi atas gangguan hanya berupa kredit layanan maksimal 5% dari biaya bulanan yang terdampak.' Klausul 9.1 (Data): 'Vendor berhak menggunakan data pelanggan, termasuk data pribadi nasabah pelanggan, untuk keperluan peningkatan layanan dan analisis, serta menyimpannya selama vendor menganggap perlu.'",
+      "Klausul 11.3 (Pembatasan tanggung jawab): 'Total tanggung jawab vendor kepada pelanggan dalam keadaan apa pun tidak melebihi biaya yang dibayar pelanggan dalam 1 bulan terakhir.' Klausul 14.2 (Perpanjangan dan pengakhiran): 'Kontrak diperpanjang otomatis 2 tahun kecuali pelanggan memberi pemberitahuan tertulis 180 hari sebelum berakhir. Vendor dapat mengakhiri kontrak kapan saja dengan pemberitahuan 14 hari. Pelanggan yang mengakhiri sebelum waktunya wajib membayar seluruh sisa nilai kontrak.'",
+      "Konteks: pelanggan wajib melindungi data pribadi nasabah sesuai peraturan pelindungan data pribadi di Indonesia dan pernah mengalami gangguan layanan dari vendor lain yang menyebabkan kerugian operasional sekitar Rp300 juta. Vendor ini adalah satu-satunya yang menawarkan harga dalam anggaran. Hukum yang berlaku sesuai kontrak adalah hukum Indonesia dengan penyelesaian melalui arbitrase.",
+      "AI Reviewer membaca teks jawaban dan isi berkas yang kamu unggah, tetapi tidak menjalankan kode atau membuka tautan. Karena itu, tulis semua alasan, angka, dan asumsimu secara eksplisit. Jawabanmu bersifat latihan analisis dan bukan nasihat hukum."
+    ],
+    "tasks": [
+      {
+        "title": "Identifikasi risiko",
+        "description": "Untuk setiap dari keempat klausul, jelaskan risiko hukum dan bisnis bagi pelanggan, serta dasar hukum atau prinsip yang relevan secara umum."
+      },
+      {
+        "title": "Usulan revisi",
+        "description": "Tulis usulan redaksi baru atau tambahan untuk setiap klausul agar lebih seimbang dan realistis diterima vendor."
+      },
+      {
+        "title": "Prioritas dan strategi negosiasi",
+        "description": "Urutkan klausul berdasarkan tingkat risiko, tentukan mana yang harus dimenangkan, mana yang bisa dikompromikan, dan siapkan ringkasan 1 paragraf untuk manajemen."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "memo_review_kontrak",
+        "title": "Memo review kontrak",
+        "description": "Tulis identifikasi risiko, usulan revisi, serta prioritas negosiasi.",
+        "kind": "text",
+        "isRequired": true,
+        "minLength": 600,
+        "maxLength": 9000
+      },
+      {
+        "slotKey": "lampiran_redaksi",
+        "title": "Lampiran redaksi klausul (opsional)",
+        "description": "Dokumen revisi klausul bila ada.",
+        "kind": "file",
+        "isRequired": false,
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "portofolio",
+        "title": "Tautan portofolio (opsional)",
+        "description": "Untuk portofolio. Tautan tidak dibuka dan tidak dinilai.",
+        "kind": "link",
+        "isRequired": false,
+        "linkHint": "https://contoh.com/portofolio-legal"
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Ketepatan identifikasi risiko",
+        "weight": 35,
+        "description": "Risiko tiap klausul dikenali dengan benar dan dikaitkan dengan prinsip hukum yang relevan.",
+        "levelDescriptions": [
+          "Tidak ada identifikasi risiko hukum yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Identifikasi risiko hukum disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Identifikasi risiko hukum memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Identifikasi risiko hukum jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Identifikasi risiko hukum komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kualitas usulan revisi",
+        "weight": 30,
+        "description": "Redaksi jelas, seimbang, dan realistis diterima vendor.",
+        "levelDescriptions": [
+          "Tidak ada usulan revisi klausul yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Usulan revisi klausul disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Usulan revisi klausul memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Usulan revisi klausul jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Usulan revisi klausul komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Prioritas dan strategi negosiasi",
+        "weight": 20,
+        "description": "Prioritas berdasarkan risiko dan ada rencana kompromi.",
+        "levelDescriptions": [
+          "Tidak ada prioritas dan strategi negosiasi yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Prioritas dan strategi negosiasi disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Prioritas dan strategi negosiasi memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Prioritas dan strategi negosiasi jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Prioritas dan strategi negosiasi komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kejelasan komunikasi",
+        "weight": 15,
+        "description": "Bahasa jelas dan ringkasan mudah dipahami manajemen non-hukum.",
+        "levelDescriptions": [
+          "Tidak ada kejelasan komunikasi yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Kejelasan komunikasi disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Kejelasan komunikasi memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Kejelasan komunikasi jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Kejelasan komunikasi komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      }
+    ],
+    "passingScore": 60
+  },
+  {
+    "slug": "penetrasi-segmen-baru-dan-proposal-kemitraan",
+    "title": "Strategi Penetrasi Segmen Baru dan Proposal Kemitraan",
+    "summary": "Rancang strategi masuk ke segmen UMKM kuliner dan siapkan proposal kemitraan untuk calon mitra strategis.",
+    "tier": "ai",
+    "fieldKey": "business-development",
+    "level": "intermediate",
+    "price": null,
+    "about": "Perusahaan software kasir ingin memperluas pasar dari ritel ke UMKM kuliner. Kamu berperan sebagai business development executive yang diminta menyusun strategi masuk pasar dan proposal kemitraan.",
+    "activities": [
+      "Menganalisis peluang pasar dan segmen target",
+      "Menentukan calon mitra dan nilai tukar kemitraan",
+      "Menyusun proposal kemitraan yang meyakinkan",
+      "Menetapkan target penjualan dan indikator keberhasilan"
+    ],
+    "skills": [
+      "Analisis pasar",
+      "Strategi masuk pasar",
+      "Proposal kemitraan",
+      "Penetapan target penjualan"
+    ],
+    "prerequisites": [
+      "Dasar penjualan dan pemasaran B2B",
+      "Dasar analisis pasar",
+      "Kemampuan menulis proposal"
+    ],
+    "reviewerRole": null,
+    "partner": null,
+    "context": [
+      "Perusahaan KasirPintar memiliki 6.500 pelanggan ritel (rata-rata Rp150.000 per bulan per pelanggan), churn bulanan 2,3%, dan biaya akuisisi pelanggan Rp900.000 melalui tim penjualan langsung. Target tahun depan: menambah 2.000 pelanggan UMKM kuliner.",
+      "Data pasar: ada sekitar 1,2 juta UMKM kuliner di wilayah target; sekitar 15% sudah memakai aplikasi kasir digital; kebutuhan utama menurut survei 200 pelaku: pencatatan penjualan sederhana (82%), pemesanan lewat WhatsApp (55%), integrasi dengan aplikasi pesan antar (49%), laporan laba harian (46%). Kompetitor memasang harga Rp99.000–Rp199.000 per bulan.",
+      "Calon mitra yang dipertimbangkan: (1) Koperasi pemasok bahan baku dengan 4.000 anggota UMKM kuliner; (2) Bank daerah yang punya program pembiayaan UMKM; (3) Platform pesan antar lokal dengan 25.000 mitra restoran. Tim penjualan terdiri atas 5 orang dan kapasitas demo sekitar 10 UMKM per orang per minggu.",
+      "Catatan: UMKM kuliner sensitif harga dan lebih percaya rekomendasi dari pihak yang sudah dikenal. Cara penjualan langsung dinilai terlalu mahal untuk segmen ini.",
+      "AI Reviewer membaca teks jawaban dan isi berkas yang kamu unggah, tetapi tidak menjalankan kode atau membuka tautan. Karena itu, tulis semua alasan, angka, dan asumsimu secara eksplisit."
+    ],
+    "tasks": [
+      {
+        "title": "Strategi masuk pasar",
+        "description": "Tentukan segmen awal, proposisi nilai, model harga, dan saluran akuisisi utama. Jelaskan alasan memilih strategi tersebut dibanding penjualan langsung."
+      },
+      {
+        "title": "Pilih mitra dan susun proposal",
+        "description": "Pilih satu calon mitra paling menjanjikan beserta alasannya, lalu tulis proposal kemitraan singkat: manfaat bagi mitra, peran masing-masing, skema bagi hasil atau insentif, dan langkah awal."
+      },
+      {
+        "title": "Target dan indikator",
+        "description": "Tetapkan target 12 bulan, perkirakan unit ekonomi sederhana (biaya akuisisi vs nilai pelanggan), dan risiko utama beserta mitigasinya."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "strategi_dan_proposal",
+        "title": "Strategi dan proposal kemitraan",
+        "description": "Tulis strategi masuk pasar, proposal kemitraan, dan target.",
+        "kind": "text",
+        "isRequired": true,
+        "minLength": 600,
+        "maxLength": 9000
+      },
+      {
+        "slotKey": "lampiran_proposal",
+        "title": "Lampiran proposal (opsional)",
+        "description": "Deck atau dokumen proposal tambahan.",
+        "kind": "file",
+        "isRequired": false,
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "portofolio",
+        "title": "Tautan portofolio (opsional)",
+        "description": "Untuk portofolio. Tautan tidak dibuka dan tidak dinilai.",
+        "kind": "link",
+        "isRequired": false,
+        "linkHint": "https://contoh.com/portofolio-bd"
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Kualitas strategi masuk pasar",
+        "weight": 30,
+        "description": "Segmen, proposisi nilai, harga, dan saluran masuk akal dengan data.",
+        "levelDescriptions": [
+          "Tidak ada strategi masuk pasar yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Strategi masuk pasar disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Strategi masuk pasar memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Strategi masuk pasar jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Strategi masuk pasar komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kualitas proposal kemitraan",
+        "weight": 35,
+        "description": "Mitra dipilih dengan alasan jelas dan proposal saling menguntungkan.",
+        "levelDescriptions": [
+          "Tidak ada proposal kemitraan yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Proposal kemitraan disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Proposal kemitraan memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Proposal kemitraan jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Proposal kemitraan komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Target dan unit ekonomi",
+        "weight": 20,
+        "description": "Target realistis dan unit ekonomi sederhana dihitung dengan benar.",
+        "levelDescriptions": [
+          "Tidak ada target dan unit ekonomi yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Target dan unit ekonomi disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Target dan unit ekonomi memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Target dan unit ekonomi jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Target dan unit ekonomi komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kejelasan komunikasi",
+        "weight": 15,
+        "description": "Meyakinkan, ringkas, dan terstruktur.",
+        "levelDescriptions": [
+          "Tidak ada kejelasan komunikasi yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Kejelasan komunikasi disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Kejelasan komunikasi memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Kejelasan komunikasi jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Kejelasan komunikasi komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      }
+    ],
+    "passingScore": 60
+  },
+  {
+    "slug": "strategi-pengujian-fitur-checkout",
+    "title": "Rancang Strategi Pengujian untuk Fitur Checkout Sebelum Rilis",
+    "summary": "Rancang strategi dan skenario uji untuk fitur checkout baru yang akan dirilis dalam seminggu.",
+    "tier": "ai",
+    "fieldKey": "qa",
+    "level": "intermediate",
+    "price": null,
+    "about": "Sebuah aplikasi e-commerce akan merilis fitur checkout baru berupa pembayaran cicilan dan kode promo bertumpuk dalam satu minggu. Kamu berperan sebagai QA engineer yang diminta merancang strategi pengujian dengan waktu dan sumber daya terbatas.",
+    "activities": [
+      "Menganalisis persyaratan dan menemukan area berisiko",
+      "Merancang skenario uji (positif, negatif, batas, dan integrasi)",
+      "Menentukan cakupan otomasi dan pengujian manual",
+      "Menetapkan kriteria rilis dan pelaporan bug"
+    ],
+    "skills": [
+      "Perancangan test case",
+      "Analisis risiko",
+      "Strategi otomasi",
+      "Pelaporan defect"
+    ],
+    "prerequisites": [
+      "Dasar pengujian perangkat lunak",
+      "Memahami teknik partisi ekuivalen dan nilai batas",
+      "Dasar API dan UI testing"
+    ],
+    "reviewerRole": null,
+    "partner": null,
+    "context": [
+      "Fitur baru: (1) pembayaran cicilan 3/6/12 bulan untuk pesanan Rp500.000–Rp20.000.000 dengan bunga berbeda per tenor melalui 2 penyedia cicilan; (2) kode promo bertumpuk: maksimal 1 kode diskon persentase + 1 kode gratis ongkir, diskon persentase maksimal Rp200.000 per pesanan dan tidak berlaku untuk produk kategori tertentu.",
+      "Aturan bisnis lain: stok dicadangkan 15 menit saat checkout dimulai; pesanan dengan alamat luar Jawa tidak mendukung cicilan 12 bulan; pembayaran cicilan butuh verifikasi OTP dari penyedia; bila pembayaran gagal, kode promo harus dikembalikan; pengguna baru mendapat diskon tambahan otomatis Rp25.000 di pesanan pertama. Fitur diakses melalui web dan aplikasi Android serta iOS.",
+      "Sumber daya: rilis dalam 7 hari kerja; tim QA 2 orang; tersedia lingkungan staging dengan sandbox penyedia cicilan (kadang tidak stabil) dan suite regresi otomatis yang sudah ada untuk checkout lama (sekitar 120 test, berjalan 25 menit). Insiden bulan lalu: bug kode promo yang bisa dipakai berulang menyebabkan kerugian sekitar Rp45 juta.",
+      "Catatan: manajemen ingin rilis sesuai jadwal karena ada kampanye besar, tetapi menerima pengaturan rilis bertahap bila risikonya dijelaskan.",
+      "AI Reviewer membaca teks jawaban dan isi berkas yang kamu unggah, tetapi tidak menjalankan kode atau membuka tautan. Karena itu, tulis semua alasan, angka, dan asumsimu secara eksplisit."
+    ],
+    "tasks": [
+      {
+        "title": "Analisis risiko dan cakupan",
+        "description": "Identifikasi area paling berisiko dari fitur ini dan jelaskan cakupan pengujian berdasarkan prioritas risiko."
+      },
+      {
+        "title": "Rancang skenario uji",
+        "description": "Tulis minimal 15 skenario uji penting (positif, negatif, nilai batas, dan integrasi) lengkap dengan langkah ringkas dan hasil yang diharapkan. Pilih skenario yang paling bernilai."
+      },
+      {
+        "title": "Strategi otomasi dan kriteria rilis",
+        "description": "Tentukan apa yang diotomasi dan apa yang diuji manual, rencana jadwal 7 hari, kriteria rilis (go/no-go), dan usulan rilis bertahap."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "rencana_uji",
+        "title": "Rencana dan skenario uji",
+        "description": "Tulis analisis risiko, skenario uji, strategi otomasi, dan kriteria rilis.",
+        "kind": "text",
+        "isRequired": true,
+        "minLength": 700,
+        "maxLength": 10000
+      },
+      {
+        "slotKey": "lampiran_test_case",
+        "title": "Lampiran test case (opsional)",
+        "description": "Spreadsheet test case lengkap bila ada.",
+        "kind": "file",
+        "isRequired": false,
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "portofolio",
+        "title": "Tautan portofolio (opsional)",
+        "description": "Untuk portofolio. Tautan tidak dibuka dan tidak dinilai.",
+        "kind": "link",
+        "isRequired": false,
+        "linkHint": "https://contoh.com/portofolio-qa"
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Analisis risiko dan cakupan",
+        "weight": 25,
+        "description": "Area berisiko teridentifikasi dan cakupan sesuai prioritas.",
+        "levelDescriptions": [
+          "Tidak ada analisis risiko dan cakupan yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Analisis risiko dan cakupan disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Analisis risiko dan cakupan memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Analisis risiko dan cakupan jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Analisis risiko dan cakupan komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kualitas skenario uji",
+        "weight": 35,
+        "description": "Skenario beragam, relevan, memakai nilai batas, dan hasil diharapkan jelas.",
+        "levelDescriptions": [
+          "Tidak ada skenario uji yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Skenario uji disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Skenario uji memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Skenario uji jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Skenario uji komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Strategi otomasi dan kriteria rilis",
+        "weight": 25,
+        "description": "Pembagian otomasi-manual masuk akal, jadwal realistis, dan kriteria go/no-go jelas.",
+        "levelDescriptions": [
+          "Tidak ada strategi otomasi dan kriteria rilis yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Strategi otomasi dan kriteria rilis disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Strategi otomasi dan kriteria rilis memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Strategi otomasi dan kriteria rilis jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Strategi otomasi dan kriteria rilis komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kejelasan komunikasi",
+        "weight": 15,
+        "description": "Terstruktur dan mudah dipakai tim engineering.",
+        "levelDescriptions": [
+          "Tidak ada kejelasan dokumen yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Kejelasan dokumen disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Kejelasan dokumen memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Kejelasan dokumen jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Kejelasan dokumen komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      }
+    ],
+    "passingScore": 60
+  },
+  {
+    "slug": "pipeline-cicd-untuk-deployment-manual",
+    "title": "Deployment Manual yang Sering Gagal: Rancang Pipeline CI/CD",
+    "summary": "Rilis aplikasi masih manual dan sering gagal. Rancang pipeline CI/CD yang aman, cepat, dan mudah dipulihkan.",
+    "tier": "ai",
+    "fieldKey": "devops",
+    "level": "intermediate",
+    "price": null,
+    "about": "Sebuah tim produk mendeploy aplikasinya secara manual lewat SSH dan sering mengalami kegagalan serta downtime. Kamu berperan sebagai DevOps engineer yang diminta merancang pipeline CI/CD dan prosedur rilis yang lebih andal.",
+    "activities": [
+      "Menganalisis proses deployment saat ini dan akar kegagalannya",
+      "Merancang tahapan pipeline (build, uji, keamanan, deploy)",
+      "Menentukan strategi rilis dan rollback",
+      "Menetapkan pemantauan dan metrik pengiriman"
+    ],
+    "skills": [
+      "CI/CD",
+      "Strategi deployment",
+      "Infrastruktur sebagai kode",
+      "Observability"
+    ],
+    "prerequisites": [
+      "Dasar Git dan alur kerja tim",
+      "Dasar server dan container",
+      "Memahami konsep environment (dev, staging, prod)"
+    ],
+    "reviewerRole": null,
+    "partner": null,
+    "context": [
+      "Aplikasi web dengan 1 layanan API, 1 aplikasi front-end, dan 1 database PostgreSQL berjalan di 3 server virtual di satu penyedia cloud. Tim berisi 8 developer. Saat ini deployment dilakukan oleh 1–2 senior lewat SSH: tarik kode dari cabang main, jalankan skrip build, migrasi database manual, lalu restart layanan.",
+      "Data 3 bulan terakhir: 22 deployment; 7 di antaranya bermasalah (32%): 3 karena lupa menjalankan migrasi, 2 karena konfigurasi environment berbeda dari staging, 1 karena dependensi versi baru belum terpasang, 1 karena kode belum lolos tes. Rata-rata downtime saat deployment 12 menit dan pemulihan dari deployment gagal 55 menit karena rollback dilakukan manual. Deployment hanya berani dilakukan malam hari.",
+      "Kondisi saat ini: ada suite tes unit yang berjalan 6 menit tetapi dijalankan seadanya oleh developer; tidak ada tes integrasi otomatis; rahasia (secret) disimpan di berkas .env di server; tidak ada pemantauan selain log manual. Repositori menggunakan Git dengan alur main, development, dan cabang fitur.",
+      "Batasan: anggaran tool tambahan maksimal Rp3 juta per bulan; hanya ada 1 DevOps (kamu) dan waktu implementasi 4 minggu; layanan tidak boleh mati lebih dari beberapa menit saat transisi.",
+      "AI Reviewer membaca teks jawaban dan isi berkas yang kamu unggah, tetapi tidak menjalankan kode atau membuka tautan. Karena itu, tulis semua alasan, angka, dan asumsimu secara eksplisit."
+    ],
+    "tasks": [
+      {
+        "title": "Diagnosis proses saat ini",
+        "description": "Jelaskan akar masalah kegagalan deployment dan risiko utama dari cara kerja saat ini berdasarkan data."
+      },
+      {
+        "title": "Rancang pipeline dan strategi rilis",
+        "description": "Rancang tahapan pipeline dari commit sampai produksi: pemeriksaan otomatis, manajemen migrasi dan secret, strategi deploy (mis. rolling, blue-green), serta mekanisme rollback cepat."
+      },
+      {
+        "title": "Rencana implementasi dan pemantauan",
+        "description": "Susun rencana 4 minggu bertahap, metrik pengiriman (deployment frequency, lead time, change failure rate, MTTR), serta pemantauan dan alert minimum yang perlu ada."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "rancangan_pipeline",
+        "title": "Dokumen rancangan pipeline",
+        "description": "Tulis diagnosis, rancangan pipeline, strategi rilis, dan rencana implementasi.",
+        "kind": "text",
+        "isRequired": true,
+        "minLength": 600,
+        "maxLength": 9000
+      },
+      {
+        "slotKey": "diagram_pipeline",
+        "title": "Diagram atau konfigurasi contoh (opsional)",
+        "description": "Diagram alur atau contoh konfigurasi pipeline.",
+        "kind": "file",
+        "isRequired": false,
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "repo_portofolio",
+        "title": "Tautan repositori (opsional)",
+        "description": "Untuk portofolio. Tautan tidak dibuka dan tidak dinilai.",
+        "kind": "link",
+        "isRequired": false,
+        "linkHint": "https://github.com/username/contoh-pipeline"
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Ketepatan diagnosis",
+        "weight": 20,
+        "description": "Akar masalah kegagalan deployment teridentifikasi dari data.",
+        "levelDescriptions": [
+          "Tidak ada diagnosis proses deployment yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Diagnosis proses deployment disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Diagnosis proses deployment memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Diagnosis proses deployment jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Diagnosis proses deployment komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kualitas rancangan pipeline dan rilis",
+        "weight": 40,
+        "description": "Tahapan lengkap, aman, dan memiliki rollback serta pengelolaan secret dan migrasi.",
+        "levelDescriptions": [
+          "Tidak ada rancangan pipeline dan strategi rilis yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Rancangan pipeline dan strategi rilis disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Rancangan pipeline dan strategi rilis memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Rancangan pipeline dan strategi rilis jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Rancangan pipeline dan strategi rilis komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Rencana implementasi dan pemantauan",
+        "weight": 25,
+        "description": "Rencana bertahap realistis dengan metrik serta alert yang jelas.",
+        "levelDescriptions": [
+          "Tidak ada rencana implementasi dan pemantauan yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Rencana implementasi dan pemantauan disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Rencana implementasi dan pemantauan memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Rencana implementasi dan pemantauan jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Rencana implementasi dan pemantauan komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kejelasan komunikasi",
+        "weight": 15,
+        "description": "Terstruktur dan bisa dieksekusi oleh tim kecil.",
+        "levelDescriptions": [
+          "Tidak ada kejelasan dokumen yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Kejelasan dokumen disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Kejelasan dokumen memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Kejelasan dokumen jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Kejelasan dokumen komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      }
+    ],
+    "passingScore": 60
+  },
+  {
+    "slug": "respons-insiden-akun-admin-diambil-alih",
+    "title": "Respons Insiden: Akun Admin Diambil Alih Pihak Tidak Dikenal",
+    "summary": "Akun admin sebuah layanan SaaS diambil alih dan data pelanggan diakses. Susun langkah respons insiden dan pencegahannya.",
+    "tier": "ai",
+    "fieldKey": "cyber-security",
+    "level": "advanced",
+    "price": null,
+    "about": "Sebuah layanan SaaS manajemen klinik mendeteksi aktivitas mencurigakan pada akun administrator. Kamu berperan sebagai security analyst yang memimpin respons insiden pada 24 jam pertama dan merancang pencegahan jangka panjang.",
+    "activities": [
+      "Menganalisis log dan indikator kompromi untuk menyusun kronologi",
+      "Menentukan langkah penahanan (containment) dan pemulihan",
+      "Menilai dampak data dan kewajiban notifikasi",
+      "Merancang perbaikan kontrol keamanan jangka panjang"
+    ],
+    "skills": [
+      "Incident response",
+      "Analisis log",
+      "Penilaian dampak data",
+      "Hardening dan kontrol akses"
+    ],
+    "prerequisites": [
+      "Dasar keamanan informasi",
+      "Memahami autentikasi dan otorisasi",
+      "Dasar membaca log aplikasi"
+    ],
+    "reviewerRole": null,
+    "partner": null,
+    "context": [
+      "Layanan KlinikKu melayani 900 klinik dan menyimpan data rekam medis dasar 1,1 juta pasien. Pukul 02.14 WIB, sistem alert menandai login admin dari alamat IP luar negeri yang belum pernah terlihat. Akun admin tersebut (milik karyawan dukungan pelanggan) tidak memakai autentikasi dua faktor.",
+      "Cuplikan log: 01.52 — 14 percobaan login gagal beruntun ke akun support-admin dari 5 alamat IP berbeda; 02.14 — login berhasil dari IP baru; 02.17 — pembuatan akun admin baru bernama 'sys-backup'; 02.20–02.41 — 38 kali ekspor data pasien dari 12 klinik; 02.43 — pembuatan API key baru; 02.50 — penghapusan sebagian log audit. Kata sandi akun support-admin ditemukan juga di daftar kebocoran data publik tahun lalu.",
+      "Kondisi sistem: seluruh admin berbagi satu peran dengan akses ke semua klinik; log audit disimpan di database yang sama dengan data aplikasi; backup harian terenkripsi tersimpan terpisah; tim keamanan tidak 24 jam, hanya 2 orang dengan satu yang sedang cuti. Regulasi pelindungan data pribadi di Indonesia mewajibkan pemberitahuan tertulis kepada subjek data dan otoritas paling lambat 3x24 jam sejak insiden diketahui.",
+      "Batasan: layanan tidak boleh sepenuhnya mati karena klinik membutuhkannya untuk operasional harian, tetapi manajemen bersedia membatasi akses sementara jika diperlukan.",
+      "AI Reviewer membaca teks jawaban dan isi berkas yang kamu unggah, tetapi tidak menjalankan kode atau membuka tautan. Karena itu, tulis semua alasan, angka, dan asumsimu secara eksplisit."
+    ],
+    "tasks": [
+      {
+        "title": "Kronologi dan penilaian awal",
+        "description": "Susun kronologi insiden dari log, tentukan kemungkinan penyebab awal, serta daftar hal yang masih belum diketahui dan perlu diselidiki."
+      },
+      {
+        "title": "Containment, eradication, dan recovery",
+        "description": "Susun langkah respons berurutan untuk 24 jam pertama: penahanan, pembersihan, pemulihan, dan pelestarian bukti. Jelaskan alasan urutannya dan siapa yang dilibatkan."
+      },
+      {
+        "title": "Dampak, komunikasi, dan pencegahan",
+        "description": "Nilai dampak terhadap data dan kewajiban notifikasi, rancang komunikasi kepada klinik dan pihak terkait, lalu usulkan perbaikan jangka panjang yang diprioritaskan."
+      }
+    ],
+    "slots": [
+      {
+        "slotKey": "laporan_respons_insiden",
+        "title": "Laporan respons insiden",
+        "description": "Tulis kronologi, langkah respons, penilaian dampak, komunikasi, dan rencana pencegahan.",
+        "kind": "text",
+        "isRequired": true,
+        "minLength": 700,
+        "maxLength": 10000
+      },
+      {
+        "slotKey": "lampiran_pendukung",
+        "title": "Lampiran pendukung (opsional)",
+        "description": "Timeline atau diagram serangan bila ada.",
+        "kind": "file",
+        "isRequired": false,
+        "maxSizeMb": 15
+      },
+      {
+        "slotKey": "portofolio",
+        "title": "Tautan portofolio (opsional)",
+        "description": "Untuk portofolio. Tautan tidak dibuka dan tidak dinilai.",
+        "kind": "link",
+        "isRequired": false,
+        "linkHint": "https://contoh.com/portofolio-security"
+      }
+    ],
+    "rubric": [
+      {
+        "name": "Analisis kronologi dan penyebab",
+        "weight": 25,
+        "description": "Kronologi akurat dari log dan penyebab awal masuk akal, serta ketidakpastian diakui.",
+        "levelDescriptions": [
+          "Tidak ada analisis kronologi dan penyebab yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Analisis kronologi dan penyebab disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Analisis kronologi dan penyebab memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Analisis kronologi dan penyebab jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Analisis kronologi dan penyebab komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Kualitas langkah respons",
+        "weight": 35,
+        "description": "Langkah respons berurutan, lengkap, dan menjaga bukti serta layanan.",
+        "levelDescriptions": [
+          "Tidak ada langkah respons insiden yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Langkah respons insiden disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Langkah respons insiden memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Langkah respons insiden jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Langkah respons insiden komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Penilaian dampak dan komunikasi",
+        "weight": 20,
+        "description": "Dampak data dan kewajiban notifikasi dinilai serta komunikasi jelas.",
+        "levelDescriptions": [
+          "Tidak ada penilaian dampak dan komunikasi yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Penilaian dampak dan komunikasi disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Penilaian dampak dan komunikasi memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Penilaian dampak dan komunikasi jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Penilaian dampak dan komunikasi komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      },
+      {
+        "name": "Pencegahan jangka panjang",
+        "weight": 20,
+        "description": "Perbaikan kontrol diprioritaskan dan menjawab akar masalah.",
+        "levelDescriptions": [
+          "Tidak ada rencana pencegahan jangka panjang yang bisa dinilai, atau isinya tidak relevan dengan kasus.",
+          "Rencana pencegahan jangka panjang disebut secara umum, tetapi banyak kekurangan mendasar dan belum memakai data dari kasus.",
+          "Rencana pencegahan jangka panjang memenuhi kebutuhan dasar dan merujuk pada kasus, namun masih ada celah yang jelas.",
+          "Rencana pencegahan jangka panjang jelas, runtut, dan didukung data dari kasus, dengan sedikit celah kecil.",
+          "Rencana pencegahan jangka panjang komprehensif, tajam, berbasis bukti, serta mempertimbangkan risiko dan alternatif."
+        ]
+      }
+    ],
+    "passingScore": 60
+  }
+]

@@ -25,7 +25,7 @@ interface ConfirmDialogProps {
   children?: ReactNode;
 }
 
-// Konfirmasi untuk aksi final (CLAUDE.md 9.2): mulai tenggat, submit, dan sejenisnya.
+// Konfirmasi untuk aksi final (CLAUDE.md 9.2): mulai mengerjakan, submit, dan sejenisnya.
 export function ConfirmDialog({
   isOpen,
   onOpenChange,

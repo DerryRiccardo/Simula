@@ -14,7 +14,6 @@ export function CaseHeader({ detail }: { detail: ICaseDetail }) {
   const isAi = detail.tier === 'ai';
 
   const facts = [
-    { label: 'Durasi', value: detail.durationLabel },
     { label: 'Deliverable', value: String(detail.deliverableCount) },
     { label: 'Level', value: CASE_LEVEL_LABEL[detail.level] },
     { label: 'Peserta', value: formatNumber(detail.participantCount) },

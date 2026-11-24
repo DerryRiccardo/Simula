@@ -1,26 +1,15 @@
-import { differenceInCalendarDays } from 'date-fns';
-
 import { StatusBadge, TierBadge } from './Badges';
 import { FIELD_BY_KEY } from '@/constants/fields';
-import { formatDate, formatDeadline } from '@/lib/formatters';
-import { cn } from '@/lib/utils';
-import type { ICaseDetail, IEnrollment, TEnrollmentStatus } from '@/types';
-
-// Tenggat hanya relevan selama peserta masih mengerjakan; saat direview, waktunya milik reviewer.
-const DEADLINE_STATUSES: TEnrollmentStatus[] = ['in_progress', 'revision_requested'];
+import type { ICaseDetail, IEnrollment } from '@/types';
 
 interface CaseProgressHeaderProps {
   caseInfo: ICaseDetail;
   enrollment: IEnrollment;
 }
 
-// Header halaman pengerjaan dan status: tier, status, judul case, mitra, dan tenggat bila ada.
+// Header halaman pengerjaan dan status: tier, status, judul case, dan mitra.
 export function CaseProgressHeader({ caseInfo, enrollment }: CaseProgressHeaderProps) {
   const field = FIELD_BY_KEY[caseInfo.fieldKey];
-  const deadlineAt = DEADLINE_STATUSES.includes(enrollment.status) ? enrollment.deadlineAt : null;
-  const isUrgent = deadlineAt
-    ? differenceInCalendarDays(new Date(deadlineAt), new Date()) <= 2
-    : false;
 
   return (
     <header className="flex flex-col gap-5 border-b border-line pb-6 md:flex-row md:items-end md:justify-between">
@@ -40,23 +29,6 @@ export function CaseProgressHeader({ caseInfo, enrollment }: CaseProgressHeaderP
           </p>
         )}
       </div>
-
-      {deadlineAt && (
-        <dl className="shrink-0 md:text-right">
-          <dt className="text-xs text-ink-subtle">Tenggat</dt>
-          <dd className="mt-0.5 font-mono text-sm text-ink tabular-nums">
-            {formatDate(deadlineAt)}
-          </dd>
-          <dd
-            className={cn(
-              'font-mono text-xs tabular-nums',
-              isUrgent ? 'font-semibold text-brand' : 'text-ink-muted'
-            )}
-          >
-            {formatDeadline(deadlineAt)}
-          </dd>
-        </dl>
-      )}
     </header>
   );
 }

@@ -175,7 +175,6 @@ type CaseBriefResponse struct {
 	Rubric       []RubricCriterionResponse `json:"rubric"`
 	Slots        []SlotResponse            `json:"slots"`
 	PassingScore int                       `json:"passingScore"`
-	DeadlineDays *int                      `json:"deadlineDays"`
 }
 
 // WorkspaceResponse adalah ICaseWorkspace. brief null bila peserta belum mulai atau membayar.
@@ -381,7 +380,6 @@ func mapBriefWithDownloads(c entity.Case, materialURLs map[string]string) CaseBr
 		Rubric:       mapRubric(c.Rubric),
 		Slots:        mapSlots(c.EffectiveSlots()),
 		PassingScore: c.PassingScore,
-		DeadlineDays: c.DeadlineDays,
 	}
 	for _, task := range c.Tasks {
 		brief.Tasks = append(brief.Tasks, TaskResponse{Title: task.Title, Description: task.Description})

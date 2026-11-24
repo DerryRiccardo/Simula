@@ -120,8 +120,8 @@ func (env *caseEnv) expectStored(c entity.Case, total, started int) {
 func completeAIInput() entity.AdminCaseInput {
 	return entity.AdminCaseInput{
 		Tier: entity.TierAI, Title: "  Optimasi API Endpoint  ", FieldKey: "backend", Level: entity.CaseLevelBeginner,
-		DurationLabel: "3-4 jam", Summary: "Endpoint katalog produk melambat saat traffic naik.",
-		About: "Kamu bergabung sebagai backend engineer di tim katalog.", Activities: "Profiling query\nRefactor endpoint",
+		Summary: "Endpoint katalog produk melambat saat traffic naik.",
+		About:   "Kamu bergabung sebagai backend engineer di tim katalog.", Activities: "Profiling query\nRefactor endpoint",
 		Skills: "SQL, Go", Context: "Endpoint GET /api/products butuh 3-5 detik saat traffic naik di jam sibuk.",
 		Tasks: []entity.AdminCaseTask{{Title: "Cari akar masalah", Description: "Profil query lambat."}},
 		Slots: []entity.AdminCaseSlot{{Title: "Kode sumber", Kind: entity.SlotKindFile, IsRequired: true, Formats: "zip", MaxSizeMb: 20}},
@@ -191,7 +191,7 @@ func TestSaveCase_PublishBuildsCase(t *testing.T) {
 	}).Return(0, nil)
 
 	in := completeAIInput()
-	in.Price, in.DeadlineDays, in.PartnerID = 50000, 7, partnerID // diabaikan untuk AI case
+	in.Price, in.PartnerID = 50000, partnerID // diabaikan untuk AI case
 	_, err := env.uc.SaveCase(asAdmin(), "", in, true)
 
 	require.NoError(t, err)
@@ -276,7 +276,7 @@ func TestSaveCase_StructureLock(t *testing.T) {
 func TestSaveCase_B2BReferencesAndPartnerConflict(t *testing.T) {
 	b2bInput := func() entity.AdminCaseInput {
 		in := completeAIInput()
-		in.Tier, in.Price, in.DeadlineDays, in.PartnerID, in.ReviewerRole = entity.TierB2B, 150000, 7, partnerID, "Senior Backend Engineer"
+		in.Tier, in.Price, in.PartnerID, in.ReviewerRole = entity.TierB2B, 150000, partnerID, "Senior Backend Engineer"
 		return in
 	}
 

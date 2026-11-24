@@ -118,7 +118,7 @@ func TestRetry(t *testing.T) {
 		env.enrollments.On("GetByIDForUser", mock.Anything, studentID, enrollmentID).
 			Return(enrollmentWith(c, entity.EnrollmentFailed), nil)
 		env.cases.On("GetByID", mock.Anything, aiCaseID).Return(c, nil)
-		env.enrollments.On("Retry", mock.Anything, enrollmentID, (*time.Time)(nil), testNow).Return(nil)
+		env.enrollments.On("Retry", mock.Anything, enrollmentID, testNow).Return(nil)
 		env.enrollments.On("GetForUser", mock.Anything, studentID, enrollmentID).
 			Return(enrollmentWith(c, entity.EnrollmentInProgress), nil)
 
@@ -135,8 +135,7 @@ func TestRetry(t *testing.T) {
 		env.enrollments.On("GetByIDForUser", mock.Anything, studentID, enrollmentID).
 			Return(enrollmentWith(c, entity.EnrollmentFailed), nil)
 		env.cases.On("GetByID", mock.Anything, b2bCaseID).Return(c, nil)
-		wantDeadline := entity.RetryDeadline(entity.TierB2B, testNow)
-		env.enrollments.On("Retry", mock.Anything, enrollmentID, wantDeadline, testNow).Return(nil)
+		env.enrollments.On("Retry", mock.Anything, enrollmentID, testNow).Return(nil)
 		env.enrollments.On("GetForUser", mock.Anything, studentID, enrollmentID).
 			Return(enrollmentWith(c, entity.EnrollmentInProgress), nil)
 
@@ -157,7 +156,7 @@ func TestRetry(t *testing.T) {
 		_, err := env.uc.Retry(asStudent(), enrollmentID)
 
 		requireKind(t, err, apperror.KindConflict)
-		env.enrollments.AssertNotCalled(t, "Retry", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+		env.enrollments.AssertNotCalled(t, "Retry", mock.Anything, mock.Anything, mock.Anything)
 	})
 
 	t.Run("not failed", func(t *testing.T) {

@@ -34,8 +34,7 @@ const B2B_SIMULATIONS: ISimulation[] = [
     outcome: 'revision',
     label: 'Kembalikan untuk revisi',
     title: 'Kembalikan submission untuk revisi?',
-    description:
-      'Status berubah menjadi Perlu revisi dengan catatan reviewer contoh, dan tenggat tambahan 3 hari.',
+    description: 'Status berubah menjadi Perlu revisi dengan catatan reviewer contoh.',
   },
 ];
 

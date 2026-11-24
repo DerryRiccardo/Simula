@@ -21,11 +21,9 @@ const bounded = (key: INumberSettingMeta['key']) => {
 export const settingsSchema = z.object({
   reviewSlaDays: bounded('reviewSlaDays'),
   maxRevisions: bounded('maxRevisions'),
-  revisionExtraDays: bounded('revisionExtraDays'),
   recommendationThreshold: bounded('recommendationThreshold'),
   passingScoreAi: bounded('passingScoreAi'),
   passingScoreB2b: bounded('passingScoreB2b'),
-  b2bStartWindowDays: bounded('b2bStartWindowDays'),
   paymentWindowHours: bounded('paymentWindowHours'),
   whatsappNumber: z
     .string()

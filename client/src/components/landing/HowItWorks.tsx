@@ -74,7 +74,7 @@ export function HowItWorks() {
               Lima langkah, dari memilih <Highlight>sampai bersertifikat</Highlight>
             </>
           }
-          description="Alurnya sama sederhananya untuk kedua produk. Bedanya ada pada siapa yang menilai dan berapa lama kamu mengerjakan."
+          description="Alurnya sama sederhananya untuk kedua produk. Bedanya ada pada siapa yang menilai dan proses evaluasinya."
         />
 
         <Reveal delay={0.1} className="mt-12">

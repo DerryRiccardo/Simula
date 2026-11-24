@@ -692,11 +692,9 @@ func MapAdminFields(items []entity.AdminField) []AdminFieldResponse {
 type PlatformSettingsPayload struct {
 	ReviewSlaDays           int    `json:"reviewSlaDays"`
 	MaxRevisions            int    `json:"maxRevisions"`
-	RevisionExtraDays       int    `json:"revisionExtraDays"`
 	RecommendationThreshold int    `json:"recommendationThreshold"`
 	PassingScoreAI          int    `json:"passingScoreAi"`
 	PassingScoreB2B         int    `json:"passingScoreB2b"`
-	B2BStartWindowDays      int    `json:"b2bStartWindowDays"`
 	PaymentWindowHours      int    `json:"paymentWindowHours"`
 	WhatsappNumber          string `json:"whatsappNumber"`
 }
@@ -730,11 +728,9 @@ func MapSettingsReqToEntity(req PlatformSettingsPayload) entity.PlatformSettings
 		ID:                      true,
 		ReviewSlaDays:           req.ReviewSlaDays,
 		MaxRevisions:            req.MaxRevisions,
-		RevisionExtraDays:       req.RevisionExtraDays,
 		RecommendationThreshold: req.RecommendationThreshold,
 		PassingScoreAI:          req.PassingScoreAI,
 		PassingScoreB2B:         req.PassingScoreB2B,
-		B2BStartWindowDays:      req.B2BStartWindowDays,
 		PaymentWindowHours:      req.PaymentWindowHours,
 		WhatsappNumber:          req.WhatsappNumber,
 	}
@@ -745,11 +741,9 @@ func MapPlatformSettings(s entity.PlatformSettings) PlatformSettingsPayload {
 	return PlatformSettingsPayload{
 		ReviewSlaDays:           s.ReviewSlaDays,
 		MaxRevisions:            s.MaxRevisions,
-		RevisionExtraDays:       s.RevisionExtraDays,
 		RecommendationThreshold: s.RecommendationThreshold,
 		PassingScoreAI:          s.PassingScoreAI,
 		PassingScoreB2B:         s.PassingScoreB2B,
-		B2BStartWindowDays:      s.B2BStartWindowDays,
 		PaymentWindowHours:      s.PaymentWindowHours,
 		WhatsappNumber:          s.WhatsappNumber,
 	}

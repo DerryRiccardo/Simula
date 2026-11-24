@@ -18,21 +18,21 @@ export function HeroVisual() {
       <Float distance={6} duration={6}>
         <div className="rounded-3xl border border-line bg-white p-6 shadow-[0_24px_60px_-24px_rgb(29_78_216/0.25)]">
           <div className="flex items-center gap-3">
-            <span className="rounded-full bg-ai-soft px-2.5 py-1 text-[0.6875rem] font-semibold text-ai">
-              AI Case Study
+            <span className="rounded-full bg-b2b-soft px-2.5 py-1 text-[0.6875rem] font-semibold text-b2b">
+              B2B Case Study
             </span>
           </div>
           <p className="mt-4 text-base font-semibold text-ink">
-            Optimasi API Endpoint Produk yang Lambat
+            Strategi Peluncuran Produk &amp; Retensi Pelanggan
           </p>
-          <p className="mt-1 text-xs text-ink-subtle">Back-End Developer</p>
+          <p className="mt-1 text-xs text-ink-subtle">Perusahaan Mitra · Lintas Bidang</p>
 
           <div className="mt-5 flex items-center gap-5 rounded-2xl bg-surface-soft p-4">
             <ScoreRing score={86} />
             <div>
               <p className="text-sm font-semibold text-ink">Lulus</p>
               <p className="mt-0.5 text-xs leading-relaxed text-ink-muted">
-                Solusi caching tepat. Perjelas alasan pemilihan index database.
+                Analisis akar masalah tajam dan solusi realistis. Lengkapi proyeksi dampak bisnisnya.
               </p>
             </div>
           </div>
@@ -58,12 +58,12 @@ export function HeroVisual() {
         delay={0.3}
       >
         <div className="flex items-center gap-3 rounded-2xl border border-line bg-white px-4 py-3 shadow-lg shadow-ink/5">
-          <span className="grid size-9 place-items-center rounded-xl bg-ai-soft text-ai">
+          <span className="grid size-9 place-items-center rounded-xl bg-b2b-soft text-b2b">
             <Award className="size-4" />
           </span>
           <div>
             <p className="text-xs font-semibold text-ink">Sertifikat terbit</p>
-            <p className="text-[0.6875rem] text-ink-subtle">Bisa diverifikasi</p>
+            <p className="text-[0.6875rem] text-ink-subtle">Berlogo perusahaan mitra</p>
           </div>
         </div>
       </Float>

@@ -1,13 +1,17 @@
 import {
   BarChart3,
+  Briefcase,
   Calculator,
+  CheckCircle2,
   Code2,
   LayoutTemplate,
   Megaphone,
   Monitor,
   PenTool,
   Scale,
+  ServerCog,
   Shapes,
+  ShieldCheck,
   Smartphone,
   Truck,
   Users,
@@ -41,8 +45,8 @@ export const FIELD_OPTIONS: IFieldOption[] = [
   },
   {
     key: 'product',
-    label: 'Product',
-    description: 'Prioritas fitur, PRD, metrik',
+    label: 'Product Management',
+    description: 'Prioritas fitur, PRD, timeline, koordinasi tim',
     icon: LayoutTemplate,
   },
   { key: 'marketing', label: 'Marketing', description: 'Kampanye, kanal, KPI', icon: Megaphone },
@@ -66,6 +70,30 @@ export const FIELD_OPTIONS: IFieldOption[] = [
     icon: Truck,
   },
   { key: 'legal', label: 'Legal', description: 'Kontrak, kepatuhan, regulasi', icon: Scale },
+  {
+    key: 'business-development',
+    label: 'Business Development',
+    description: 'Kemitraan, penjualan, ekspansi pasar',
+    icon: Briefcase,
+  },
+  {
+    key: 'qa',
+    label: 'Quality Assurance',
+    description: 'Pengujian sistem, test case, bug tracking',
+    icon: CheckCircle2,
+  },
+  {
+    key: 'devops',
+    label: 'DevOps',
+    description: 'CI/CD, cloud, infrastruktur, otomasi',
+    icon: ServerCog,
+  },
+  {
+    key: 'cyber-security',
+    label: 'Cyber Security',
+    description: 'Keamanan jaringan, audit, proteksi data',
+    icon: ShieldCheck,
+  },
 ];
 
 export const FIELD_BY_KEY: Record<string, IFieldOption> = Object.fromEntries(

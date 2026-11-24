@@ -22,7 +22,7 @@ go run ./scripts/seed             # opsional: akun development, butuh SEED_PASSW
 go run .
 ```
 
-Seed membuat akun development (password = `SEED_PASSWORD`): `mahasiswa@simula.test`, `reviewer@simula.test`, `admin@simula.test`, serta 12 case contoh (7 AI, 5 B2B, beserta mitra, tugas, slot, dan rubrik) dari `scripts/seed/data/cases.json`. Slug-nya sama dengan data tiruan client. Seed ditolak bila `APP_ENV=production` dan melewati akun atau case yang sudah ada. Setelah `cases.json` diubah, jalankan `go run ./scripts/seed -refresh-cases` untuk mengganti isi case contoh yang belum punya enrollment atau order. Seed juga memberi akun mahasiswa satu B2B case berstatus "Belum dimulai" (`mencegah-overselling-flash-sale`, dianggap sudah dibayar) untuk mencoba alur B2B sebelum checkout tersedia.
+Seed membuat akun development (password = `SEED_PASSWORD`): mahasiswa `rahma.aulia@gmail.com`, admin `adminsimula@gmail.com`, dan 18 reviewer mitra (`nama.belakang@gmail.com`). Email sengaja dibuat terlihat asli karena notifikasi email belum dikirim. Seed juga membuat 10 mitra dan 16 AI case dari `scripts/seed/data/ai_cases.json`, ditolak bila `APP_ENV=production`, dan melewati akun atau case yang sudah ada. `-refresh-cases` mengganti isi case contoh yang belum punya enrollment atau order. `-with-legacy-cases` ikut memasukkan case lama dari `cases.json` beserta satu B2B case berstatus "Belum dimulai" (`mencegah-overselling-flash-sale`) untuk akun mahasiswa.
 
 Server berjalan di http://localhost:8080. Cek dengan:
 
@@ -30,7 +30,7 @@ Server berjalan di http://localhost:8080. Cek dengan:
 curl http://localhost:8080/api/health/ready
 ```
 
-`APP_MODE` menentukan peran proses: `all` (default lokal: API + worker), `server` (API saja), atau `worker` (Asynq saja). `.env` dibaca otomatis saat lokal; di server, env var diisi platform deploy.
+`APP_MODE` menentukan peran proses: `server` (dipakai di production) dan `all` (default lokal) sama-sama menjalankan API beserta semua job latar belakang di dalam proses (penilaian AI, kedaluwarsa order, pembersihan berkala), jadi tidak perlu worker terpisah. `worker` (Asynq) hanya tersisa untuk kompatibilitas. `.env` dibaca otomatis saat lokal; di server, env var diisi platform deploy.
 
 ## Perintah
 
@@ -125,7 +125,7 @@ Kontrak lengkap: [`docs/openapi.yaml`](docs/openapi.yaml).
 - Bucket private. CORS bucket harus mengizinkan `PUT` dari origin front-end dengan header `content-type`.
 - Alur: client meminta URL ke `POST /api/uploads`, mengunggah langsung ke R2 dengan `PUT`, lalu menyimpan `fileId` di isian slot. Saat submit, server memeriksa setiap berkas di R2 (ada dan ukurannya sama).
 - Key object: `submissions/{enrollmentId}/{attempt}/{slotId}/{fileId}.{ext}`. Nama berkas asli hanya disimpan di database.
-- Berkas yang tidak pernah dipakai di draft atau submission dihapus task worker setiap jam setelah 24 jam.
+- Berkas yang tidak pernah dipakai di draft atau submission dihapus job latar belakang server setiap jam setelah 24 jam.
 
 ## Penilaian AI
 
@@ -171,7 +171,7 @@ Kontrak lengkap: [`docs/openapi.yaml`](docs/openapi.yaml).
 - **Rate limit** (Redis): login 5 kali per 15 menit per email + IP, daftar 10 kali per jam per IP, refresh 30 kali per menit per IP. Bila Redis bermasalah, request tetap dilayani.
 - **Login Google**: Authorization Code + PKCE. Akun dengan email Google yang sama ditautkan otomatis. Gagal → redirect ke `/login?error=google` (atau `account_disabled`).
 - **Grup akses** ada di `router/router.go`: publik, login (peran apa pun), dan per peran (`student`, `reviewer`, `admin`).
-- Refresh token yang sudah kedaluwarsa lebih dari 7 hari dihapus task worker setiap hari pukul 03.00 WIB.
+- Refresh token yang sudah kedaluwarsa lebih dari 7 hari dihapus job latar belakang server setiap 24 jam.
 
 ## Struktur
 

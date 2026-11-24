@@ -198,9 +198,8 @@ export const PRODUCTS: IProductCard[] = [
       'Cocok untuk belajar dan mengenali skill gap-mu lewat case study yang disusun dari kebutuhan umum industri.',
     features: [
       'Dinilai AI berdasarkan rubrik',
-      'Selesai dalam 2–4 jam, sekali submit',
+      'Kerjakan sesuai waktumu, sekali submit',
       'Skor & feedback per kriteria instan',
-      'Ringkasan skill gap pribadi',
       'Sertifikat dari platform',
     ],
     cta: { label: 'Mulai Gratis', href: `${PATHS.cases}?tier=ai` },
@@ -215,13 +214,12 @@ export const PRODUCTS: IProductCard[] = [
       'Untuk kamu yang siap membuktikan kompetensi lewat brief nyata dari perusahaan mitra.',
     features: [
       'Dinilai praktisi perusahaan mitra',
-      'Dikerjakan 3–7 hari, bisa dicicil',
       'Feedback personal dari reviewer',
       'Sertifikat resmi berlogo mitra',
       'Kesempatan masuk daftar prioritas interview',
     ],
-    cta: { label: 'Lihat B2B Case Study', href: `${PATHS.cases}?tier=b2b` },
     note: 'Pembelian tidak menjamin panggilan interview. Kesempatan ditentukan oleh skor dan rekomendasi reviewer.',
+    cta: { label: 'Lihat B2B Case Study', href: `${PATHS.cases}?tier=b2b` },
   },
 ];
 
@@ -236,12 +234,12 @@ export const STEPS: Record<TTier, IStep[]> = {
     {
       icon: UserRoundPlus,
       title: 'Daftar & pilih bidang',
-      description: 'Tentukan bidang yang ingin kamu tekuni.',
+      description: 'Buat akun dan tentukan bidang yang ingin kamu tekuni.',
     },
     {
       icon: FileSearch,
       title: 'Pilih case gratis',
-      description: 'Telusuri katalog AI Case Study di bidangmu.',
+      description: 'Telusuri dan pilih AI Case Study gratis di bidangmu.',
     },
     {
       icon: Send,
@@ -251,39 +249,40 @@ export const STEPS: Record<TTier, IStep[]> = {
     {
       icon: Sparkles,
       title: 'Dinilai AI',
-      description: 'Skor dan feedback per kriteria keluar dalam hitungan menit.',
+      description: 'AI menilai hasilmu dengan skor dan feedback per kriteria secara instan.',
     },
     {
       icon: Award,
       title: 'Hasil & sertifikat',
-      description: 'Kenali skill gap-mu, lalu lanjut ke case berikutnya.',
+      description: 'Lihat hasil penilaian dan unduh sertifikat dari platform.',
     },
   ],
   b2b: [
     {
       icon: Building2,
       title: 'Pilih case B2B',
-      description: 'Lihat ringkasan case, perusahaan mitra, dan harga.',
+      description: 'Telusuri brief perusahaan mitra dan pilih case B2B yang sesuai.',
     },
     {
       icon: CreditCard,
       title: 'Bayar akses',
-      description: 'Case langsung masuk ke daftar Case Saya.',
+      description: 'Selesaikan pembayaran agar case langsung terbuka di Case Saya.',
     },
     {
       icon: ClipboardList,
       title: 'Kerjakan & submit',
-      description: 'Kerjakan beberapa deliverable dalam 3–7 hari, bisa disimpan sebagai draft.',
+      description: 'Kerjakan deliverable sesuai waktumu, simpan draft, lalu submit hasilnya.',
     },
     {
       icon: UserCheck,
       title: 'Review praktisi',
-      description: 'Dinilai dengan rubrik berbobot. Jika belum lengkap, kamu diminta revisi.',
+      description: 'Praktisi perusahaan mitra menilai hasilmu sesuai rubrik, dengan opsi revisi.',
     },
     {
       icon: BadgeCheck,
       title: 'Sertifikat & feedback',
-      description: 'Skor tinggi berkesempatan masuk daftar prioritas interview mitra.',
+      description:
+        'Dapatkan feedback personal, sertifikat berlogo mitra, dan kesempatan masuk daftar prioritas interview.',
     },
   ],
 };
@@ -366,7 +365,7 @@ export const FAQS = [
     id: 'beda-ai-b2b',
     question: 'Apa bedanya AI Case Study dan B2B Case Study?',
     answer:
-      'AI Case Study disusun tim kami dan dinilai AI secara instan, cocok untuk belajar. B2B Case Study berasal dari perusahaan mitra, dikerjakan 3–7 hari, dan dinilai langsung oleh praktisi perusahaan tersebut.',
+      'AI Case Study disusun tim kami dan dinilai AI secara instan, cocok untuk belajar. B2B Case Study berasal dari perusahaan mitra, dikerjakan fleksibel tanpa tenggat waktu, dan dinilai langsung oleh praktisi perusahaan tersebut.',
   },
   {
     id: 'penilaian-b2b',

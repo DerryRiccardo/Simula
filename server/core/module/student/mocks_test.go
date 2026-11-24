@@ -110,8 +110,8 @@ func (m *mockEnrollmentRepo) FindWithCertificate(ctx context.Context, userID, ca
 	return args.Get(0).(entity.Enrollment), args.Error(1)
 }
 
-func (m *mockEnrollmentRepo) Start(ctx context.Context, enrollmentID string, startedAt time.Time, deadlineAt *time.Time) error {
-	return m.Called(ctx, enrollmentID, startedAt, deadlineAt).Error(0)
+func (m *mockEnrollmentRepo) Start(ctx context.Context, enrollmentID string, startedAt time.Time) error {
+	return m.Called(ctx, enrollmentID, startedAt).Error(0)
 }
 
 type mockCertificateRepo struct {
@@ -201,8 +201,8 @@ func (m *mockEnrollmentRepo) GetByIDWithCase(ctx context.Context, enrollmentID s
 	return args.Get(0).(entity.Enrollment), args.Error(1)
 }
 
-func (m *mockEnrollmentRepo) Retry(ctx context.Context, enrollmentID string, deadlineAt *time.Time, now time.Time) error {
-	return m.Called(ctx, enrollmentID, deadlineAt, now).Error(0)
+func (m *mockEnrollmentRepo) Retry(ctx context.Context, enrollmentID string, now time.Time) error {
+	return m.Called(ctx, enrollmentID, now).Error(0)
 }
 
 func (m *mockCertificateRepo) GetByPublicID(ctx context.Context, publicID string) (entity.Certificate, error) {
@@ -272,8 +272,8 @@ func (m *mockGradingRepo) CreateRun(ctx context.Context, run *entity.AIGradingRu
 	return args.Bool(0), args.Error(1)
 }
 
-func (m *mockEnrollmentRepo) ActivatePaid(ctx context.Context, enrollmentID string, startBy, now time.Time) error {
-	return m.Called(ctx, enrollmentID, startBy, now).Error(0)
+func (m *mockEnrollmentRepo) ActivatePaid(ctx context.Context, enrollmentID string, now time.Time) error {
+	return m.Called(ctx, enrollmentID, now).Error(0)
 }
 
 func (m *mockStorage) PresignDownload(ctx context.Context, key, fileName string, ttl time.Duration) (string, error) {

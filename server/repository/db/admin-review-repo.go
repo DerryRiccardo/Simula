@@ -25,6 +25,7 @@ func InitAdminReviewRepo(db *gorm.DB) coreRepo.AdminReviewRepository {
 
 func (r *adminReviewRepo) enrollments(ctx context.Context) *gorm.DB {
 	return r.db.WithContext(ctx).
+		Select("enrollments.*").
 		Preload("Case", func(tx *gorm.DB) *gorm.DB { return tx.Select(caseSummaryColumns) }).
 		Preload("Case.Partner").
 		Preload("Certificate").

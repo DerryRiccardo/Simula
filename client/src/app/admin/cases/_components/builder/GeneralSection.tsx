@@ -122,13 +122,6 @@ export function GeneralSection({ isTierLocked }: { isTierLocked: boolean }) {
             ))}
           </NativeSelect>
         </div>
-        <TextField
-          id="case-duration"
-          label="Durasi"
-          placeholder="3-4 jam"
-          error={errors.durationLabel?.message}
-          {...register('durationLabel')}
-        />
       </div>
 
       <TextareaField

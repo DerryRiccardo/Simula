@@ -144,7 +144,7 @@ func (uc *resultUseCase) Retry(ctx context.Context, enrollmentID string) (entity
 	}
 
 	now := uc.Now()
-	err = uc.Enrollments.Retry(ctx, enrollment.ID, entity.RetryDeadline(c.Tier, now), now)
+	err = uc.Enrollments.Retry(ctx, enrollment.ID, now)
 	if errors.Is(err, coreErrors.ErrStatusConflict) {
 		return entity.Enrollment{}, apperror.Conflict(msgNotFailed)
 	}

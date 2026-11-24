@@ -3,7 +3,6 @@ package app
 import (
 	"fmt"
 
-	"github.com/hibiken/asynq"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 
@@ -15,7 +14,6 @@ import (
 	studentHandler "github.com/DerryRiccardo/Simula/server/handler/student"
 	"github.com/DerryRiccardo/Simula/server/pkg/llm"
 	dbRepo "github.com/DerryRiccardo/Simula/server/repository/db"
-	"github.com/DerryRiccardo/Simula/server/task"
 )
 
 // newLLM memilih penilai sesuai LLM_PROVIDER. Nil berarti penilaian AI nonaktif.
@@ -37,8 +35,8 @@ func newLLM(cfg *config.Config) (coreRepo.LLM, error) {
 	}
 }
 
-// newGradingService dipakai worker: menilai per kriteria lalu memfinalkan lewat hook.OnReviewed.
-func newGradingService(cfg *config.Config, db *gorm.DB, client *asynq.Client, store coreRepo.ObjectReader, model coreRepo.LLM) *sharedModule.GradingService {
+// newGradingService dipakai untuk menilai per kriteria lalu memfinalkan lewat hook.OnReviewed.
+func newGradingService(db *gorm.DB, queue coreRepo.GradingQueue, store coreRepo.ObjectReader, model coreRepo.LLM) *sharedModule.GradingService {
 	hook := newReviewHook(db)
 	return sharedModule.NewGradingService(sharedModule.GradingDeps{
 		Grading:    dbRepo.InitGradingRepo(db),
@@ -46,7 +44,7 @@ func newGradingService(cfg *config.Config, db *gorm.DB, client *asynq.Client, st
 		Files:      dbRepo.InitFileRepo(db),
 		Storage:    store,
 		LLM:        model,
-		Queue:      task.NewGradingQueue(client, cfg.QueueName),
+		Queue:      queue,
 		OnReviewed: hook.OnReviewed,
 	})
 }

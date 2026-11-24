@@ -1,7 +1,6 @@
 package app
 
 import (
-	"github.com/hibiken/asynq"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 
@@ -13,7 +12,6 @@ import (
 	studentHandler "github.com/DerryRiccardo/Simula/server/handler/student"
 	"github.com/DerryRiccardo/Simula/server/pkg/midtrans"
 	dbRepo "github.com/DerryRiccardo/Simula/server/repository/db"
-	"github.com/DerryRiccardo/Simula/server/task"
 )
 
 // paymentComponents berbagi satu instance gateway: gateway palsu menyimpan status transaksi di
@@ -37,11 +35,9 @@ func newPayments(cfg *config.Config, db *gorm.DB) paymentComponents {
 		components.gateway = midtrans.Disabled{}
 	}
 	orders := dbRepo.InitOrderRepo(db)
-	platform := dbRepo.InitPlatformRepo(db)
 	hook := hookModule.NewOrderHook(hookModule.OrderHookDeps{
 		Orders:      orders,
 		Enrollments: dbRepo.InitEnrollmentRepo(db),
-		Platform:    platform,
 	})
 	components.service = sharedModule.NewPaymentService(sharedModule.PaymentDeps{
 		Orders:      orders,
@@ -51,7 +47,7 @@ func newPayments(cfg *config.Config, db *gorm.DB) paymentComponents {
 	return components
 }
 
-func newCheckoutHandler(cfg *config.Config, db *gorm.DB, payments paymentComponents, client *asynq.Client) *studentHandler.CheckoutHandler {
+func newCheckoutHandler(db *gorm.DB, payments paymentComponents, queue coreRepo.OrderQueue) *studentHandler.CheckoutHandler {
 	uc := studentModule.InitCheckoutUseCase(studentModule.CheckoutDeps{
 		Cases:       dbRepo.InitCaseRepo(db),
 		Enrollments: dbRepo.InitEnrollmentRepo(db),
@@ -60,7 +56,7 @@ func newCheckoutHandler(cfg *config.Config, db *gorm.DB, payments paymentCompone
 		Gateway:     payments.gateway,
 		Simulator:   payments.simulator,
 		Payments:    payments.service,
-		Queue:       task.NewOrderQueue(client, cfg.QueueName),
+		Queue:       queue,
 		Platform:    dbRepo.InitPlatformRepo(db),
 	})
 	return studentHandler.Checkout(uc)

@@ -18,7 +18,7 @@ import { createPageMetadata } from '@/lib/seo';
 import { FAQS } from './_data';
 
 export const metadata = createPageMetadata({
-  title: `${SITE.name} — ${SITE.tagline}`,
+  title: SITE.name,
   path: PATHS.home,
   isAbsoluteTitle: true,
 });
